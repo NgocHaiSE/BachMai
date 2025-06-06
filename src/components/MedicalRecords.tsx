@@ -25,25 +25,25 @@ export default function MedicalRecords() {
     try {
       if (editingRecord) {
         await updateRecord({ id: editingRecord._id, ...formData });
-        toast.success("Medical record updated successfully");
+        toast.success("Cập nhật hồ sơ bệnh án thành công");
       } else {
         await createRecord({ ...formData, patientId: selectedPatientId as Id<"patients"> });
-        toast.success("Medical record created successfully");
+        toast.success("Tạo hồ sơ bệnh án thành công");
       }
       setShowForm(false);
       setEditingRecord(null);
     } catch (error) {
-      toast.error("Failed to save medical record");
+      toast.error("Lưu hồ sơ bệnh án thất bại");
     }
   };
 
   const handleDelete = async (id: Id<"medicalRecords">) => {
-    if (confirm("Are you sure you want to delete this medical record?")) {
+    if (confirm("Bạn có chắc chắn muốn xóa hồ sơ bệnh án này?")) {
       try {
         await deleteRecord({ id });
-        toast.success("Medical record deleted successfully");
+        toast.success("Xóa hồ sơ bệnh án thành công");
       } catch (error) {
-        toast.error("Failed to delete medical record");
+        toast.error("Xóa hồ sơ bệnh án thất bại");
       }
     }
   };
@@ -56,7 +56,7 @@ export default function MedicalRecords() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Medical Records</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Hồ Sơ Bệnh Án</h2>
         {selectedPatientId && (
           <button
             onClick={() => {
@@ -65,7 +65,7 @@ export default function MedicalRecords() {
             }}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Add Medical Record
+            Thêm Hồ Sơ Bệnh Án
           </button>
         )}
       </div>
@@ -73,13 +73,13 @@ export default function MedicalRecords() {
       {/* Patient Selection */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="flex items-center space-x-4">
-          <label className="text-sm font-medium text-gray-700">Select Patient:</label>
+          <label className="text-sm font-medium text-gray-700">Chọn bệnh nhân:</label>
           <select
             value={selectedPatientId}
             onChange={(e) => setSelectedPatientId(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">Choose a patient</option>
+            <option value="">Chọn một bệnh nhân</option>
             {patients?.map((patient) => (
               <option key={patient._id} value={patient._id}>
                 {patient.firstName} {patient.lastName} - {patient.phone}
@@ -93,24 +93,24 @@ export default function MedicalRecords() {
         <>
           {/* Patient Info */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Patient Information</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Thông Tin Bệnh Nhân</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <p className="text-sm text-gray-600">Name</p>
+                <p className="text-sm text-gray-600">Họ và tên</p>
                 <p className="font-medium">{selectedPatient.firstName} {selectedPatient.lastName}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Date of Birth</p>
+                <p className="text-sm text-gray-600">Ngày sinh</p>
                 <p className="font-medium">{selectedPatient.dateOfBirth}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Blood Type</p>
-                <p className="font-medium">{selectedPatient.bloodType || "N/A"}</p>
+                <p className="text-sm text-gray-600">Nhóm máu</p>
+                <p className="font-medium">{selectedPatient.bloodType || "Chưa xác định"}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Allergies</p>
+                <p className="text-sm text-gray-600">Dị ứng</p>
                 <p className="font-medium">
-                  {selectedPatient.allergies?.length ? selectedPatient.allergies.join(", ") : "None"}
+                  {selectedPatient.allergies?.length ? selectedPatient.allergies.join(", ") : "Không có"}
                 </p>
               </div>
             </div>
@@ -119,12 +119,12 @@ export default function MedicalRecords() {
           {/* Medical Records */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Medical Records</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Hồ Sơ Bệnh Án</h3>
             </div>
             <div className="divide-y divide-gray-200">
               {records?.length === 0 ? (
                 <div className="p-6 text-center text-gray-500">
-                  No medical records found for this patient.
+                  Chưa có hồ sơ bệnh án cho bệnh nhân này.
                 </div>
               ) : (
                 records?.map((record) => (
@@ -139,10 +139,14 @@ export default function MedicalRecords() {
                             record.recordType === "treatment" ? "bg-purple-100 text-purple-800" :
                             "bg-gray-100 text-gray-800"
                           }`}>
-                            {record.recordType}
+                            {record.recordType === "diagnosis" ? "Chẩn đoán" :
+                             record.recordType === "prescription" ? "Kê đơn thuốc" :
+                             record.recordType === "test-result" ? "Kết quả xét nghiệm" :
+                             record.recordType === "treatment" ? "Điều trị" :
+                             "Ghi chú"}
                           </span>
                           <span className="text-sm text-gray-500">
-                            {new Date(record._creationTime).toLocaleDateString()}
+                            {new Date(record._creationTime).toLocaleDateString('vi-VN')}
                           </span>
                         </div>
                         <h4 className="text-lg font-medium text-gray-900 mb-2">{record.title}</h4>
@@ -150,14 +154,14 @@ export default function MedicalRecords() {
                         
                         {record.diagnosis && (
                           <div className="mb-3">
-                            <p className="text-sm font-medium text-gray-900">Diagnosis:</p>
+                            <p className="text-sm font-medium text-gray-900">Chẩn đoán:</p>
                             <p className="text-gray-700">{record.diagnosis}</p>
                           </div>
                         )}
 
                         {record.prescription && record.prescription.length > 0 && (
                           <div className="mb-3">
-                            <p className="text-sm font-medium text-gray-900">Prescription:</p>
+                            <p className="text-sm font-medium text-gray-900">Đơn thuốc:</p>
                             <div className="space-y-1">
                               {record.prescription.map((med: any, index: number) => (
                                 <div key={index} className="text-sm text-gray-700">
@@ -171,19 +175,19 @@ export default function MedicalRecords() {
 
                         {record.testResults && (
                           <div className="mb-3">
-                            <p className="text-sm font-medium text-gray-900">Test Results:</p>
+                            <p className="text-sm font-medium text-gray-900">Kết quả xét nghiệm:</p>
                             <div className="text-sm text-gray-700">
-                              <p><span className="font-medium">Test:</span> {record.testResults.testName}</p>
-                              <p><span className="font-medium">Results:</span> {record.testResults.results}</p>
+                              <p><span className="font-medium">Xét nghiệm:</span> {record.testResults.testName}</p>
+                              <p><span className="font-medium">Kết quả:</span> {record.testResults.results}</p>
                               {record.testResults.normalRange && (
-                                <p><span className="font-medium">Normal Range:</span> {record.testResults.normalRange}</p>
+                                <p><span className="font-medium">Giá trị bình thường:</span> {record.testResults.normalRange}</p>
                               )}
                             </div>
                           </div>
                         )}
 
                         <p className="text-sm text-gray-500">
-                          By: Dr. {record.staff?.firstName} {record.staff?.lastName}
+                          Bởi: BS. {record.staff?.firstName} {record.staff?.lastName}
                         </p>
                       </div>
                       <div className="flex space-x-2 ml-4">
@@ -191,13 +195,13 @@ export default function MedicalRecords() {
                           onClick={() => handleEdit(record)}
                           className="text-blue-600 hover:text-blue-900 text-sm"
                         >
-                          Edit
+                          Sửa
                         </button>
                         <button
                           onClick={() => handleDelete(record._id)}
                           className="text-red-600 hover:text-red-900 text-sm"
                         >
-                          Delete
+                          Xóa
                         </button>
                       </div>
                     </div>
@@ -280,14 +284,14 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            {record ? "Edit Medical Record" : "Add New Medical Record"}
+            {record ? "Sửa Hồ Sơ Bệnh Án" : "Thêm Hồ Sơ Bệnh Án Mới"}
           </h3>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Doctor
+                  Bác sĩ
                 </label>
                 <select
                   required
@@ -295,35 +299,35 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
                   onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="">Select Doctor</option>
+                  <option value="">Chọn bác sĩ</option>
                   {staff.filter((s: any) => s.role === "doctor").map((doctor: any) => (
                     <option key={doctor._id} value={doctor._id}>
-                      Dr. {doctor.firstName} {doctor.lastName}
+                      BS. {doctor.firstName} {doctor.lastName}
                     </option>
                   ))}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Record Type
+                  Loại hồ sơ
                 </label>
                 <select
                   value={formData.recordType}
                   onChange={(e) => setFormData({ ...formData, recordType: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="note">Note</option>
-                  <option value="diagnosis">Diagnosis</option>
-                  <option value="prescription">Prescription</option>
-                  <option value="test-result">Test Result</option>
-                  <option value="treatment">Treatment</option>
+                  <option value="note">Ghi chú</option>
+                  <option value="diagnosis">Chẩn đoán</option>
+                  <option value="prescription">Kê đơn thuốc</option>
+                  <option value="test-result">Kết quả xét nghiệm</option>
+                  <option value="treatment">Điều trị</option>
                 </select>
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Title
+                Tiêu đề
               </label>
               <input
                 type="text"
@@ -336,7 +340,7 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
+                Mô tả
               </label>
               <textarea
                 required
@@ -350,7 +354,7 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
             {(formData.recordType === "diagnosis" || formData.recordType === "treatment") && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Diagnosis
+                  Chẩn đoán
                 </label>
                 <textarea
                   value={formData.diagnosis}
@@ -364,7 +368,7 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
             {formData.recordType === "prescription" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Prescription
+                  Đơn thuốc
                 </label>
                 
                 {/* Current medications */}
@@ -380,7 +384,7 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
                           onClick={() => removeMedication(index)}
                           className="text-red-600 hover:text-red-800 text-sm"
                         >
-                          Remove
+                          Xóa
                         </button>
                       </div>
                     ))}
@@ -391,28 +395,28 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <input
                     type="text"
-                    placeholder="Medication"
+                    placeholder="Tên thuốc"
                     value={newMedication.medication}
                     onChange={(e) => setNewMedication({ ...newMedication, medication: e.target.value })}
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <input
                     type="text"
-                    placeholder="Dosage"
+                    placeholder="Liều dùng"
                     value={newMedication.dosage}
                     onChange={(e) => setNewMedication({ ...newMedication, dosage: e.target.value })}
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <input
                     type="text"
-                    placeholder="Frequency"
+                    placeholder="Tần suất"
                     value={newMedication.frequency}
                     onChange={(e) => setNewMedication({ ...newMedication, frequency: e.target.value })}
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <input
                     type="text"
-                    placeholder="Duration"
+                    placeholder="Thời gian"
                     value={newMedication.duration}
                     onChange={(e) => setNewMedication({ ...newMedication, duration: e.target.value })}
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -423,7 +427,7 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
                   onClick={addMedication}
                   className="text-blue-600 hover:text-blue-800 text-sm"
                 >
-                  Add Medication
+                  Thêm thuốc
                 </button>
               </div>
             )}
@@ -432,7 +436,7 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Test Name
+                    Tên xét nghiệm
                   </label>
                   <input
                     type="text"
@@ -443,7 +447,7 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Results
+                    Kết quả
                   </label>
                   <textarea
                     value={testResults.results}
@@ -454,7 +458,7 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Normal Range
+                    Giá trị bình thường
                   </label>
                   <input
                     type="text"
@@ -472,13 +476,13 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
                 onClick={onCancel}
                 className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 type="submit"
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                {record ? "Update" : "Create"} Record
+                {record ? "Cập nhật" : "Tạo"} Hồ Sơ
               </button>
             </div>
           </form>

@@ -46,6 +46,7 @@ export const create = mutation({
     department: v.string(),
     specialization: v.optional(v.string()),
     licenseNumber: v.optional(v.string()),
+    isActive: v.boolean(),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);

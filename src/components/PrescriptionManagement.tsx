@@ -19,25 +19,25 @@ export default function PrescriptionManagement() {
     try {
       if (editingPrescription) {
         await updatePrescription({ id: editingPrescription._id, ...formData });
-        toast.success("Prescription updated successfully");
+        toast.success("Cập nhật đơn thuốc thành công");
       } else {
         await createPrescription(formData);
-        toast.success("Prescription created successfully");
+        toast.success("Tạo đơn thuốc thành công");
       }
       setShowForm(false);
       setEditingPrescription(null);
     } catch (error) {
-      toast.error("Failed to save prescription");
+      toast.error("Lưu đơn thuốc thất bại");
     }
   };
 
   const handleDelete = async (id: Id<"prescriptions">) => {
-    if (confirm("Are you sure you want to delete this prescription?")) {
+    if (confirm("Bạn có chắc chắn muốn xóa đơn thuốc này?")) {
       try {
         await deletePrescription({ id });
-        toast.success("Prescription deleted successfully");
+        toast.success("Xóa đơn thuốc thành công");
       } catch (error) {
-        toast.error("Failed to delete prescription");
+        toast.error("Xóa đơn thuốc thất bại");
       }
     }
   };
@@ -55,7 +55,7 @@ export default function PrescriptionManagement() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Prescription Management</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Quản Lý Đơn Thuốc</h2>
         <button
           onClick={() => {
             setEditingPrescription(null);
@@ -63,7 +63,7 @@ export default function PrescriptionManagement() {
           }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
         >
-          Create New Prescription
+          Tạo Đơn Thuốc Mới
         </button>
       </div>
 
@@ -74,28 +74,28 @@ export default function PrescriptionManagement() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Prescription Code
+                  Mã Đơn Thuốc
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Patient Name
+                  Tên Bệnh Nhân
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phone Number
+                  Số Điện Thoại
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date Created
+                  Ngày Tạo
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Diagnosis
+                  Chẩn Đoán
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Doctor Name
+                  Bác Sĩ
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Notes
+                  Ghi Chú
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                  Thao Tác
                 </th>
               </tr>
             </thead>
@@ -129,7 +129,7 @@ export default function PrescriptionManagement() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      Dr. {prescription.staff?.firstName} {prescription.staff?.lastName}
+                      BS. {prescription.staff?.firstName} {prescription.staff?.lastName}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -142,19 +142,19 @@ export default function PrescriptionManagement() {
                       onClick={() => handleView(prescription)}
                       className="text-green-600 hover:text-green-900 mr-3"
                     >
-                      View
+                      Xem
                     </button>
                     <button
                       onClick={() => handleEdit(prescription)}
                       className="text-blue-600 hover:text-blue-900 mr-3"
                     >
-                      Edit
+                      Sửa
                     </button>
                     <button
                       onClick={() => handleDelete(prescription._id)}
                       className="text-red-600 hover:text-red-900"
                     >
-                      Delete
+                      Xóa
                     </button>
                   </td>
                 </tr>
@@ -204,14 +204,14 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
 
   const calculateTotals = (medications: any[]) => {
     const totalAmount = medications.reduce((sum, med) => sum + med.totalPrice, 0);
-    const insuranceAmount = totalAmount * 0.8; // 80% insurance coverage
+    const insuranceAmount = totalAmount * 0.8; // 80% bảo hiểm chi trả
     const finalAmount = totalAmount - insuranceAmount;
     return { totalAmount, insuranceAmount, finalAmount };
   };
 
   const addMedication = () => {
     if (!newMedication.medicineCode || !newMedication.medicineName) {
-      toast.error("Please fill in medicine code and name");
+      toast.error("Vui lòng nhập mã thuốc và tên thuốc");
       return;
     }
 
@@ -254,7 +254,7 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.medications.length === 0) {
-      toast.error("Please add at least one medication");
+      toast.error("Vui lòng thêm ít nhất một loại thuốc");
       return;
     }
 
@@ -273,7 +273,7 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold text-gray-900">
-              {prescription ? "Prescription Details" : "Create New Prescription"}
+              {prescription ? "Chi Tiết Đơn Thuốc" : "Tạo Đơn Thuốc Mới"}
             </h3>
             <button
               onClick={onCancel}
@@ -286,24 +286,24 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* General Information */}
+            {/* Thông tin chung */}
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="text-md font-medium text-gray-900 mb-4">General Information</h4>
+              <h4 className="text-md font-medium text-gray-900 mb-4">Thông Tin Chung</h4>
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Prescription Code
+                    Mã Đơn Thuốc
                   </label>
                   <input
                     type="text"
-                    value={prescription?.prescriptionCode || "Auto-generated"}
+                    value={prescription?.prescriptionCode || "Tự động tạo"}
                     readOnly
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Doctor Name
+                    Bác Sĩ
                   </label>
                   <select
                     required
@@ -311,17 +311,17 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
                     onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="">Select Doctor</option>
+                    <option value="">Chọn bác sĩ</option>
                     {staff.map((doctor: any) => (
                       <option key={doctor._id} value={doctor._id}>
-                        Dr. {doctor.firstName} {doctor.lastName}
+                        BS. {doctor.firstName} {doctor.lastName}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Patient Name
+                    Bệnh Nhân
                   </label>
                   <select
                     required
@@ -329,7 +329,7 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
                     onChange={(e) => setFormData({ ...formData, patientId: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="">Select Patient</option>
+                    <option value="">Chọn bệnh nhân</option>
                     {patients.map((patient: any) => (
                       <option key={patient._id} value={patient._id}>
                         {patient.firstName} {patient.lastName}
@@ -342,7 +342,7 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
               <div className="grid grid-cols-3 gap-4 mt-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Insurance Number
+                    Số Bảo Hiểm
                   </label>
                   <input
                     type="text"
@@ -353,7 +353,7 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone Number
+                    Số Điện Thoại
                   </label>
                   <input
                     type="text"
@@ -364,7 +364,7 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Address
+                    Địa Chỉ
                   </label>
                   <input
                     type="text"
@@ -378,7 +378,7 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Diagnosis
+                    Chẩn Đoán
                   </label>
                   <textarea
                     required
@@ -390,7 +390,7 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Notes
+                    Ghi Chú
                   </label>
                   <textarea
                     value={formData.notes}
@@ -402,16 +402,16 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
               </div>
             </div>
 
-            {/* Medication List */}
+            {/* Danh sách thuốc */}
             <div>
-              <h4 className="text-md font-medium text-gray-900 mb-4">Medication List</h4>
+              <h4 className="text-md font-medium text-gray-900 mb-4">Danh Sách Thuốc</h4>
               
-              {/* Add/Edit Medication Form */}
+              {/* Form thêm/sửa thuốc */}
               <div className="bg-blue-50 p-4 rounded-lg mb-4">
                 <div className="grid grid-cols-4 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Medicine Code
+                      Mã Thuốc
                     </label>
                     <input
                       type="text"
@@ -422,7 +422,7 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Medicine Name
+                      Tên Thuốc
                     </label>
                     <input
                       type="text"
@@ -433,7 +433,7 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Quantity
+                      Số Lượng
                     </label>
                     <input
                       type="number"
@@ -452,7 +452,7 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Expiry Date
+                      Hạn Sử Dụng
                     </label>
                     <input
                       type="date"
@@ -465,24 +465,24 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
                 <div className="grid grid-cols-4 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Dosage
+                      Cách Dùng
                     </label>
                     <input
                       type="text"
                       value={newMedication.dosage}
                       onChange={(e) => setNewMedication({ ...newMedication, dosage: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="e.g., 1 tablet twice daily"
+                      placeholder="VD: 1 viên uống 2 lần/ngày"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Unit Price
+                      Đơn Giá (VNĐ)
                     </label>
                     <input
                       type="number"
                       min="0"
-                      step="0.01"
+                      step="1000"
                       value={newMedication.unitPrice}
                       onChange={(e) => {
                         const unitPrice = parseFloat(e.target.value);
@@ -497,7 +497,7 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Total Price
+                      Thành Tiền (VNĐ)
                     </label>
                     <input
                       type="number"
@@ -512,43 +512,43 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
                       onClick={addMedication}
                       className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
                     >
-                      {editingMedicationIndex !== null ? "Update" : "Add"} Medicine
+                      {editingMedicationIndex !== null ? "Cập nhật" : "Thêm"} Thuốc
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* Medications Table */}
+              {/* Bảng thuốc */}
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        No.
+                        STT
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Medicine Code
+                        Mã Thuốc
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Medicine Name
+                        Tên Thuốc
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Quantity
+                        Số Lượng
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Expiry Date
+                        Hạn SD
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Dosage
+                        Cách Dùng
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Unit Price
+                        Đơn Giá
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Total Price
+                        Thành Tiền
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
+                        Thao Tác
                       </th>
                     </tr>
                   </thead>
@@ -574,10 +574,10 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
                           {medication.dosage}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                          ${medication.unitPrice.toFixed(2)}
+                          {medication.unitPrice.toLocaleString('vi-VN')} đ
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                          ${medication.totalPrice.toFixed(2)}
+                          {medication.totalPrice.toLocaleString('vi-VN')} đ
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                           <button
@@ -585,14 +585,14 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
                             onClick={() => editMedication(index)}
                             className="text-blue-600 hover:text-blue-900 mr-3"
                           >
-                            Edit
+                            Sửa
                           </button>
                           <button
                             type="button"
                             onClick={() => removeMedication(index)}
                             className="text-red-600 hover:text-red-900"
                           >
-                            Delete
+                            Xóa
                           </button>
                         </td>
                       </tr>
@@ -602,38 +602,38 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
               </div>
             </div>
 
-            {/* Total Summary */}
+            {/* Tổng kết */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Total Amount
+                    Tổng Tiền
                   </label>
                   <input
                     type="text"
-                    value={`$${totalAmount.toFixed(2)}`}
+                    value={`${totalAmount.toLocaleString('vi-VN')} đ`}
                     readOnly
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 font-semibold"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Insurance Amount (80%)
+                    Bảo Hiểm Chi Trả (80%)
                   </label>
                   <input
                     type="text"
-                    value={`$${insuranceAmount.toFixed(2)}`}
+                    value={`${insuranceAmount.toLocaleString('vi-VN')} đ`}
                     readOnly
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 font-semibold"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Final Amount
+                    Bệnh Nhân Trả
                   </label>
                   <input
                     type="text"
-                    value={`$${finalAmount.toFixed(2)}`}
+                    value={`${finalAmount.toLocaleString('vi-VN')} đ`}
                     readOnly
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 font-bold text-lg"
                   />
@@ -647,13 +647,13 @@ function PrescriptionForm({ prescription, patients, staff, onSubmit, onCancel }:
                 onClick={onCancel}
                 className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 type="submit"
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                {prescription ? "Update" : "Create"} Prescription
+                {prescription ? "Cập nhật" : "Tạo"} Đơn Thuốc
               </button>
             </div>
           </form>
