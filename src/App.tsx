@@ -37,7 +37,8 @@ import {
   TrendingUp,
   User,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  LogOut,
 } from "lucide-react";
 import ExaminationRegistration from "./components/ExaminationRegistration";
 
@@ -63,7 +64,7 @@ const menuItems: MenuItem[] = [
   },
   {
     id: "schedule",
-    name: "Lịch làm việc",
+    name: "Đăng ký & Lịch khám",
     icon: CalendarDays,
     color: "text-green-600",
     children: [
@@ -170,6 +171,12 @@ const menuItems: MenuItem[] = [
     name: "Cài đặt",
     icon: Settings,
     color: "text-gray-600"
+  },
+  {
+    id: "logout",
+    name: "Đăng xuất",
+    icon: LogOut,
+    color: "text-gray-600"
   }
 ];
 
@@ -244,35 +251,24 @@ function HospitalApp() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40 backdrop-blur-md bg-white/95">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center mr-3 shadow-md">
-                <Activity className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">MediCare</h1>
-                <p className="text-xs text-gray-500 hidden sm:block">Hệ Thống Quản Lý Bệnh Viện</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="hidden md:block text-right">
-                <p className="text-sm text-gray-600">Xin chào,</p>
-                <p className="text-sm font-medium text-gray-900">{loggedInUser?.email}</p>
-              </div>
-              <SignOutButton />
-            </div>
-          </div>
-        </div>
-      </header>
 
       <div className="flex">
         {/* Sidebar */}
-        <nav className="w-72 bg-white shadow-sm min-h-screen border-r border-gray-200 sticky top-16">
-          <div className="p-6">
-            <ul className="space-y-2">
+        <nav className="w-72 bg-[#280559] min-h-screen sticky top-16 shadow-xl rounded-tr-[32px] rounded-br-[32px] ">
+          {/* Sidebar Header */}
+          <div className="p-6 border-b border-white/10">
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center mr-3 border border-white/20">
+                <Activity className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h2 className="text-white font-bold text-lg leading-tight">BỆNH VIỆN<br/>BẠCH MAI</h2>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4">
+            <ul className="space-y-1">
               {menuItems.map((item) => {
                 const IconComponent = item.icon;
                 const isExpanded = expandedMenus.includes(item.id);
@@ -283,28 +279,30 @@ function HospitalApp() {
                   <li key={item.id}>
                     <button
                       onClick={() => handleMenuClick(item.id, !!hasChildren)}
-                      className={`w-full flex items-center justify-between px-4 py-3.5 text-left rounded-xl transition-all duration-200 group ${
+                      className={`w-full flex items-center justify-between px-4 py-4 text-left transition-all duration-200 group ${
                         isActive
-                          ? "bg-blue-50 text-blue-700 border border-blue-200 shadow-sm"
-                          : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                          ? "bg-white/90 text-[#280559] rounded-xl shadow-lg font-medium"
+                          : "text-white hover:bg-white/10 hover:text-white rounded-lg"
                       }`}
                     >
                       <div className="flex items-center">
                         <IconComponent 
                           className={`mr-3 h-5 w-5 transition-colors ${
-                            isActive ? "text-blue-600" : `${item.color} group-hover:${item.color}`
+                            isActive ? "text-[#280559]" : "text-white/80 group-hover:text-white"
                           }`} 
                         />
-                        <span className="font-medium">{item.name}</span>
+                        <span className={`font-medium ${isActive ? 'text-[#280559]' : 'text-white group-hover:text-white'}`}>
+                          {item.name}
+                        </span>
                       </div>
                       <div className="flex items-center">
                         {isActive && !hasChildren && (
-                          <div className="w-2 h-2 bg-blue-600 rounded-full mr-2"></div>
+                          <div className="w-2 h-2 bg-[#280559] rounded-full mr-2"></div>
                         )}
                         {hasChildren && (
                           <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${
                             isExpanded ? 'rotate-90' : ''
-                          } ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
+                          } ${isActive ? 'text-[#280559]' : 'text-white/80 group-hover:text-white'}`} />
                         )}
                       </div>
                     </button>
@@ -315,16 +313,16 @@ function HospitalApp() {
                         overflow-hidden transition-all duration-300 ease-in-out
                         ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}
                       `}>
-                        <div className="mt-2 ml-6 space-y-1 border-l-2 border-gray-100 pl-4">
+                        <div className="mt-2 ml-6 space-y-1 border-l-2 border-white/20 pl-4">
                           {item.children?.map((subItem) => (
                             <button
                               key={subItem.id}
                               onClick={() => handleSubMenuClick(subItem.id)}
                               className={`
-                                w-full text-left px-4 py-2.5 text-sm rounded-lg transition-all duration-200
+                                w-full text-left px-4 py-3 text-sm rounded-xl transition-all duration-200
                                 ${activeTab === subItem.id 
-                                  ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-sm font-medium' 
-                                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                  ? 'bg-white/90 text-[#280559] shadow-md font-medium' 
+                                  : 'text-white/90 hover:bg-white/10 hover:text-white'
                                 }
                               `}
                             >
@@ -339,7 +337,24 @@ function HospitalApp() {
               })}
             </ul>
           </div>
+
+        {/* User Info */}
+        <div className="p-4 border-t border-white/10">
+          <div className="flex items-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center mr-3">
+              <span className="text-white font-medium text-sm">L</span>
+            </div>
+            <div className="flex-1">
+              <div className="text-white text-sm font-medium">Lê Thị Thủy Nga</div>
+              <div className="text-white/60 text-xs">Nhân viên kỹ thuật</div>
+            </div>
+            <button className="text-white/60 hover:text-white transition-colors">
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
         </nav>
+
 
         {/* Main Content */}
         <main className="flex-1 p-8 bg-gray-50 min-h-screen overflow-auto">

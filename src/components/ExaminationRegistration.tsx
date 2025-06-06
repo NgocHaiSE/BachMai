@@ -27,7 +27,8 @@ import {
   Eye,
   UserPlus,
   Stethoscope,
-  Activity
+  Activity,
+  RefreshCw
 } from "lucide-react";
 
 // Mock data structures - replace with actual Convex queries
@@ -97,6 +98,7 @@ export default function ExaminationRegistration() {
       priority: "Bình thường",
       department: "Nội tổng hợp",
       roomNumber: "101",
+      patientId: "p1",
       createdBy: "user1"
     },
     {
@@ -112,6 +114,7 @@ export default function ExaminationRegistration() {
       priority: "Ưu tiên",
       department: "Tim mạch",
       roomNumber: "205",
+      patientId: "p2",
       createdBy: "user1"
     }
   ];
@@ -139,6 +142,30 @@ export default function ExaminationRegistration() {
         validUntil: "31/12/2025",
         coverage: "80%",
         priority: "Bình thường"
+      }
+    },
+    {
+      _id: "p2",
+      patientCode: "BN002",
+      fullName: "Trần Thị B",
+      idNumber: "987654321",
+      dateOfBirth: "22/07/1990",
+      gender: "Nữ",
+      occupation: "Giáo viên",
+      ethnicity: "Kinh",
+      phone: "0987654321",
+      address: "456 Đường XYZ, Quận 2, TP.HCM",
+      emergencyContact: {
+        name: "Trần Văn D",
+        relationship: "Chồng",
+        phone: "0123456789"
+      },
+      insurance: {
+        number: "DN0987654321",
+        type: "BHYT",
+        validUntil: "31/12/2025",
+        coverage: "80%",
+        priority: "Ưu tiên"
       }
     }
   ];
@@ -175,12 +202,21 @@ export default function ExaminationRegistration() {
 
   const handleEdit = (record: any) => {
     setEditingRecord(record);
+    // Tìm bệnh nhân từ patientId của record
+    const patient = patients.find(p => p._id === record.patientId);
+    setSelectedPatient(patient || null);
     setShowForm(true);
   };
 
   const handleSelectPatient = (patient: Patient) => {
     setSelectedPatient(patient);
     setShowPatientList(false);
+  };
+
+  const handleNewRecord = () => {
+    setEditingRecord(null);
+    setSelectedPatient(null);
+    setShowForm(true);
   };
 
   const getPriorityColor = (priority: string) => {
@@ -205,225 +241,221 @@ export default function ExaminationRegistration() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div className="flex items-center">
-        <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mr-3">
-        <ClipboardList className="w-6 h-6 text-green-600" />
+        <div className="flex items-center">
+          <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mr-3">
+            <ClipboardList className="w-6 h-6 text-green-600" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Đăng Ký Khám Bệnh</h2>
+            <p className="text-gray-600">Quản lý phiếu đăng ký khám bệnh của bệnh nhân</p>
+          </div>
         </div>
-        <div>
-        <h2 className="text-2xl font-bold text-gray-900">Đăng Ký Khám Bệnh</h2>
-        <p className="text-gray-600">Quản lý phiếu đăng ký khám bệnh của bệnh nhân</p>
-        </div>
-      </div>
-      <button
-        onClick={() => {
-        setEditingRecord(null);
-        setSelectedPatient(null);
-        setShowForm(true);
-        }}
-        className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-medium rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-      >
-        <Plus className="w-5 h-5 mr-2" />
-        Đăng Ký Khám Bệnh
-      </button>
+        <button
+          onClick={handleNewRecord}
+          className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-medium rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+        >
+          <Plus className="w-5 h-5 mr-2" />
+          Đăng Ký Khám Bệnh
+        </button>
       </div>
 
       {/* Search and Filter */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1 relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-        <input
-          type="text"
-          placeholder="Tìm kiếm theo số phiếu, tên bệnh nhân, lý do khám..."
-          value={searchTerm}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-        />
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo số phiếu, tên bệnh nhân, lý do khám..."
+              value={searchTerm}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+            />
+          </div>
+          <button className="inline-flex items-center px-4 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors">
+            <Filter className="w-5 h-5 mr-2" />
+            Bộ lọc
+          </button>
         </div>
-        <button className="inline-flex items-center px-4 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors">
-        <Filter className="w-5 h-5 mr-2" />
-        Bộ lọc
-        </button>
-      </div>
-      
-      {filteredRecords && (
-        <div className="mt-4 flex items-center text-sm text-gray-600">
-        <ClipboardList className="w-4 h-4 mr-1" />
-        Tìm thấy {filteredRecords.length} phiếu đăng ký
-        </div>
-      )}
+        
+        {filteredRecords && (
+          <div className="mt-4 flex items-center text-sm text-gray-600">
+            <ClipboardList className="w-4 h-4 mr-1" />
+            Tìm thấy {filteredRecords.length} phiếu đăng ký
+          </div>
+        )}
       </div>
 
       {/* Records List */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      {filteredRecords.length === 0 ? (
-        <div className="text-center py-12">
-        <ClipboardList className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy phiếu đăng ký</h3>
-        <p className="text-gray-600 mb-6">
-          {searchTerm ? "Không có phiếu đăng ký nào phù hợp với từ khóa tìm kiếm" : "Chưa có phiếu đăng ký khám bệnh nào"}
-        </p>
-        <button
-          onClick={() => {
-          setEditingRecord(null);
-          setSelectedPatient(null);
-          setShowForm(true);
-          }}
-          className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Đăng ký khám bệnh đầu tiên
-        </button>
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Thông Tin Phiếu
-            </th>
-            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Bệnh Nhân
-            </th>
-            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Loại Khám
-            </th>
-            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Lý Do Khám
-            </th>
-            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Mức Độ Ưu Tiên
-            </th>
-            <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Thao Tác
-            </th>
-          </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-          {filteredRecords.map((record: ExaminationRecord) => (
-            <tr key={record._id} className="hover:bg-gray-50 transition-colors">
-            <td className="px-6 py-4">
-              <div className="flex items-center">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
-                <FileText className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <div className="text-sm font-medium text-gray-900 flex items-center">
-                <Hash className="w-4 h-4 mr-1 text-gray-400" />
-                {record.recordNumber}
-                </div>
-                <div className="text-sm text-gray-500 flex items-center mt-1">
-                <Clock className="w-4 h-4 mr-1" />
-                {record.registrationTime}
-                </div>
-              </div>
-              </div>
-            </td>
-            <td className="px-6 py-4">
-              <div className="flex items-center">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                <User className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <div className="text-sm font-medium text-gray-900">
-                {record.patientName}
-                </div>
-                <div className="text-sm text-gray-500 mt-1">
-                {record.dateOfBirth} - {record.gender}
-                </div>
-              </div>
-              </div>
-            </td>
-            <td className="px-6 py-4">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getExamTypeColor(record.examType)}`}>
-              {record.examType}
-              </span>
-              <div className="text-sm text-gray-500 mt-1 flex items-center">
-              <Building2 className="w-4 h-4 mr-1" />
-              {record.department} - P.{record.roomNumber}
-              </div>
-            </td>
-            <td className="px-6 py-4">
-              <div className="text-sm text-gray-900 max-w-xs">
-              {record.reason}
-              </div>
-            </td>
-            <td className="px-6 py-4">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getPriorityColor(record.priority)}`}>
-              <AlertTriangle className="w-3 h-3 mr-1" />
-              {record.priority}
-              </span>
-            </td>
-            <td className="px-6 py-4 text-right">
-              <div className="flex items-center justify-end space-x-2">
-              <button
-                onClick={() => handleEdit(record)}
-                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                title="Chỉnh sửa"
-              >
-                <Edit3 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleDelete(record._id)}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                title="Xóa"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-              </div>
-            </td>
-            </tr>
-          ))}
-          </tbody>
-        </table>
-        </div>
-      )}
+        {filteredRecords.length === 0 ? (
+          <div className="text-center py-12">
+            <ClipboardList className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy phiếu đăng ký</h3>
+            <p className="text-gray-600 mb-6">
+              {searchTerm ? "Không có phiếu đăng ký nào phù hợp với từ khóa tìm kiếm" : "Chưa có phiếu đăng ký khám bệnh nào"}
+            </p>
+            <button
+              onClick={handleNewRecord}
+              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Đăng ký khám bệnh đầu tiên
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Thông Tin Phiếu
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Bệnh Nhân
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Loại Khám
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Lý Do Khám
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Mức Độ Ưu Tiên
+                  </th>
+                  <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Thao Tác
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredRecords.map((record: ExaminationRecord) => (
+                  <tr key={record._id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
+                          <FileText className="w-6 h-6 text-green-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 flex items-center">
+                            <Hash className="w-4 h-4 mr-1 text-gray-400" />
+                            {record.recordNumber}
+                          </div>
+                          <div className="text-sm text-gray-500 flex items-center mt-1">
+                            <Clock className="w-4 h-4 mr-1" />
+                            {record.registrationTime}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                          <User className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {record.patientName}
+                          </div>
+                          <div className="text-sm text-gray-500 mt-1">
+                            {record.dateOfBirth} - {record.gender}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getExamTypeColor(record.examType)}`}>
+                        {record.examType}
+                      </span>
+                      <div className="text-sm text-gray-500 mt-1 flex items-center">
+                        <Building2 className="w-4 h-4 mr-1" />
+                        {record.department} - P.{record.roomNumber}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 max-w-xs">
+                        {record.reason}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getPriorityColor(record.priority)}`}>
+                        <AlertTriangle className="w-3 h-3 mr-1" />
+                        {record.priority}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => handleEdit(record)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Chỉnh sửa"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(record._id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Xóa"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Registration Form Modal */}
       {showForm && (
-      <RegistrationForm
-        record={editingRecord}
-        selectedPatient={selectedPatient}
-        onSubmit={handleSubmit}
-        onCancel={() => {
-        setShowForm(false);
-        setEditingRecord(null);
-        setSelectedPatient(null);
-        }}
-        onSelectPatient={() => setShowPatientList(true)}
-      />
+        <RegistrationForm
+          record={editingRecord}
+          selectedPatient={selectedPatient}
+          onSubmit={handleSubmit}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingRecord(null);
+            setSelectedPatient(null);
+          }}
+          onSelectPatient={() => setShowPatientList(true)}
+          onChangePatient={() => {
+            setSelectedPatient(null);
+            setShowPatientList(true);
+          }}
+        />
       )}
 
       {/* Patient List Modal */}
       {showPatientList && (
-      <PatientListModal
-        patients={patients}
-        onSelectPatient={handleSelectPatient}
-        onAddNewPatient={() => {
-        setShowPatientList(false);
-        setShowNewPatientForm(true);
-        }}
-        onCancel={() => setShowPatientList(false)}
-      />
+        <PatientListModal
+          patients={patients}
+          onSelectPatient={handleSelectPatient}
+          onAddNewPatient={() => {
+            setShowPatientList(false);
+            setShowNewPatientForm(true);
+          }}
+          onCancel={() => setShowPatientList(false)}
+        />
       )}
 
       {/* New Patient Form Modal */}
       {showNewPatientForm && (
-      <NewPatientForm
-        onSubmit={(patient: Patient) => {
-        setSelectedPatient(patient);
-        setShowNewPatientForm(false);
-        }}
-        onCancel={() => setShowNewPatientForm(false)}
-      />
+        <NewPatientForm
+          onSubmit={(patient: Patient) => {
+            setSelectedPatient(patient);
+            setShowNewPatientForm(false);
+          }}
+          onCancel={() => setShowNewPatientForm(false)}
+        />
       )}
     </div>
   );
 }
 
-function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelectPatient }: any) {
+function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelectPatient, onChangePatient }: any) {
   const [formData, setFormData] = useState({
     examType: record?.examType || "Khám tổng quát",
     reason: record?.reason || "",
@@ -681,14 +713,25 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
                 <User className="w-5 h-5 mr-2 text-green-600" />
                 B. Thông tin bệnh nhân
               </h4>
-              <button
-                type="button"
-                onClick={onSelectPatient}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Search className="w-4 h-4 mr-2" />
-                Chọn bệnh nhân
-              </button>
+              {selectedPatient ? (
+                <button
+                  type="button"
+                  onClick={onChangePatient}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Thay đổi bệnh nhân
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onSelectPatient}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Search className="w-4 h-4 mr-2" />
+                  Chọn bệnh nhân
+                </button>
+              )}
             </div>
 
             {selectedPatient ? (

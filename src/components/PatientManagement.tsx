@@ -18,7 +18,13 @@ import {
   Save,
   Loader2,
   Users,
-  Filter
+  Filter,
+  FileText,
+  Eye,
+  ChevronRight,
+  Activity,
+  Clock,
+  Stethoscope
 } from "lucide-react";
 
 export default function PatientManagement() {
@@ -61,6 +67,15 @@ export default function PatientManagement() {
   const handleEdit = (patient: any) => {
     setEditingPatient(patient);
     setShowForm(true);
+  };
+
+  // Function để navigate đến trang hồ sơ bệnh án của bệnh nhân
+  const handleViewMedicalRecords = (patient: any) => {
+    // Trong thực tế, bạn có thể sử dụng React Router để navigate
+    // Ở đây tôi sẽ mở modal hoặc cập nhật state để hiển thị medical records
+    window.dispatchEvent(new CustomEvent('viewPatientMedicalRecords', { 
+      detail: { patientId: patient._id, patientName: `${patient.firstName} ${patient.lastName}` }
+    }));
   };
 
   return (
@@ -154,6 +169,9 @@ export default function PatientManagement() {
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Liên Hệ Khẩn Cấp
                   </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Hồ Sơ Bệnh Án
+                  </th>
                   <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Thao Tác
                   </th>
@@ -227,6 +245,27 @@ export default function PatientManagement() {
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
                           {patient.emergencyContact.relationship}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => handleViewMedicalRecords(patient)}
+                        className="inline-flex items-center px-3 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors group"
+                        title="Xem hồ sơ bệnh án"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        <span className="text-sm font-medium">Xem hồ sơ</span>
+                        <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                      </button>
+                      <div className="mt-2">
+                        <div className="flex items-center text-xs text-gray-500">
+                          <Activity className="w-3 h-3 mr-1" />
+                          <span>5 bệnh án</span> {/* Mock data - thay bằng query thực tế */}
+                        </div>
+                        <div className="flex items-center text-xs text-gray-500 mt-1">
+                          <Clock className="w-3 h-3 mr-1" />
+                          <span>Cập nhật: 2 ngày trước</span>
                         </div>
                       </div>
                     </td>
