@@ -3,11 +3,34 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
 import type { Id } from "../../convex/_generated/dataModel";
+import { 
+  FileText, 
+  Plus, 
+  Edit3, 
+  Trash2, 
+  X, 
+  Save, 
+  Loader2,
+  User,
+  Stethoscope,
+  Activity,
+  TestTube,
+  Pill,
+  StickyNote,
+  Calendar,
+  ChevronDown,
+  Search,
+  Filter,
+  Heart,
+  AlertTriangle,
+  Building2
+} from "lucide-react";
 
 export default function MedicalRecords() {
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
   const [showForm, setShowForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const patients = useQuery(api.patients.list);
   const records = useQuery(
@@ -20,6 +43,11 @@ export default function MedicalRecords() {
   const deleteRecord = useMutation(api.medicalRecords.remove);
 
   const selectedPatient = patients?.find(p => p._id === selectedPatientId);
+  const filteredPatients = patients?.filter(patient =>
+    !searchTerm || 
+    `${patient.firstName} ${patient.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    patient.phone.includes(searchTerm)
+  );
 
   const handleSubmit = async (formData: any) => {
     try {
@@ -53,118 +81,233 @@ export default function MedicalRecords() {
     setShowForm(true);
   };
 
+  const getRecordTypeIcon = (type: string) => {
+    switch (type) {
+      case "diagnosis": return <Activity className="w-5 h-5" />;
+      case "prescription": return <Pill className="w-5 h-5" />;
+      case "test-result": return <TestTube className="w-5 h-5" />;
+      case "treatment": return <Stethoscope className="w-5 h-5" />;
+      default: return <StickyNote className="w-5 h-5" />;
+    }
+  };
+
+  const getRecordTypeColor = (type: string) => {
+    switch (type) {
+      case "diagnosis": return "bg-red-100 text-red-800 border-red-200";
+      case "prescription": return "bg-blue-100 text-blue-800 border-blue-200";
+      case "test-result": return "bg-green-100 text-green-800 border-green-200";
+      case "treatment": return "bg-purple-100 text-purple-800 border-purple-200";
+      default: return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const getRecordTypeName = (type: string) => {
+    switch (type) {
+      case "diagnosis": return "Chẩn đoán";
+      case "prescription": return "Kê đơn thuốc";
+      case "test-result": return "Kết quả xét nghiệm";
+      case "treatment": return "Điều trị";
+      default: return "Ghi chú";
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Hồ Sơ Bệnh Án</h2>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center">
+          <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center mr-3">
+            <FileText className="w-6 h-6 text-indigo-600" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Quản Lý Hồ Sơ Bệnh Án</h2>
+            <p className="text-gray-600">Quản lý hồ sơ y tế và theo dõi tiến trình điều trị</p>
+          </div>
+        </div>
         {selectedPatientId && (
           <button
             onClick={() => {
               setEditingRecord(null);
               setShowForm(true);
             }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-medium rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
+            <Plus className="w-5 h-5 mr-2" />
             Thêm Hồ Sơ Bệnh Án
           </button>
         )}
       </div>
 
       {/* Patient Selection */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="flex items-center space-x-4">
-          <label className="text-sm font-medium text-gray-700">Chọn bệnh nhân:</label>
-          <select
-            value={selectedPatientId}
-            onChange={(e) => setSelectedPatientId(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">Chọn một bệnh nhân</option>
-            {patients?.map((patient) => (
-              <option key={patient._id} value={patient._id}>
-                {patient.firstName} {patient.lastName} - {patient.phone}
-              </option>
-            ))}
-          </select>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Tìm kiếm bệnh nhân:</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Tìm theo tên hoặc số điện thoại..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+              />
+            </div>
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Chọn bệnh nhân:</label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <select
+                value={selectedPatientId}
+                onChange={(e) => setSelectedPatientId(e.target.value)}
+                className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors appearance-none"
+              >
+                <option value="">Chọn một bệnh nhân</option>
+                {filteredPatients?.map((patient) => (
+                  <option key={patient._id} value={patient._id}>
+                    {patient.firstName} {patient.lastName} - {patient.phone}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
         </div>
+        
+        {filteredPatients && (
+          <div className="mt-4 flex items-center text-sm text-gray-600">
+            <User className="w-4 h-4 mr-1" />
+            Tìm thấy {filteredPatients.length} bệnh nhân
+          </div>
+        )}
       </div>
 
       {selectedPatient && (
         <>
           {/* Patient Info */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Thông Tin Bệnh Nhân</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <p className="text-sm text-gray-600">Họ và tên</p>
-                <p className="font-medium">{selectedPatient.firstName} {selectedPatient.lastName}</p>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <User className="w-5 h-5 mr-2 text-indigo-600" />
+              Thông Tin Bệnh Nhân
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="flex items-center p-4 bg-blue-50 rounded-xl">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                  <User className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Họ và tên</p>
+                  <p className="font-medium text-gray-900">{selectedPatient.firstName} {selectedPatient.lastName}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Ngày sinh</p>
-                <p className="font-medium">{selectedPatient.dateOfBirth}</p>
+              <div className="flex items-center p-4 bg-green-50 rounded-xl">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                  <Calendar className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Ngày sinh</p>
+                  <p className="font-medium text-gray-900">{selectedPatient.dateOfBirth}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Nhóm máu</p>
-                <p className="font-medium">{selectedPatient.bloodType || "Chưa xác định"}</p>
+              <div className="flex items-center p-4 bg-red-50 rounded-xl">
+                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                  <Heart className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Nhóm máu</p>
+                  <p className="font-medium text-gray-900">{selectedPatient.bloodType || "Chưa xác định"}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Dị ứng</p>
-                <p className="font-medium">
-                  {selectedPatient.allergies?.length ? selectedPatient.allergies.join(", ") : "Không có"}
-                </p>
+              <div className="flex items-center p-4 bg-orange-50 rounded-xl">
+                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
+                  <AlertTriangle className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Dị ứng</p>
+                  <p className="font-medium text-gray-900">
+                    {selectedPatient.allergies?.length ? selectedPatient.allergies.join(", ") : "Không có"}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Medical Records */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Hồ Sơ Bệnh Án</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <FileText className="w-5 h-5 mr-2 text-indigo-600" />
+                  Hồ Sơ Bệnh Án
+                </h3>
+                {records && (
+                  <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium">
+                    {records.length} hồ sơ
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="divide-y divide-gray-200">
-              {records?.length === 0 ? (
-                <div className="p-6 text-center text-gray-500">
-                  Chưa có hồ sơ bệnh án cho bệnh nhân này.
-                </div>
-              ) : (
-                records?.map((record) => (
-                  <div key={record._id} className="p-6 hover:bg-gray-50">
+            
+            {records === undefined ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+              </div>
+            ) : records.length === 0 ? (
+              <div className="text-center py-12">
+                <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có hồ sơ bệnh án</h3>
+                <p className="text-gray-600 mb-6">Chưa có hồ sơ bệnh án nào cho bệnh nhân này</p>
+                <button
+                  onClick={() => {
+                    setEditingRecord(null);
+                    setShowForm(true);
+                  }}
+                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Tạo hồ sơ đầu tiên
+                </button>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {records.map((record) => (
+                  <div key={record._id} className="p-6 hover:bg-gray-50 transition-colors">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            record.recordType === "diagnosis" ? "bg-red-100 text-red-800" :
-                            record.recordType === "prescription" ? "bg-blue-100 text-blue-800" :
-                            record.recordType === "test-result" ? "bg-green-100 text-green-800" :
-                            record.recordType === "treatment" ? "bg-purple-100 text-purple-800" :
-                            "bg-gray-100 text-gray-800"
-                          }`}>
-                            {record.recordType === "diagnosis" ? "Chẩn đoán" :
-                             record.recordType === "prescription" ? "Kê đơn thuốc" :
-                             record.recordType === "test-result" ? "Kết quả xét nghiệm" :
-                             record.recordType === "treatment" ? "Điều trị" :
-                             "Ghi chú"}
+                        <div className="flex items-center space-x-3 mb-3">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getRecordTypeColor(record.recordType)}`}>
+                            {getRecordTypeIcon(record.recordType)}
+                            <span className="ml-2">{getRecordTypeName(record.recordType)}</span>
                           </span>
-                          <span className="text-sm text-gray-500">
+                          <span className="text-sm text-gray-500 flex items-center">
+                            <Calendar className="w-4 h-4 mr-1" />
                             {new Date(record._creationTime).toLocaleDateString('vi-VN')}
                           </span>
                         </div>
+                        
                         <h4 className="text-lg font-medium text-gray-900 mb-2">{record.title}</h4>
-                        <p className="text-gray-700 mb-3">{record.description}</p>
+                        <p className="text-gray-700 mb-4">{record.description}</p>
                         
                         {record.diagnosis && (
-                          <div className="mb-3">
-                            <p className="text-sm font-medium text-gray-900">Chẩn đoán:</p>
-                            <p className="text-gray-700">{record.diagnosis}</p>
+                          <div className="mb-3 p-3 bg-red-50 rounded-lg">
+                            <p className="text-sm font-medium text-red-900 flex items-center mb-1">
+                              <Activity className="w-4 h-4 mr-1" />
+                              Chẩn đoán:
+                            </p>
+                            <p className="text-red-800">{record.diagnosis}</p>
                           </div>
                         )}
 
                         {record.prescription && record.prescription.length > 0 && (
-                          <div className="mb-3">
-                            <p className="text-sm font-medium text-gray-900">Đơn thuốc:</p>
+                          <div className="mb-3 p-3 bg-blue-50 rounded-lg">
+                            <p className="text-sm font-medium text-blue-900 flex items-center mb-2">
+                              <Pill className="w-4 h-4 mr-1" />
+                              Đơn thuốc:
+                            </p>
                             <div className="space-y-1">
                               {record.prescription.map((med: any, index: number) => (
-                                <div key={index} className="text-sm text-gray-700">
+                                <div key={index} className="text-sm text-blue-800 bg-white p-2 rounded border border-blue-200">
                                   <span className="font-medium">{med.medication}</span> - 
                                   {med.dosage}, {med.frequency}, {med.duration}
                                 </div>
@@ -174,41 +317,49 @@ export default function MedicalRecords() {
                         )}
 
                         {record.testResults && (
-                          <div className="mb-3">
-                            <p className="text-sm font-medium text-gray-900">Kết quả xét nghiệm:</p>
-                            <div className="text-sm text-gray-700">
-                              <p><span className="font-medium">Xét nghiệm:</span> {record.testResults.testName}</p>
-                              <p><span className="font-medium">Kết quả:</span> {record.testResults.results}</p>
-                              {record.testResults.normalRange && (
-                                <p><span className="font-medium">Giá trị bình thường:</span> {record.testResults.normalRange}</p>
-                              )}
+                          <div className="mb-3 p-3 bg-green-50 rounded-lg">
+                            <p className="text-sm font-medium text-green-900 flex items-center mb-2">
+                              <TestTube className="w-4 h-4 mr-1" />
+                              Kết quả xét nghiệm:
+                            </p>
+                            <div className="text-sm text-green-800 space-y-1">
+                              <div className="bg-white p-2 rounded border border-green-200">
+                                <p><span className="font-medium">Xét nghiệm:</span> {record.testResults.testName}</p>
+                                <p><span className="font-medium">Kết quả:</span> {record.testResults.results}</p>
+                                {record.testResults.normalRange && (
+                                  <p><span className="font-medium">Giá trị bình thường:</span> {record.testResults.normalRange}</p>
+                                )}
+                              </div>
                             </div>
                           </div>
                         )}
 
-                        <p className="text-sm text-gray-500">
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Building2 className="w-4 h-4 mr-1" />
                           Bởi: BS. {record.staff?.firstName} {record.staff?.lastName}
-                        </p>
+                        </div>
                       </div>
                       <div className="flex space-x-2 ml-4">
                         <button
                           onClick={() => handleEdit(record)}
-                          className="text-blue-600 hover:text-blue-900 text-sm"
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Chỉnh sửa"
                         >
-                          Sửa
+                          <Edit3 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(record._id)}
-                          className="text-red-600 hover:text-red-900 text-sm"
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Xóa"
                         >
-                          Xóa
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -240,6 +391,7 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
     testResults: record?.testResults || null,
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newMedication, setNewMedication] = useState({
     medication: "",
     dosage: "",
@@ -253,13 +405,18 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
     normalRange: record?.testResults?.normalRange || "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const submitData = {
-      ...formData,
-      testResults: formData.recordType === "test-result" && testResults.testName ? testResults : undefined,
-    };
-    onSubmit(submitData);
+    setIsSubmitting(true);
+    try {
+      const submitData = {
+        ...formData,
+        testResults: formData.recordType === "test-result" && testResults.testName ? testResults : undefined,
+      };
+      await onSubmit(submitData);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const addMedication = () => {
@@ -269,6 +426,8 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
         prescription: [...formData.prescription, newMedication]
       });
       setNewMedication({ medication: "", dosage: "", frequency: "", duration: "" });
+    } else {
+      toast.error("Vui lòng nhập tên thuốc và liều dùng");
     }
   };
 
@@ -279,160 +438,233 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
     });
   };
 
+  const recordTypes = [
+    { value: "note", label: "Ghi chú", icon: StickyNote, color: "text-gray-600" },
+    { value: "diagnosis", label: "Chẩn đoán", icon: Activity, color: "text-red-600" },
+    { value: "prescription", label: "Kê đơn thuốc", icon: Pill, color: "text-blue-600" },
+    { value: "test-result", label: "Kết quả xét nghiệm", icon: TestTube, color: "text-green-600" },
+    { value: "treatment", label: "Điều trị", icon: Stethoscope, color: "text-purple-600" },
+  ];
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            {record ? "Sửa Hồ Sơ Bệnh Án" : "Thêm Hồ Sơ Bệnh Án Mới"}
-          </h3>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Bác sĩ
-                </label>
-                <select
-                  required
-                  value={formData.staffId}
-                  onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Chọn bác sĩ</option>
-                  {staff.filter((s: any) => s.role === "doctor").map((doctor: any) => (
-                    <option key={doctor._id} value={doctor._id}>
-                      BS. {doctor.firstName} {doctor.lastName}
-                    </option>
-                  ))}
-                </select>
+      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center mr-3">
+                <FileText className="w-6 h-6 text-indigo-600" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Loại hồ sơ
-                </label>
-                <select
-                  value={formData.recordType}
-                  onChange={(e) => setFormData({ ...formData, recordType: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="note">Ghi chú</option>
-                  <option value="diagnosis">Chẩn đoán</option>
-                  <option value="prescription">Kê đơn thuốc</option>
-                  <option value="test-result">Kết quả xét nghiệm</option>
-                  <option value="treatment">Điều trị</option>
-                </select>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {record ? "Sửa Hồ Sơ Bệnh Án" : "Thêm Hồ Sơ Bệnh Án Mới"}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {record ? "Cập nhật thông tin hồ sơ bệnh án" : "Tạo hồ sơ bệnh án mới"}
+                </p>
               </div>
             </div>
+            <button
+              onClick={onCancel}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Basic Info */}
+          <div>
+            <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <Stethoscope className="w-5 h-5 mr-2 text-indigo-600" />
+              Thông Tin Cơ Bản
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Bác sĩ *
+                </label>
+                <div className="relative">
+                  <Stethoscope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <select
+                    required
+                    value={formData.staffId}
+                    onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
+                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors appearance-none"
+                  >
+                    <option value="">Chọn bác sĩ</option>
+                    {staff.filter((s: any) => s.role === "doctor").map((doctor: any) => (
+                      <option key={doctor._id} value={doctor._id}>
+                        BS. {doctor.firstName} {doctor.lastName}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Loại hồ sơ *
+                </label>
+                <div className="grid grid-cols-1 gap-2">
+                  {recordTypes.map((type) => {
+                    const IconComponent = type.icon;
+                    return (
+                      <label
+                        key={type.value}
+                        className={`flex items-center p-3 border rounded-xl cursor-pointer transition-all ${
+                          formData.recordType === type.value
+                            ? "border-indigo-500 bg-indigo-50"
+                            : "border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="recordType"
+                          value={type.value}
+                          checked={formData.recordType === type.value}
+                          onChange={(e) => setFormData({ ...formData, recordType: e.target.value })}
+                          className="sr-only"
+                        />
+                        <IconComponent className={`w-5 h-5 mr-3 ${type.color}`} />
+                        <span className="font-medium text-gray-900">{type.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
 
+          {/* Title and Description */}
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tiêu đề
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tiêu đề *
               </label>
               <input
                 type="text"
                 required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                placeholder="Nhập tiêu đề hồ sơ"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Mô tả
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Mô tả *
               </label>
               <textarea
                 required
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                 rows={3}
+                placeholder="Mô tả chi tiết về hồ sơ bệnh án"
               />
             </div>
+          </div>
 
-            {(formData.recordType === "diagnosis" || formData.recordType === "treatment") && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Chẩn đoán
-                </label>
-                <textarea
-                  value={formData.diagnosis}
-                  onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  rows={2}
-                />
-              </div>
-            )}
+          {/* Conditional Fields */}
+          {(formData.recordType === "diagnosis" || formData.recordType === "treatment") && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Chẩn đoán
+              </label>
+              <textarea
+                value={formData.diagnosis}
+                onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                rows={3}
+                placeholder="Nhập chẩn đoán chi tiết"
+              />
+            </div>
+          )}
 
-            {formData.recordType === "prescription" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Đơn thuốc
-                </label>
-                
-                {/* Current medications */}
-                {formData.prescription.length > 0 && (
-                  <div className="mb-3 space-y-2">
-                    {formData.prescription.map((med: any, index: number) => (
-                      <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                        <span className="text-sm">
-                          {med.medication} - {med.dosage}, {med.frequency}, {med.duration}
+          {formData.recordType === "prescription" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Đơn thuốc
+              </label>
+              
+              {/* Current medications */}
+              {formData.prescription.length > 0 && (
+                <div className="mb-4 space-y-2">
+                  {formData.prescription.map((med: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between bg-blue-50 p-3 rounded-xl border border-blue-200">
+                      <div className="flex items-center">
+                        <Pill className="w-5 h-5 text-blue-600 mr-3" />
+                        <span className="text-sm text-blue-900">
+                          <span className="font-medium">{med.medication}</span> - {med.dosage}, {med.frequency}, {med.duration}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => removeMedication(index)}
-                          className="text-red-600 hover:text-red-800 text-sm"
-                        >
-                          Xóa
-                        </button>
                       </div>
-                    ))}
-                  </div>
-                )}
+                      <button
+                        type="button"
+                        onClick={() => removeMedication(index)}
+                        className="p-1 text-red-600 hover:bg-red-100 rounded"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-                {/* Add new medication */}
-                <div className="grid grid-cols-2 gap-2 mb-2">
+              {/* Add new medication */}
+              <div className="bg-gray-50 p-4 rounded-xl space-y-3">
+                <h5 className="font-medium text-gray-900">Thêm thuốc mới</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <input
                     type="text"
                     placeholder="Tên thuốc"
                     value={newMedication.medication}
                     onChange={(e) => setNewMedication({ ...newMedication, medication: e.target.value })}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                   <input
                     type="text"
                     placeholder="Liều dùng"
                     value={newMedication.dosage}
                     onChange={(e) => setNewMedication({ ...newMedication, dosage: e.target.value })}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                   <input
                     type="text"
                     placeholder="Tần suất"
                     value={newMedication.frequency}
                     onChange={(e) => setNewMedication({ ...newMedication, frequency: e.target.value })}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                   <input
                     type="text"
                     placeholder="Thời gian"
                     value={newMedication.duration}
                     onChange={(e) => setNewMedication({ ...newMedication, duration: e.target.value })}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
                 <button
                   type="button"
                   onClick={addMedication}
-                  className="text-blue-600 hover:text-blue-800 text-sm"
+                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                 >
+                  <Plus className="w-4 h-4 mr-2" />
                   Thêm thuốc
                 </button>
               </div>
-            )}
+            </div>
+          )}
 
-            {formData.recordType === "test-result" && (
+          {formData.recordType === "test-result" && (
+            <div className="bg-green-50 p-4 rounded-xl space-y-4">
+              <h5 className="font-medium text-gray-900 flex items-center">
+                <TestTube className="w-5 h-5 mr-2 text-green-600" />
+                Thông tin xét nghiệm
+              </h5>
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -442,7 +674,8 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
                     type="text"
                     value={testResults.testName}
                     onChange={(e) => setTestResults({ ...testResults, testName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    placeholder="VD: Xét nghiệm máu"
                   />
                 </div>
                 <div>
@@ -452,8 +685,9 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
                   <textarea
                     value={testResults.results}
                     onChange={(e) => setTestResults({ ...testResults, results: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     rows={2}
+                    placeholder="Nhập kết quả xét nghiệm"
                   />
                 </div>
                 <div>
@@ -464,29 +698,43 @@ function MedicalRecordForm({ record, staff, onSubmit, onCancel }: any) {
                     type="text"
                     value={testResults.normalRange}
                     onChange={(e) => setTestResults({ ...testResults, normalRange: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    placeholder="VD: 4.5 - 5.5 triệu/μL"
                   />
                 </div>
               </div>
-            )}
-
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onCancel}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Hủy
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                {record ? "Cập nhật" : "Tạo"} Hồ Sơ
-              </button>
             </div>
-          </form>
-        </div>
+          )}
+
+          {/* Form Actions */}
+          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors"
+              disabled={isSubmitting}
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Đang lưu...
+                </>
+              ) : (
+                <>
+                  <Save className="w-5 h-5 mr-2" />
+                  {record ? "Cập nhật" : "Tạo"} Hồ Sơ
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
