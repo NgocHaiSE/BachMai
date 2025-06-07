@@ -1,8 +1,4 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { toast } from "sonner";
-import type { Id } from "../../convex/_generated/dataModel";
+import React, { useState } from 'react';
 import { 
   Pill, 
   Plus, 
@@ -28,313 +24,405 @@ import {
   Clock,
   AlertCircle,
   Package,
-  Calculator
-} from "lucide-react";
+  Calculator,
+  Download,
+  CreditCard,
+  Activity
+} from 'lucide-react';
+
+// Mock data cho demo
+const mockPrescriptions = [
+  {
+    _id: "1",
+    prescriptionCode: "DT001",
+    createdDate: "2025-06-07",
+    patient: {
+      firstName: "Nguyễn",
+      lastName: "Văn A",
+      phone: "0123456789",
+      address: "123 Đường ABC, Quận 1, TP.HCM",
+      insuranceNumber: "DN1234567890"
+    },
+    doctor: {
+      firstName: "Trần",
+      lastName: "Thị B",
+      department: "Tim mạch"
+    },
+    diagnosis: "Tăng huyết áp",
+    medications: [
+      {
+        code: "MED001",
+        name: "Amlodipine 5mg",
+        quantity: 30,
+        expiryDate: "2026-12-31",
+        dosage: "1 viên/ngày sau ăn",
+        unitPrice: 15000,
+        totalPrice: 450000
+      }
+    ],
+    totalAmount: 450000,
+    insuranceAmount: 360000,
+    finalAmount: 90000,
+    notes: "Uống đều đặn, tái khám sau 1 tháng"
+  },
+  {
+    _id: "2", 
+    prescriptionCode: "DT002",
+    createdDate: "2025-06-06",
+    patient: {
+      firstName: "Lê",
+      lastName: "Thị C",
+      phone: "0987654321",
+      address: "456 Đường XYZ, Quận 2, TP.HCM",
+      insuranceNumber: "DN0987654321"
+    },
+    doctor: {
+      firstName: "Nguyễn",
+      lastName: "Văn D",
+      department: "Nội tổng hợp"
+    },
+    diagnosis: "Viêm dạ dày",
+    medications: [
+      {
+        code: "MED002",
+        name: "Omeprazole 20mg",
+        quantity: 20,
+        expiryDate: "2026-08-31",
+        dosage: "1 viên/ngày trước ăn",
+        unitPrice: 8000,
+        totalPrice: 160000
+      }
+    ],
+    totalAmount: 160000,
+    insuranceAmount: 128000,
+    finalAmount: 32000,
+    notes: "Uống trước ăn 30 phút"
+  }
+];
+
+const mockMedicines = [
+  { code: "MED001", name: "Amlodipine 5mg", unitPrice: 15000 },
+  { code: "MED002", name: "Omeprazole 20mg", unitPrice: 8000 },
+  { code: "MED003", name: "Metformin 500mg", unitPrice: 12000 },
+  { code: "MED004", name: "Paracetamol 500mg", unitPrice: 5000 },
+  { code: "MED005", name: "Amoxicillin 250mg", unitPrice: 18000 }
+];
+
+const mockPatients = [
+  {
+    _id: "1",
+    firstName: "Nguyễn",
+    lastName: "Văn A", 
+    phone: "0123456789",
+    address: "123 Đường ABC, Quận 1, TP.HCM",
+    insuranceNumber: "DN1234567890"
+  },
+  {
+    _id: "2",
+    firstName: "Lê", 
+    lastName: "Thị C",
+    phone: "0987654321",
+    address: "456 Đường XYZ, Quận 2, TP.HCM", 
+    insuranceNumber: "DN0987654321"
+  }
+];
+
+const mockDoctors = [
+  {
+    _id: "1",
+    firstName: "Trần",
+    lastName: "Thị B",
+    department: "Tim mạch"
+  },
+  {
+    _id: "2", 
+    firstName: "Nguyễn",
+    lastName: "Văn D",
+    department: "Nội tổng hợp"
+  }
+];
 
 export default function PrescriptionManagement() {
+  const [prescriptions, setPrescriptions] = useState(mockPrescriptions);
   const [showForm, setShowForm] = useState(false);
-  const [editingPrescription, setEditingPrescription] = useState<any>(null);
+  const [editingPrescription, setEditingPrescription] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isViewMode, setIsViewMode] = useState(false);
+  const [viewMode, setViewMode] = useState(null); // null, 'detail', 'preview'
 
-  const prescriptions = useQuery(api.prescriptions.list);
-  const patients = useQuery(api.patients.list);
-  const staff = useQuery(api.staff.listByRole, { role: "doctor" });
-  const createPrescription = useMutation(api.prescriptions.create);
-  const updatePrescription = useMutation(api.prescriptions.update);
-  const deletePrescription = useMutation(api.prescriptions.remove);
-
-  const filteredPrescriptions = prescriptions?.filter(prescription =>
+  const filteredPrescriptions = prescriptions.filter(prescription =>
     !searchTerm || 
     prescription.prescriptionCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    `${prescription.patient?.firstName} ${prescription.patient?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    prescription.patient?.phone.includes(searchTerm) ||
+    `${prescription.patient.firstName} ${prescription.patient.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    prescription.patient.phone.includes(searchTerm) ||
     prescription.diagnosis.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleSubmit = async (formData: any) => {
+  const handleSubmit = (formData) => {
     try {
       if (editingPrescription) {
-        await updatePrescription({ id: editingPrescription._id, ...formData });
-        toast.success("Cập nhật đơn thuốc thành công");
+        setPrescriptions(prev => prev.map(p => 
+          p._id === editingPrescription._id ? { ...p, ...formData } : p
+        ));
       } else {
-        await createPrescription(formData);
-        toast.success("Tạo đơn thuốc thành công");
+        const newPrescription = {
+          _id: Date.now().toString(),
+          prescriptionCode: `DT${Date.now().toString().slice(-6)}`,
+          createdDate: new Date().toISOString().split('T')[0],
+          ...formData
+        };
+        setPrescriptions(prev => [...prev, newPrescription]);
       }
       setShowForm(false);
       setEditingPrescription(null);
-      setIsViewMode(false);
+      setViewMode(null);
     } catch (error) {
-      toast.error("Lưu đơn thuốc thất bại");
+      console.error("Error saving prescription:", error);
     }
   };
 
-  const handleDelete = async (id: Id<"prescriptions">) => {
+  const handleDelete = (id) => {
     if (confirm("Bạn có chắc chắn muốn xóa đơn thuốc này?")) {
-      try {
-        await deletePrescription({ id });
-        toast.success("Xóa đơn thuốc thành công");
-      } catch (error) {
-        toast.error("Xóa đơn thuốc thất bại");
-      }
+      setPrescriptions(prev => prev.filter(p => p._id !== id));
     }
   };
 
-  const handleEdit = (prescription: any) => {
+  const handleEdit = (prescription) => {
     setEditingPrescription(prescription);
-    setIsViewMode(false);
+    setViewMode(null);
     setShowForm(true);
   };
 
-  const handleView = (prescription: any) => {
+  const handleView = (prescription, mode) => {
     setEditingPrescription(prescription);
-    setIsViewMode(true);
+    setViewMode(mode);
     setShowForm(true);
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center">
-          <div className="w-10 h-10 bg-pink-100 rounded-xl flex items-center justify-center mr-3">
-            <Pill className="w-6 h-6 text-pink-600" />
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center">
+            <div className="w-12 h-12 bg-pink-100 rounded-2xl flex items-center justify-center mr-4">
+              <Pill className="w-7 h-7 text-pink-600" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Quản Lý Đơn Thuốc</h1>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Quản Lý Đơn Thuốc</h2>
-            <p className="text-gray-600">Quản lý kê đơn và theo dõi thuốc cho bệnh nhân</p>
-          </div>
-        </div>
-        <button
-          onClick={() => {
-            setEditingPrescription(null);
-            setIsViewMode(false);
-            setShowForm(true);
-          }}
-          className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-pink-600 to-pink-700 text-white font-medium rounded-xl hover:from-pink-700 hover:to-pink-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          Tạo Đơn Thuốc Mới
-        </button>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm theo mã đơn, tên bệnh nhân, số điện thoại, chẩn đoán..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
-            />
-          </div>
-          <button className="inline-flex items-center px-4 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors">
-            <Filter className="w-5 h-5 mr-2" />
-            Bộ lọc
+          <button
+            onClick={() => {
+              setEditingPrescription(null);
+              setViewMode(null);
+              setShowForm(true);
+            }}
+            className="inline-flex items-center px-4 py-3 bg-gradient-to-r from-pink-600 to-pink-700 text-white font-semibold rounded-xl hover:from-pink-700 hover:to-pink-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Thêm Đơn Thuốc Mới
           </button>
         </div>
-        
-        {filteredPrescriptions && (
+
+        {/* Search and Filter */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo mã đơn, tên bệnh nhân, số điện thoại, chẩn đoán..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+              />
+            </div>
+            <button className="inline-flex items-center px-4 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors">
+              <Filter className="w-5 h-5 mr-2" />
+              Bộ lọc
+            </button>
+          </div>
+          
           <div className="mt-4 flex items-center text-sm text-gray-600">
             <Pill className="w-4 h-4 mr-1" />
             Tìm thấy {filteredPrescriptions.length} đơn thuốc
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Prescriptions List */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        {filteredPrescriptions === undefined ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
-          </div>
-        ) : filteredPrescriptions.length === 0 ? (
-          <div className="text-center py-12">
-            <Pill className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy đơn thuốc</h3>
-            <p className="text-gray-600 mb-6">
-              {searchTerm ? "Không có đơn thuốc nào phù hợp với từ khóa tìm kiếm" : "Chưa có đơn thuốc nào trong hệ thống"}
-            </p>
-            <button
-              onClick={() => {
-                setEditingPrescription(null);
-                setIsViewMode(false);
-                setShowForm(true);
-              }}
-              className="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Tạo đơn thuốc đầu tiên
-            </button>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Thông Tin Đơn Thuốc
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Bệnh Nhân
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Bác Sĩ
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Chẩn Đoán
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tổng Tiền
-                  </th>
-                  <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Thao Tác
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredPrescriptions.map((prescription) => (
-                  <tr key={prescription._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center mr-4">
-                          <Pill className="w-6 h-6 text-pink-600" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900 flex items-center">
-                            <Hash className="w-4 h-4 mr-1 text-gray-400" />
+        {/* Prescriptions List */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          {filteredPrescriptions.length === 0 ? (
+            <div className="text-center py-12">
+              <Pill className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy đơn thuốc</h3>
+              <p className="text-gray-600 mb-6">
+                {searchTerm ? "Không có đơn thuốc nào phù hợp với từ khóa tìm kiếm" : "Chưa có đơn thuốc nào trong hệ thống"}
+              </p>
+              <button
+                onClick={() => {
+                  setEditingPrescription(null);
+                  setViewMode(null);
+                  setShowForm(true);
+                }}
+                className="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Tạo đơn thuốc đầu tiên
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Mã
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tên Bệnh Nhân
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      SĐT
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ngày Lập
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Chẩn Đoán
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Họ Tên Bác Sĩ
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ghi Chú
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Hành Động
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredPrescriptions.map((prescription) => (
+                    <tr key={prescription._id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center mr-3">
+                            <Hash className="w-5 h-5 text-pink-600" />
+                          </div>
+                          <div className="text-sm font-medium text-gray-900">
                             {prescription.prescriptionCode}
                           </div>
-                          <div className="text-sm text-gray-500 flex items-center mt-1">
-                            <Calendar className="w-4 h-4 mr-1" />
-                            {prescription.prescriptionDate}
-                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                          <User className="w-5 h-5 text-blue-600" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900">
+                          {prescription.patient.firstName} {prescription.patient.lastName}
                         </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {prescription.patient?.firstName} {prescription.patient?.lastName}
-                          </div>
-                          <div className="text-sm text-gray-500 flex items-center mt-1">
-                            <Phone className="w-4 h-4 mr-1" />
-                            {prescription.patient?.phone}
-                          </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">
+                          {prescription.patient.phone}
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                          <Stethoscope className="w-5 h-5 text-green-600" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">
+                          {prescription.createdDate}
                         </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            BS. {prescription.staff?.firstName} {prescription.staff?.lastName}
-                          </div>
-                          <div className="text-sm text-gray-500 flex items-center mt-1">
-                            <Building2 className="w-4 h-4 mr-1" />
-                            {prescription.staff?.department}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="max-w-xs">
-                        <div className="text-sm text-gray-900 truncate" title={prescription.diagnosis}>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 max-w-xs truncate">
                           {prescription.diagnosis}
                         </div>
-                        {prescription.notes && (
-                          <div className="text-sm text-gray-500 truncate mt-1" title={prescription.notes}>
-                            Ghi chú: {prescription.notes}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-gray-900 flex items-center justify-end">
-                          <DollarSign className="w-4 h-4 mr-1 text-green-600" />
-                          {prescription.finalAmount.toLocaleString('vi-VN')} đ
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">
+                          BS. {prescription.doctor.firstName} {prescription.doctor.lastName}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Tổng: {prescription.totalAmount.toLocaleString('vi-VN')} đ
+                        <div className="text-sm text-gray-500">
+                          {prescription.doctor.department}
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        <button
-                          onClick={() => handleView(prescription)}
-                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                          title="Xem chi tiết"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(prescription)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Chỉnh sửa"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(prescription._id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Xóa"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 max-w-xs truncate">
+                          {prescription.notes || "Không có"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          <button
+                            onClick={() => handleView(prescription, 'detail')}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Xem chi tiết"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleView(prescription, 'preview')}
+                            className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                            title="Xem trước phiếu"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(prescription)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Chỉnh sửa"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(prescription._id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Xóa"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Form Modal */}
+        {showForm && (
+          <PrescriptionForm
+            prescription={editingPrescription}
+            viewMode={viewMode}
+            patients={mockPatients}
+            doctors={mockDoctors}
+            medicines={mockMedicines}
+            onSubmit={handleSubmit}
+            onCancel={() => {
+              setShowForm(false);
+              setEditingPrescription(null);
+              setViewMode(null);
+            }}
+          />
         )}
       </div>
-
-      {/* Prescription Form Modal */}
-      {showForm && (
-        <PrescriptionForm
-          prescription={editingPrescription}
-          patients={patients || []}
-          staff={staff || []}
-          isViewMode={isViewMode}
-          setIsViewMode={setIsViewMode}
-          onSubmit={handleSubmit}
-          onCancel={() => {
-            setShowForm(false);
-            setEditingPrescription(null);
-            setIsViewMode(false);
-          }}
-        />
-      )}
     </div>
   );
 }
-function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsViewMode, onSubmit, onCancel }: any) {
+
+function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines, onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
-    patientId: prescription?.patientId || "",
-    staffId: prescription?.staffId || "",
+    doctorId: prescription?.doctor?._id || "",
+    patientId: prescription?.patient?._id || "",
     diagnosis: prescription?.diagnosis || "",
     notes: prescription?.notes || "",
     medications: prescription?.medications || [],
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showMedicineSearch, setShowMedicineSearch] = useState(false);
+  const [medicineSearchTerm, setMedicineSearchTerm] = useState("");
   const [newMedication, setNewMedication] = useState({
-    medicineCode: "",
-    medicineName: "",
+    code: "",
+    name: "",
     quantity: 1,
     expiryDate: "",
     dosage: "",
@@ -342,80 +430,100 @@ function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsView
     totalPrice: 0,
   });
 
-  const [editingMedicationIndex, setEditingMedicationIndex] = useState<number | null>(null);
+  const selectedPatient = patients.find(p => p._id === formData.patientId);
+  const selectedDoctor = doctors.find(d => d._id === formData.doctorId);
 
-  const calculateTotals = (medications: any[]) => {
+  const calculateTotals = (medications) => {
     const totalAmount = medications.reduce((sum, med) => sum + med.totalPrice, 0);
     const insuranceAmount = totalAmount * 0.8; // 80% bảo hiểm chi trả
     const finalAmount = totalAmount - insuranceAmount;
     return { totalAmount, insuranceAmount, finalAmount };
   };
 
+  const { totalAmount, insuranceAmount, finalAmount } = calculateTotals(formData.medications);
+
+  const filteredMedicines = medicines.filter(med =>
+    med.name.toLowerCase().includes(medicineSearchTerm.toLowerCase()) ||
+    med.code.toLowerCase().includes(medicineSearchTerm.toLowerCase())
+  );
+
   const addMedication = () => {
-    if (!newMedication.medicineCode || !newMedication.medicineName) {
-      toast.error("Vui lòng nhập mã thuốc và tên thuốc");
+    if (!newMedication.code || !newMedication.name) {
+      alert("Vui lòng nhập mã thuốc và tên thuốc");
       return;
     }
 
     const totalPrice = newMedication.quantity * newMedication.unitPrice;
     const medicationToAdd = { ...newMedication, totalPrice };
 
-    if (editingMedicationIndex !== null) {
-      const updatedMedications = [...formData.medications];
-      updatedMedications[editingMedicationIndex] = medicationToAdd;
-      setFormData({ ...formData, medications: updatedMedications });
-      setEditingMedicationIndex(null);
-    } else {
-      setFormData({
-        ...formData,
-        medications: [...formData.medications, medicationToAdd],
-      });
-    }
+    setFormData({
+      ...formData,
+      medications: [...formData.medications, medicationToAdd],
+    });
 
     setNewMedication({
-      medicineCode: "",
-      medicineName: "",
+      code: "",
+      name: "",
       quantity: 1,
       expiryDate: "",
       dosage: "",
       unitPrice: 0,
       totalPrice: 0,
     });
+    setShowMedicineSearch(false);
+    setMedicineSearchTerm("");
   };
 
-  const editMedication = (index: number) => {
-    setNewMedication(formData.medications[index]);
-    setEditingMedicationIndex(index);
-  };
-
-  const removeMedication = (index: number) => {
-    const updatedMedications = formData.medications.filter((_: any, i: number) => i !== index);
+  const removeMedication = (index) => {
+    const updatedMedications = formData.medications.filter((_, i) => i !== index);
     setFormData({ ...formData, medications: updatedMedications });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const selectMedicine = (medicine) => {
+    setNewMedication({
+      ...newMedication,
+      code: medicine.code,
+      name: medicine.name,
+      unitPrice: medicine.unitPrice,
+      totalPrice: newMedication.quantity * medicine.unitPrice
+    });
+    setShowMedicineSearch(false);
+    setMedicineSearchTerm("");
+  };
+
+  const handleSubmit = () => {
+    if (viewMode) return; // Không submit khi ở chế độ xem
+    
     if (formData.medications.length === 0) {
-      toast.error("Vui lòng thêm ít nhất một loại thuốc");
+      alert("Vui lòng thêm ít nhất một loại thuốc");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const { totalAmount, insuranceAmount, finalAmount } = calculateTotals(formData.medications);
-      await onSubmit({ ...formData, totalAmount, insuranceAmount, finalAmount });
+      const submitData = {
+        ...formData,
+        patient: selectedPatient,
+        doctor: selectedDoctor,
+        totalAmount,
+        insuranceAmount,
+        finalAmount
+      };
+      onSubmit(submitData);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const { totalAmount, insuranceAmount, finalAmount } = calculateTotals(formData.medications);
-  const selectedPatient = patients.find((p: any) => p._id === formData.patientId);
-  const selectedStaff = staff.find((s: any) => s._id === formData.staffId);
+  const isReadOnly = viewMode === 'detail' || viewMode === 'preview';
+
+  if (viewMode === 'preview') {
+    return <PrintPreview prescription={{ ...prescription, ...formData }} onCancel={onCancel} />;
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-7xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
+      <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -424,10 +532,12 @@ function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsView
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {isViewMode ? "Chi Tiết Đơn Thuốc" : prescription ? "Sửa Đơn Thuốc" : "Tạo Đơn Thuốc Mới"}
+                  {viewMode === 'detail' ? "Chi Tiết Đơn Thuốc" : 
+                   prescription ? "Sửa Đơn Thuốc" : "Thêm Đơn Thuốc Mới"}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  {isViewMode ? "Xem thông tin chi tiết đơn thuốc" : prescription ? "Cập nhật thông tin đơn thuốc" : "Tạo đơn kê thuốc mới cho bệnh nhân"}
+                  {viewMode === 'detail' ? "Xem thông tin chi tiết đơn thuốc" :
+                   prescription ? "Cập nhật thông tin đơn thuốc" : "Tạo đơn kê thuốc mới cho bệnh nhân"}
                 </p>
               </div>
             </div>
@@ -440,7 +550,7 @@ function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsView
           </div>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6">
+        <div className="p-6">
           <div className="space-y-8">
             {/* Thông tin chung */}
             <div className="bg-gray-50 rounded-2xl p-6">
@@ -465,19 +575,19 @@ function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsView
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bác Sĩ *
+                    Họ Tên Bác Sĩ *
                   </label>
                   <div className="relative">
                     <Stethoscope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <select
                       required
-                      value={formData.staffId}
-                      onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
-                      disabled={isViewMode}
+                      value={formData.doctorId}
+                      onChange={(e) => setFormData({ ...formData, doctorId: e.target.value })}
+                      disabled={isReadOnly}
                       className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors appearance-none disabled:bg-gray-100"
                     >
                       <option value="">Chọn bác sĩ</option>
-                      {staff.map((doctor: any) => (
+                      {doctors.map((doctor) => (
                         <option key={doctor._id} value={doctor._id}>
                           BS. {doctor.firstName} {doctor.lastName}
                         </option>
@@ -488,7 +598,7 @@ function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsView
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bệnh Nhân *
+                    Họ Tên Bệnh Nhân *
                   </label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -496,11 +606,11 @@ function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsView
                       required
                       value={formData.patientId}
                       onChange={(e) => setFormData({ ...formData, patientId: e.target.value })}
-                      disabled={isViewMode}
+                      disabled={isReadOnly}
                       className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors appearance-none disabled:bg-gray-100"
                     >
                       <option value="">Chọn bệnh nhân</option>
-                      {patients.map((patient: any) => (
+                      {patients.map((patient) => (
                         <option key={patient._id} value={patient._id}>
                           {patient.firstName} {patient.lastName}
                         </option>
@@ -515,13 +625,13 @@ function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsView
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Số Bảo Hiểm
+                      Số BHYT
                     </label>
                     <div className="relative">
                       <ShieldCheck className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
                         type="text"
-                        value={selectedPatient?.insuranceNumber || "Không có"}
+                        value={selectedPatient.insuranceNumber || "Không có"}
                         readOnly
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                       />
@@ -529,13 +639,13 @@ function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsView
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Số Điện Thoại
+                      Điện Thoại
                     </label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
                         type="text"
-                        value={selectedPatient?.phone || ""}
+                        value={selectedPatient.phone}
                         readOnly
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                       />
@@ -548,7 +658,7 @@ function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsView
                     <div className="relative">
                       <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
                       <textarea
-                        value={selectedPatient?.address || ""}
+                        value={selectedPatient.address}
                         readOnly
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600 resize-none"
                         rows={1}
@@ -561,13 +671,13 @@ function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsView
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Chẩn Đoán *
+                    Chẩn Đoán Bệnh *
                   </label>
                   <textarea
                     required
                     value={formData.diagnosis}
                     onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
-                    disabled={isViewMode}
+                    disabled={isReadOnly}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors disabled:bg-gray-100"
                     rows={3}
                     placeholder="Nhập chẩn đoán"
@@ -580,7 +690,7 @@ function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsView
                   <textarea
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    disabled={isViewMode}
+                    disabled={isReadOnly}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors disabled:bg-gray-100"
                     rows={3}
                     placeholder="Ghi chú thêm"
@@ -591,149 +701,22 @@ function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsView
 
             {/* Danh sách thuốc */}
             <div>
-              <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Package className="w-5 h-5 mr-2 text-pink-600" />
-                Danh Sách Thuốc
-              </h4>
-              
-              {/* Form thêm/sửa thuốc */}
-              {!isViewMode && (
-                <div className="bg-pink-50 rounded-2xl p-6 mb-6">
-                  <h5 className="font-medium text-gray-900 mb-4">
-                    {editingMedicationIndex !== null ? "Sửa thuốc" : "Thêm thuốc mới"}
-                  </h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Mã Thuốc *
-                      </label>
-                      <input
-                        type="text"
-                        value={newMedication.medicineCode}
-                        onChange={(e) => setNewMedication({ ...newMedication, medicineCode: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-                        placeholder="VD: MED001"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Tên Thuốc *
-                      </label>
-                      <input
-                        type="text"
-                        value={newMedication.medicineName}
-                        onChange={(e) => setNewMedication({ ...newMedication, medicineName: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-                        placeholder="Tên thuốc"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Số Lượng *
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={newMedication.quantity}
-                        onChange={(e) => {
-                          const quantity = parseInt(e.target.value);
-                          setNewMedication({ 
-                            ...newMedication, 
-                            quantity,
-                            totalPrice: quantity * newMedication.unitPrice
-                          });
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Hạn Sử Dụng
-                      </label>
-                      <input
-                        type="date"
-                        value={newMedication.expiryDate}
-                        onChange={(e) => setNewMedication({ ...newMedication, expiryDate: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Cách Dùng
-                      </label>
-                      <input
-                        type="text"
-                        value={newMedication.dosage}
-                        onChange={(e) => setNewMedication({ ...newMedication, dosage: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-                        placeholder="VD: 1 viên uống 2 lần/ngày"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Đơn Giá (VNĐ)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1000"
-                        value={newMedication.unitPrice}
-                        onChange={(e) => {
-                          const unitPrice = parseFloat(e.target.value);
-                          setNewMedication({ 
-                            ...newMedication, 
-                            unitPrice,
-                            totalPrice: newMedication.quantity * unitPrice
-                          });
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Thành Tiền (VNĐ)
-                      </label>
-                      <input
-                        type="number"
-                        value={newMedication.totalPrice}
-                        readOnly
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
-                      />
-                    </div>
-                  </div>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-medium text-gray-900 flex items-center">
+                  <Package className="w-5 h-5 mr-2 text-pink-600" />
+                  Danh Sách Thuốc
+                </h4>
+                {!isReadOnly && (
                   <button
                     type="button"
-                    onClick={addMedication}
+                    onClick={() => setShowMedicineSearch(true)}
                     className="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    {editingMedicationIndex !== null ? "Cập nhật" : "Thêm"} Thuốc
+                    Thêm Thuốc
                   </button>
-                  {editingMedicationIndex !== null && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingMedicationIndex(null);
-                        setNewMedication({
-                          medicineCode: "",
-                          medicineName: "",
-                          quantity: 1,
-                          expiryDate: "",
-                          dosage: "",
-                          unitPrice: 0,
-                          totalPrice: 0,
-                        });
-                      }}
-                      className="ml-3 inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                    >
-                      <X className="w-4 h-4 mr-2" />
-                      Hủy sửa
-                    </button>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Bảng thuốc */}
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -747,74 +730,36 @@ function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsView
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            STT
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Mã & Tên Thuốc
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Số Lượng
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Hạn SD
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Cách Dùng
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Đơn Giá
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Thành Tiền
-                          </th>
-                          {!isViewMode && (
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Thao Tác
-                            </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số Lượng</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hạn SD</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Liều Dùng</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đơn Giá</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng Tiền</th>
+                          {!isReadOnly && (
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thao Tác</th>
                           )}
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {formData.medications.map((medication: any, index: number) => (
+                        {formData.medications.map((medication, index) => (
                           <tr key={index} className="hover:bg-gray-50">
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {index + 1}
-                            </td>
-                            <td className="px-4 py-4">
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">
-                                  {medication.medicineName}
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  Mã: {medication.medicineCode}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {medication.quantity}
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {medication.expiryDate || "N/A"}
-                            </td>
-                            <td className="px-4 py-4 text-sm text-gray-900">
-                              {medication.dosage || "N/A"}
-                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
+                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{medication.code}</td>
+                            <td className="px-4 py-4 text-sm text-gray-900">{medication.name}</td>
+                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{medication.quantity}</td>
+                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{medication.expiryDate || "N/A"}</td>
+                            <td className="px-4 py-4 text-sm text-gray-900">{medication.dosage}</td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                               {medication.unitPrice.toLocaleString('vi-VN')} đ
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                               {medication.totalPrice.toLocaleString('vi-VN')} đ
                             </td>
-                            {!isViewMode && (
+                            {!isReadOnly && (
                               <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button
-                                  type="button"
-                                  onClick={() => editMedication(index)}
-                                  className="text-blue-600 hover:text-blue-900 mr-3"
-                                >
-                                  Sửa
-                                </button>
                                 <button
                                   type="button"
                                   onClick={() => removeMedication(index)}
@@ -831,46 +776,42 @@ function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsView
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* Tổng kết */}
-            <div className="bg-gray-50 rounded-2xl p-6">
-              <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Calculator className="w-5 h-5 mr-2 text-pink-600" />
-                Tổng Kết
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-4 rounded-xl border border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Tổng Tiền</p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {totalAmount.toLocaleString('vi-VN')} đ
-                      </p>
+              {/* Tổng tiền */}
+              <div className="mt-6 bg-gray-50 rounded-xl p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white p-4 rounded-xl border">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Tổng Tiền</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          {totalAmount.toLocaleString('vi-VN')} đ
+                        </p>
+                      </div>
+                      <DollarSign className="w-8 h-8 text-blue-600" />
                     </div>
-                    <DollarSign className="w-8 h-8 text-blue-600" />
                   </div>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Bảo Hiểm (80%)</p>
-                      <p className="text-2xl font-bold text-green-600">
-                        {insuranceAmount.toLocaleString('vi-VN')} đ
-                      </p>
+                  <div className="bg-white p-4 rounded-xl border">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Số Tiền BHYT Trả</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {insuranceAmount.toLocaleString('vi-VN')} đ
+                        </p>
+                      </div>
+                      <ShieldCheck className="w-8 h-8 text-green-600" />
                     </div>
-                    <ShieldCheck className="w-8 h-8 text-green-600" />
                   </div>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-pink-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-pink-600">Bệnh Nhân Trả</p>
-                      <p className="text-3xl font-bold text-pink-600">
-                        {finalAmount.toLocaleString('vi-VN')} đ
-                      </p>
+                  <div className="bg-white p-4 rounded-xl border border-pink-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-pink-600">Thành Tiền</p>
+                        <p className="text-3xl font-bold text-pink-600">
+                          {finalAmount.toLocaleString('vi-VN')} đ
+                        </p>
+                      </div>
+                      <Calculator className="w-8 h-8 text-pink-600" />
                     </div>
-                    <Calculator className="w-8 h-8 text-pink-600" />
                   </div>
                 </div>
               </div>
@@ -878,18 +819,33 @@ function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsView
           </div>
 
           {/* Form Actions */}
-          {!isViewMode && (
-            <div className="flex justify-end space-x-4 pt-8 border-t border-gray-200 mt-8">
+          <div className="flex justify-end space-x-4 pt-8 border-t border-gray-200 mt-8">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors"
+            >
+              {isReadOnly ? "Đóng" : "Hủy"}
+            </button>
+            {viewMode === 'detail' && (
               <button
                 type="button"
-                onClick={onCancel}
-                className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors"
-                disabled={isSubmitting}
+                onClick={() => {
+                  onCancel();
+                  setTimeout(() => {
+                    handleView(prescription, 'preview');
+                  }, 100);
+                }}
+                className="px-6 py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors flex items-center"
               >
-                Hủy
+                <FileText className="w-5 h-5 mr-2" />
+                Xem Trước Phiếu
               </button>
+            )}
+            {!isReadOnly && (
               <button
-                type="submit"
+                type="button"
+                onClick={handleSubmit}
                 disabled={isSubmitting}
                 className="px-6 py-3 bg-gradient-to-r from-pink-600 to-pink-700 text-white rounded-xl font-medium hover:from-pink-700 hover:to-pink-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
@@ -905,31 +861,323 @@ function PrescriptionForm({ prescription, patients, staff, isViewMode, setIsView
                   </>
                 )}
               </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Medicine Search Modal */}
+      {showMedicineSearch && (
+        <MedicineSearchModal
+          medicines={filteredMedicines}
+          searchTerm={medicineSearchTerm}
+          onSearchChange={setMedicineSearchTerm}
+          newMedication={newMedication}
+          setNewMedication={setNewMedication}
+          onSelectMedicine={selectMedicine}
+          onAddMedication={addMedication}
+          onCancel={() => {
+            setShowMedicineSearch(false);
+            setMedicineSearchTerm("");
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function MedicineSearchModal({ medicines, searchTerm, onSearchChange, newMedication, setNewMedication, onSelectMedicine, onAddMedication, onCancel }) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-60">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Tìm Kiếm Thuốc</h3>
+            <button onClick={onCancel} className="p-2 hover:bg-gray-100 rounded-lg">
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Tìm kiếm thuốc theo tên hoặc mã..."
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+            />
+          </div>
+
+          {/* Medicine List */}
+          <div className="border rounded-xl overflow-hidden max-h-60 overflow-y-auto">
+            {medicines.length === 0 ? (
+              <div className="p-4 text-center text-gray-500">
+                Không tìm thấy thuốc phù hợp
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {medicines.map((medicine) => (
+                  <button
+                    key={medicine.code}
+                    onClick={() => onSelectMedicine(medicine)}
+                    className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="font-medium text-gray-900">{medicine.name}</div>
+                        <div className="text-sm text-gray-500">Mã: {medicine.code}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium text-gray-900">
+                          {medicine.unitPrice.toLocaleString('vi-VN')} đ
+                        </div>
+                        <div className="text-sm text-gray-500">Đơn giá</div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Add Medicine */}
+          <div className="bg-pink-50 rounded-xl p-6">
+            <h4 className="font-medium text-gray-900 mb-4">Thông tin thuốc</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mã Thuốc *</label>
+                <input
+                  type="text"
+                  value={newMedication.code}
+                  onChange={(e) => setNewMedication({ ...newMedication, code: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
+                  placeholder="VD: MED001"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tên Thuốc *</label>
+                <input
+                  type="text"
+                  value={newMedication.name}
+                  onChange={(e) => setNewMedication({ ...newMedication, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
+                  placeholder="Tên thuốc"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Số Lượng *</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={newMedication.quantity}
+                  onChange={(e) => {
+                    const quantity = parseInt(e.target.value);
+                    setNewMedication({ 
+                      ...newMedication, 
+                      quantity,
+                      totalPrice: quantity * newMedication.unitPrice
+                    });
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hạn Sử Dụng</label>
+                <input
+                  type="date"
+                  value={newMedication.expiryDate}
+                  onChange={(e) => setNewMedication({ ...newMedication, expiryDate: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Liều Dùng</label>
+                <input
+                  type="text"
+                  value={newMedication.dosage}
+                  onChange={(e) => setNewMedication({ ...newMedication, dosage: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
+                  placeholder="VD: 1 viên uống 2 lần/ngày"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Đơn Giá (VNĐ)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  value={newMedication.unitPrice}
+                  onChange={(e) => {
+                    const unitPrice = parseFloat(e.target.value);
+                    setNewMedication({ 
+                      ...newMedication, 
+                      unitPrice,
+                      totalPrice: newMedication.quantity * unitPrice
+                    });
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
+                />
+              </div>
             </div>
-          )}
-          
-          {isViewMode && (
-            <div className="flex justify-end space-x-4 pt-8 border-t border-gray-200 mt-8">
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tổng Tiền</label>
+              <input
+                type="text"
+                value={`${newMedication.totalPrice.toLocaleString('vi-VN')} đ`}
+                readOnly
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+              />
+            </div>
+
+            <div className="flex justify-end space-x-4">
               <button
                 type="button"
                 onClick={onCancel}
-                className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors"
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               >
-                Đóng
+                Hủy
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setIsViewMode(false);
-                }}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center"
+                onClick={onAddMedication}
+                className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
               >
-                <Edit3 className="w-5 h-5 mr-2" />
-                Chỉnh sửa
+                Thêm Thuốc
               </button>
             </div>
-          )}
-        </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PrintPreview({ prescription, onCancel }) {
+  const handlePrint = () => {
+    alert("Chức năng in sẽ được thực hiện trong môi trường thực tế");
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Xem Trước Phiếu Kê Đơn Thuốc</h3>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handlePrint}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              In Phiếu
+            </button>
+            <button
+              onClick={onCancel}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-8">
+          <div className="max-w-full mx-auto bg-white">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">BỆNH VIỆN BẠCH MAI</h1>
+              <p className="text-gray-600 mb-1">Địa chỉ: 78 Đường Giải Phóng, Đống Đa, Hà Nội</p>
+              <p className="text-gray-600 mb-6">Điện thoại: (024) 3869 3731</p>
+              <h2 className="text-xl font-bold text-gray-900">PHIẾU KÊ ĐỖN THUỐC</h2>
+            </div>
+
+            {/* Patient Info */}
+            <div className="grid grid-cols-2 gap-8 mb-6">
+              <div>
+                <p className="mb-2"><strong>Mã đơn thuốc:</strong> {prescription.prescriptionCode}</p>
+                <p className="mb-2"><strong>Họ tên bệnh nhân:</strong> {prescription.patient?.firstName} {prescription.patient?.lastName}</p>
+                <p className="mb-2"><strong>Số BHYT:</strong> {prescription.patient?.insuranceNumber || "Không có"}</p>
+                <p className="mb-2"><strong>Điện thoại:</strong> {prescription.patient?.phone}</p>
+              </div>
+              <div>
+                <p className="mb-2"><strong>Ngày kê đơn:</strong> {prescription.createdDate || new Date().toISOString().split('T')[0]}</p>
+                <p className="mb-2"><strong>Bác sĩ:</strong> BS. {prescription.doctor?.firstName} {prescription.doctor?.lastName}</p>
+                <p className="mb-2"><strong>Khoa:</strong> {prescription.doctor?.department}</p>
+                <p className="mb-2"><strong>Chẩn đoán:</strong> {prescription.diagnosis}</p>
+              </div>
+            </div>
+
+            {/* Medicine Table */}
+            <table className="w-full border-collapse border border-gray-300 mb-6">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="border border-gray-300 px-3 py-2 text-left">STT</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left">Tên thuốc</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left">Số lượng</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left">Cách dùng</th>
+                  <th className="border border-gray-300 px-3 py-2 text-right">Đơn giá</th>
+                  <th className="border border-gray-300 px-3 py-2 text-right">Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                {prescription.medications?.map((med, index) => (
+                  <tr key={index}>
+                    <td className="border border-gray-300 px-3 py-2">{index + 1}</td>
+                    <td className="border border-gray-300 px-3 py-2">{med.name}</td>
+                    <td className="border border-gray-300 px-3 py-2">{med.quantity}</td>
+                    <td className="border border-gray-300 px-3 py-2">{med.dosage}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-right">
+                      {med.unitPrice.toLocaleString('vi-VN')} đ
+                    </td>
+                    <td className="border border-gray-300 px-3 py-2 text-right">
+                      {med.totalPrice.toLocaleString('vi-VN')} đ
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Totals */}
+            <div className="flex justify-end mb-6">
+              <div className="w-1/2">
+                <div className="flex justify-between py-2">
+                  <span><strong>Tổng tiền:</strong></span>
+                  <span>{prescription.totalAmount?.toLocaleString('vi-VN')} đ</span>
+                </div>
+                <div className="flex justify-between py-2">
+                  <span><strong>Số tiền BHYT trả:</strong></span>
+                  <span>{prescription.insuranceAmount?.toLocaleString('vi-VN')} đ</span>
+                </div>
+                <div className="flex justify-between py-2 border-t font-bold">
+                  <span><strong>Thành tiền:</strong></span>
+                  <span>{prescription.finalAmount?.toLocaleString('vi-VN')} đ</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
+            {prescription.notes && (
+              <div className="mb-6">
+                <p><strong>Ghi chú:</strong> {prescription.notes}</p>
+              </div>
+            )}
+
+            {/* Signatures */}
+            <div className="grid grid-cols-2 gap-8 mt-12">
+              <div className="text-center">
+                <p className="mb-16"><strong>Người bệnh</strong></p>
+                <p>(Ký và ghi rõ họ tên)</p>
+              </div>
+              <div className="text-center">
+                <p className="mb-16"><strong>Bác sĩ kê đơn</strong></p>
+                <p>BS. {prescription.doctor?.firstName} {prescription.doctor?.lastName}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

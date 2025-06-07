@@ -216,7 +216,7 @@ function TransferRequests() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center">
+        {/* <div className="flex items-center">
           <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
             <FileText className="w-5 h-5 text-blue-600" />
           </div>
@@ -224,13 +224,13 @@ function TransferRequests() {
             <h3 className="text-lg font-semibold text-gray-900">Phiếu Yêu Cầu Chuyển Viện</h3>
             <p className="text-gray-600">Quản lý yêu cầu chuyển viện từ bác sĩ</p>
           </div>
-        </div>
+        </div> */}
         <button
           onClick={() => {
             setEditingRequest(null);
             setShowForm(true);
           }}
-          className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          className="inline-flex items-center px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
         >
           <Plus className="w-5 h-5 mr-2" />
           Tạo Yêu Cầu
@@ -496,7 +496,7 @@ function TransferRecords() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center">
+        {/* <div className="flex items-center">
           <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center mr-3">
             <Truck className="w-5 h-5 text-red-600" />
           </div>
@@ -504,7 +504,7 @@ function TransferRecords() {
             <h3 className="text-lg font-semibold text-gray-900">Hồ Sơ Chuyển Viện</h3>
             <p className="text-gray-600">Hồ sơ chuyển viện và theo dõi quá trình</p>
           </div>
-        </div>
+        </div> */}
         <button
           onClick={() => {
             setEditingRecord(null);
