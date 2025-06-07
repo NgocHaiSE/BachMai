@@ -32,7 +32,10 @@ import {
   Monitor,
   Clipboard,
   Eye,
-  ArrowRight
+  ArrowRight,
+  CreditCard,
+  IdCard,
+  ShieldCheck
 } from "lucide-react";
 
 export default function TransferManagement() {
@@ -41,7 +44,7 @@ export default function TransferManagement() {
   const tabs = [
     { 
       id: "requests", 
-      name: "Yêu Cầu Chuyển Viện", 
+      name: "Phiếu Yêu Cầu Chuyển Viện", 
       icon: FileText, 
       color: "text-blue-600",
       description: "Quản lý yêu cầu chuyển viện từ bác sĩ"
@@ -51,7 +54,7 @@ export default function TransferManagement() {
       name: "Hồ Sơ Chuyển Viện", 
       icon: Truck, 
       color: "text-red-600",
-      description: "Theo dõi quá trình chuyển viện"
+      description: "Hồ sơ chuyển viện và theo dõi quá trình"
     },
   ];
 
@@ -123,8 +126,9 @@ function TransferRequests() {
     !searchTerm || 
     request.requestCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
     `${request.patient?.firstName} ${request.patient?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    request.destinationFacility.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    request.reason.toLowerCase().includes(searchTerm.toLowerCase())
+    request.patient?.phone?.includes(searchTerm) ||
+    request.patient?.idNumber?.includes(searchTerm) ||
+    request.patient?.insuranceNumber?.includes(searchTerm)
   );
 
   const handleSubmit = async (formData: any) => {
@@ -217,7 +221,7 @@ function TransferRequests() {
             <FileText className="w-5 h-5 text-blue-600" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Yêu Cầu Chuyển Viện</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Phiếu Yêu Cầu Chuyển Viện</h3>
             <p className="text-gray-600">Quản lý yêu cầu chuyển viện từ bác sĩ</p>
           </div>
         </div>
@@ -240,7 +244,7 @@ function TransferRequests() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Tìm kiếm theo mã yêu cầu, tên bệnh nhân, nơi chuyển đến..."
+              placeholder="Tìm kiếm theo mã YC, họ tên, số CCCD/CMND, số BHYT/BHXH..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
@@ -290,22 +294,22 @@ function TransferRequests() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Thông Tin Yêu Cầu
+                    Mã YC_chuyển viện
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Bệnh Nhân
+                    Mã bệnh nhân
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Bác Sĩ
+                    Họ tên
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nơi Chuyển Đến
+                    Ngày điều trị
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Mức Độ
+                    Số CCCD/CMND
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Trạng Thái
+                    Số BHYT/BHXH
                   </th>
                   <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Thao Tác
@@ -317,88 +321,63 @@ function TransferRequests() {
                   <tr key={request._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
-                          <FileText className="w-6 h-6 text-blue-600" />
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                          <Hash className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-gray-900 flex items-center">
-                            <Hash className="w-4 h-4 mr-1 text-gray-400" />
+                          <div className="text-sm font-medium text-gray-900">
                             {request.requestCode}
                           </div>
-                          <div className="text-sm text-gray-500 flex items-center mt-1">
-                            <Calendar className="w-4 h-4 mr-1" />
-                            {request.requestDate}
-                          </div>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(request.priority)}`}>
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            {getPriorityName(request.priority)}
+                          </span>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                          <User className="w-5 h-5 text-green-600" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {request.patient?.firstName} {request.patient?.lastName}
-                          </div>
-                          <div className="text-sm text-gray-500 flex items-center mt-1">
-                            <Phone className="w-4 h-4 mr-1" />
-                            {request.patient?.phone}
-                          </div>
-                        </div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {request.patient?._id?.slice(-8) || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                          <Stethoscope className="w-5 h-5 text-purple-600" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            BS. {request.staff?.firstName} {request.staff?.lastName}
-                          </div>
-                          <div className="text-sm text-gray-500 flex items-center mt-1">
-                            <Building2 className="w-4 h-4 mr-1" />
-                            {request.staff?.department}
-                          </div>
-                        </div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {request.patient?.firstName} {request.patient?.lastName}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {request.patient?.phone}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="max-w-xs">
-                        <div className="text-sm font-medium text-gray-900 flex items-center">
-                          <Building2 className="w-4 h-4 mr-1 text-gray-400" />
-                          {request.destinationFacility}
-                        </div>
-                        <div className="text-sm text-gray-500 flex items-center mt-1">
-                          <MapPin className="w-4 h-4 mr-1" />
-                          <span className="truncate">{request.destinationAddress}</span>
-                        </div>
+                      <div className="text-sm text-gray-900">
+                        {request.treatmentDate}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getPriorityColor(request.priority)}`}>
-                        <AlertTriangle className="w-3 h-3 mr-1" />
-                        {getPriorityName(request.priority)}
-                      </span>
+                      <div className="text-sm text-gray-900">
+                        {request.patient?.idNumber || "N/A"}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="relative">
-                        <select
-                          value={request.status}
-                          onChange={(e) => handleStatusUpdate(request._id, e.target.value)}
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border appearance-none pr-8 ${getStatusColor(request.status)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                        >
-                          <option value="pending">Chờ xử lý</option>
-                          <option value="approved">Đã duyệt</option>
-                          <option value="rejected">Từ chối</option>
-                          <option value="completed">Hoàn thành</option>
-                        </select>
-                        <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-3 h-3 pointer-events-none" />
+                      <div className="text-sm text-gray-900">
+                        {request.patient?.insuranceNumber || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end space-x-2">
+                        <div className="relative">
+                          <select
+                            value={request.status}
+                            onChange={(e) => handleStatusUpdate(request._id, e.target.value)}
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border appearance-none pr-8 ${getStatusColor(request.status)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                          >
+                            <option value="pending">Chờ xử lý</option>
+                            <option value="approved">Đã duyệt</option>
+                            <option value="rejected">Từ chối</option>
+                            <option value="completed">Hoàn thành</option>
+                          </select>
+                          <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-3 h-3 pointer-events-none" />
+                        </div>
                         <button
                           onClick={() => handleEdit(request)}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -457,8 +436,9 @@ function TransferRecords() {
     !searchTerm || 
     record.transferCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
     `${record.patient?.firstName} ${record.patient?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.destinationFacility.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.diagnosis.toLowerCase().includes(searchTerm.toLowerCase())
+    record.patient?.phone?.includes(searchTerm) ||
+    record.patient?.idNumber?.includes(searchTerm) ||
+    record.patient?.insuranceNumber?.includes(searchTerm)
   );
 
   const handleSubmit = async (formData: any) => {
@@ -522,7 +502,7 @@ function TransferRecords() {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Hồ Sơ Chuyển Viện</h3>
-            <p className="text-gray-600">Theo dõi quá trình chuyển viện và thông tin y tế</p>
+            <p className="text-gray-600">Hồ sơ chuyển viện và theo dõi quá trình</p>
           </div>
         </div>
         <button
@@ -544,7 +524,7 @@ function TransferRecords() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Tìm kiếm theo mã chuyển viện, tên bệnh nhân, chẩn đoán..."
+              placeholder="Tìm kiếm theo mã chuyển viện, họ tên, số CCCD/CMND, số BHYT/BHXH..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
@@ -594,22 +574,22 @@ function TransferRecords() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Thông Tin Chuyển Viện
+                    Mã chuyển viện
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Bệnh Nhân
+                    Mã bệnh nhân
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Bác Sĩ
+                    Họ tên
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nơi Chuyển Đến
+                    Ngày điều trị
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Chẩn Đoán
+                    Số CCCD/CMND
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Trạng Thái
+                    Số BHYT/BHXH
                   </th>
                   <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Thao Tác
@@ -621,106 +601,62 @@ function TransferRecords() {
                   <tr key={record._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mr-4">
-                          <Truck className="w-6 h-6 text-red-600" />
+                        <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                          <Truck className="w-5 h-5 text-red-600" />
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-gray-900 flex items-center">
-                            <Hash className="w-4 h-4 mr-1 text-gray-400" />
+                          <div className="text-sm font-medium text-gray-900">
                             {record.transferCode}
                           </div>
-                          <div className="text-sm text-gray-500 flex items-center mt-1">
-                            <Calendar className="w-4 h-4 mr-1" />
+                          <div className="text-sm text-gray-500">
                             {record.transferDate}
                           </div>
-                          {record.estimatedTime && (
-                            <div className="text-sm text-gray-500 flex items-center mt-1">
-                              <Clock className="w-4 h-4 mr-1" />
-                              {record.estimatedTime}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                          <User className="w-5 h-5 text-green-600" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {record.patient?.firstName} {record.patient?.lastName}
-                          </div>
-                          <div className="text-sm text-gray-500 flex items-center mt-1">
-                            <Phone className="w-4 h-4 mr-1" />
-                            {record.patient?.phone}
-                          </div>
-                        </div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {record.patient?._id?.slice(-8) || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                          <Stethoscope className="w-5 h-5 text-purple-600" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            BS. {record.staff?.firstName} {record.staff?.lastName}
-                          </div>
-                          <div className="text-sm text-gray-500 flex items-center mt-1">
-                            <Building2 className="w-4 h-4 mr-1" />
-                            {record.staff?.department}
-                          </div>
-                        </div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {record.patient?.firstName} {record.patient?.lastName}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {record.patient?.phone}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="max-w-xs">
-                        <div className="text-sm font-medium text-gray-900 flex items-center">
-                          <Building2 className="w-4 h-4 mr-1 text-gray-400" />
-                          {record.destinationFacility}
-                        </div>
-                        <div className="text-sm text-gray-500 flex items-center mt-1">
-                          <MapPin className="w-4 h-4 mr-1" />
-                          <span className="truncate">{record.destinationAddress}</span>
-                        </div>
-                        {record.destinationPhone && (
-                          <div className="text-sm text-gray-500 flex items-center mt-1">
-                            <Phone className="w-4 h-4 mr-1" />
-                            {record.destinationPhone}
-                          </div>
-                        )}
+                      <div className="text-sm text-gray-900">
+                        {record.treatmentDate}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="max-w-xs">
-                        <div className="text-sm text-gray-900 truncate" title={record.diagnosis}>
-                          {record.diagnosis}
-                        </div>
-                        {record.icd10Code && (
-                          <div className="text-sm text-gray-500 mt-1">
-                            ICD10: {record.icd10Code}
-                          </div>
-                        )}
+                      <div className="text-sm text-gray-900">
+                        {record.patient?.idNumber || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="relative">
-                        <select
-                          value={record.status}
-                          onChange={(e) => handleStatusUpdate(record._id, e.target.value)}
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border appearance-none pr-8 ${getStatusColor(record.status)} focus:outline-none focus:ring-2 focus:ring-red-500`}
-                        >
-                          <option value="pending">Chờ xử lý</option>
-                          <option value="approved">Đã duyệt</option>
-                          <option value="rejected">Từ chối</option>
-                          <option value="completed">Hoàn thành</option>
-                        </select>
-                        <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-3 h-3 pointer-events-none" />
+                      <div className="text-sm text-gray-900">
+                        {record.patient?.insuranceNumber || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end space-x-2">
+                        <div className="relative">
+                          <select
+                            value={record.status}
+                            onChange={(e) => handleStatusUpdate(record._id, e.target.value)}
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border appearance-none pr-8 ${getStatusColor(record.status)} focus:outline-none focus:ring-2 focus:ring-red-500`}
+                          >
+                            <option value="pending">Chờ xử lý</option>
+                            <option value="approved">Đã duyệt</option>
+                            <option value="rejected">Từ chối</option>
+                            <option value="completed">Hoàn thành</option>
+                          </select>
+                          <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-3 h-3 pointer-events-none" />
+                        </div>
                         <button
                           onClick={() => handleEdit(record)}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -776,6 +712,7 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const selectedPatient = patients.find((p: any) => p._id === formData.patientId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -788,15 +725,15 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
   };
 
   const priorityOptions = [
-    { value: "low", label: "Thấp", icon: Clock, color: "text-green-600" },
-    { value: "medium", label: "Trung bình", icon: Clock, color: "text-yellow-600" },
-    { value: "high", label: "Cao", icon: AlertTriangle, color: "text-orange-600" },
-    { value: "urgent", label: "Khẩn cấp", icon: AlertTriangle, color: "text-red-600" },
+    { value: "low", label: "Thấp", color: "text-green-600" },
+    { value: "medium", label: "Trung bình", color: "text-yellow-600" },
+    { value: "high", label: "Cao", color: "text-orange-600" },
+    { value: "urgent", label: "Khẩn cấp", color: "text-red-600" },
   ];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
+      <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -805,10 +742,10 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {request ? "Sửa Yêu Cầu Chuyển Viện" : "Tạo Yêu Cầu Chuyển Viện Mới"}
+                  {request ? "Sửa Phiếu Yêu Cầu Chuyển Viện" : "Tạo Phiếu Yêu Cầu Chuyển Viện"}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  {request ? "Cập nhật thông tin yêu cầu chuyển viện" : "Tạo yêu cầu chuyển viện mới"}
+                  {request ? "Cập nhật thông tin yêu cầu chuyển viện" : "Tạo phiếu yêu cầu chuyển viện mới"}
                 </p>
               </div>
             </div>
@@ -821,17 +758,18 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
           </div>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Basic Info */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-8">
+          {/* Thông tin bệnh nhân */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <User className="w-5 h-5 mr-2 text-blue-600" />
-              Thông Tin Cơ Bản
+              Thông tin bệnh nhân
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bệnh nhân *
+                  Mã bệnh nhân *
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -844,7 +782,7 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                     <option value="">Chọn bệnh nhân</option>
                     {patients.map((patient: any) => (
                       <option key={patient._id} value={patient._id}>
-                        {patient.firstName} {patient.lastName}
+                        {patient._id.slice(-8)} - {patient.firstName} {patient.lastName}
                       </option>
                     ))}
                   </select>
@@ -853,105 +791,195 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bác sĩ *
+                  Số CCCD/CMND
                 </label>
                 <div className="relative">
-                  <Stethoscope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <select
-                    required
-                    value={formData.staffId}
-                    onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
-                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none"
-                  >
-                    <option value="">Chọn bác sĩ</option>
-                    {staff.map((doctor: any) => (
-                      <option key={doctor._id} value={doctor._id}>
-                        BS. {doctor.firstName} {doctor.lastName}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Dates */}
-          <div>
-            <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <Calendar className="w-5 h-5 mr-2 text-blue-600" />
-              Thông Tin Thời Gian
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ngày điều trị *
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="date"
-                    required
-                    value={formData.treatmentDate}
-                    onChange={(e) => setFormData({ ...formData, treatmentDate: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ngày yêu cầu *
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="date"
-                    required
-                    value={formData.requestDate}
-                    onChange={(e) => setFormData({ ...formData, requestDate: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Reason */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Lý do chuyển viện *
-            </label>
-            <textarea
-              required
-              value={formData.reason}
-              onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              rows={3}
-              placeholder="Mô tả lý do cần chuyển viện"
-            />
-          </div>
-
-          {/* Destination */}
-          <div>
-            <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <Building2 className="w-5 h-5 mr-2 text-blue-600" />
-              Nơi Chuyển Đến
-            </h4>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cơ sở y tế chuyển đến *
-                </label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <IdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    required
-                    value={formData.destinationFacility}
-                    onChange={(e) => setFormData({ ...formData, destinationFacility: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    placeholder="Tên bệnh viện/cơ sở y tế"
+                    value={selectedPatient?.idNumber || ""}
+                    readOnly
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    placeholder="Sẽ hiển thị khi chọn bệnh nhân"
                   />
+                </div>
+              </div>
+            </div>
+
+            {selectedPatient && (
+              <div className="bg-blue-50 rounded-xl p-6 mb-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Họ tên bệnh nhân
+                    </label>
+                    <input
+                      type="text"
+                      value={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ngày sinh
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedPatient.dateOfBirth}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Giới tính
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedPatient.gender === "male" ? "Nam" : selectedPatient.gender === "female" ? "Nữ" : "Khác"}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Điện thoại
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedPatient.phone}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Khoa
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedPatient.department || "Chưa phân khoa"}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Loại BHYT/BHXH
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedPatient.insuranceType || "Không có"}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Địa chỉ
+                    </label>
+                    <textarea
+                      value={selectedPatient.address}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                      rows={2}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Số thẻ BHYT/BHXH
+                    </label>
+                    <div className="relative">
+                      <ShieldCheck className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input
+                        type="text"
+                        value={selectedPatient.insuranceNumber || "Không có"}
+                        readOnly
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ngày điều trị
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="date"
+                      value={formData.treatmentDate}
+                      readOnly
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Thông tin yêu cầu */}
+          <div>
+            <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <FileText className="w-5 h-5 mr-2 text-blue-600" />
+              Thông tin chuyển viện
+            </h4>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lý do chuyển viện *
+                </label>
+                <textarea
+                  required
+                  value={formData.reason}
+                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  rows={3}
+                  placeholder="Mô tả lý do cần chuyển viện"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ngày yêu cầu chuyển viện *
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="date"
+                      required
+                      value={formData.requestDate}
+                      onChange={(e) => setFormData({ ...formData, requestDate: e.target.value })}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Bác sĩ phụ trách *
+                  </label>
+                  <div className="relative">
+                    <Stethoscope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <select
+                      required
+                      value={formData.staffId}
+                      onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
+                      className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none"
+                    >
+                      <option value="">Chọn bác sĩ</option>
+                      {staff.map((doctor: any) => (
+                        <option key={doctor._id} value={doctor._id}>
+                          BS. {doctor.firstName} {doctor.lastName}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                  </div>
                 </div>
               </div>
 
@@ -971,54 +999,102 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                   />
                 </div>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cơ sở y tế chuyển đến *
+                </label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    required
+                    value={formData.destinationFacility}
+                    onChange={(e) => setFormData({ ...formData, destinationFacility: e.target.value })}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="Tên bệnh viện/cơ sở y tế"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Mức độ ưu tiên *
+                  </label>
+                  <div className="space-y-2">
+                    {priorityOptions.map((priority) => (
+                      <label
+                        key={priority.value}
+                        className={`flex items-center p-3 border rounded-xl cursor-pointer transition-all ${
+                          formData.priority === priority.value
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="priority"
+                          value={priority.value}
+                          checked={formData.priority === priority.value}
+                          onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                          className="sr-only"
+                        />
+                        <AlertTriangle className={`w-5 h-5 mr-3 ${priority.color}`} />
+                        <span className="font-medium text-gray-900">{priority.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ghi chú (nếu có)
+                  </label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    rows={6}
+                    placeholder="Ghi chú thêm về yêu cầu chuyển viện"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Priority and Notes */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Mức độ ưu tiên *
-              </label>
-              <div className="space-y-2">
-                {priorityOptions.map((priority) => {
-                  const IconComponent = priority.icon;
-                  return (
-                    <label
-                      key={priority.value}
-                      className={`flex items-center p-3 border rounded-xl cursor-pointer transition-all ${
-                        formData.priority === priority.value
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-300 hover:bg-gray-50"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="priority"
-                        value={priority.value}
-                        checked={formData.priority === priority.value}
-                        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                        className="sr-only"
-                      />
-                      <IconComponent className={`w-5 h-5 mr-3 ${priority.color}`} />
-                      <span className="font-medium text-gray-900">{priority.label}</span>
-                    </label>
-                  );
-                })}
+          {/* Chi tiết phê duyệt */}
+          <div>
+            <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2 text-blue-600" />
+              Chi tiết phê duyệt
+            </h4>
+            
+            <div className="bg-gray-50 rounded-xl p-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Trạng thái
+                  </label>
+                  <input
+                    type="text"
+                    value="Chờ xử lý"
+                    readOnly
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ngày phê duyệt
+                  </label>
+                  <input
+                    type="text"
+                    value="Chưa phê duyệt"
+                    readOnly
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                  />
+                </div>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ghi chú
-              </label>
-              <textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                rows={6}
-                placeholder="Ghi chú thêm về yêu cầu chuyển viện"
-              />
             </div>
           </div>
 
@@ -1082,6 +1158,7 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const selectedPatient = patients.find((p: any) => p._id === formData.patientId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1095,7 +1172,7 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
+      <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -1104,7 +1181,7 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {record ? "Sửa Hồ Sơ Chuyển Viện" : "Tạo Hồ Sơ Chuyển Viện Mới"}
+                  {record ? "Sửa Hồ Sơ Chuyển Viện" : "Tạo Hồ Sơ Chuyển Viện"}
                 </h3>
                 <p className="text-sm text-gray-600">
                   {record ? "Cập nhật thông tin hồ sơ chuyển viện" : "Tạo hồ sơ chuyển viện chi tiết"}
@@ -1121,37 +1198,17 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-8">
-          {/* Basic Info */}
+          {/* Thông tin bệnh nhân */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <User className="w-5 h-5 mr-2 text-red-600" />
-              Thông Tin Cơ Bản
+              Thông tin bệnh nhân
             </h4>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Yêu cầu liên quan (tùy chọn)
-                </label>
-                <div className="relative">
-                  <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <select
-                    value={formData.requestId}
-                    onChange={(e) => setFormData({ ...formData, requestId: e.target.value })}
-                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors appearance-none"
-                  >
-                    <option value="">Không có yêu cầu liên quan</option>
-                    {requests.map((req: any) => (
-                      <option key={req._id} value={req._id}>
-                        {req.requestCode} - {req.patient?.firstName} {req.patient?.lastName}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bệnh nhân *
+                  Mã bệnh nhân *
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -1164,7 +1221,7 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
                     <option value="">Chọn bệnh nhân</option>
                     {patients.map((patient: any) => (
                       <option key={patient._id} value={patient._id}>
-                        {patient.firstName} {patient.lastName}
+                        {patient._id.slice(-8)} - {patient.firstName} {patient.lastName}
                       </option>
                     ))}
                   </select>
@@ -1173,90 +1230,222 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bác sĩ *
+                  Số CCCD/CMND
                 </label>
                 <div className="relative">
-                  <Stethoscope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <select
-                    required
-                    value={formData.staffId}
-                    onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
-                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors appearance-none"
-                  >
-                    <option value="">Chọn bác sĩ</option>
-                    {staff.map((doctor: any) => (
-                      <option key={doctor._id} value={doctor._id}>
-                        BS. {doctor.firstName} {doctor.lastName}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Dates and Times */}
-          <div>
-            <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <Calendar className="w-5 h-5 mr-2 text-red-600" />
-              Thông Tin Thời Gian
-            </h4>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ngày điều trị *
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <IdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
-                    type="date"
-                    required
-                    value={formData.treatmentDate}
-                    onChange={(e) => setFormData({ ...formData, treatmentDate: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ngày chuyển viện *
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="date"
-                    required
-                    value={formData.transferDate}
-                    onChange={(e) => setFormData({ ...formData, transferDate: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Thời gian dự kiến
-                </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="time"
-                    value={formData.estimatedTime}
-                    onChange={(e) => setFormData({ ...formData, estimatedTime: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                    type="text"
+                    value={selectedPatient?.idNumber || ""}
+                    readOnly
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    placeholder="Sẽ hiển thị khi chọn bệnh nhân"
                   />
                 </div>
               </div>
             </div>
+
+            {selectedPatient && (
+              <div className="bg-red-50 rounded-xl p-6 mb-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Họ tên bệnh nhân
+                    </label>
+                    <input
+                      type="text"
+                      value={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ngày sinh
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedPatient.dateOfBirth}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Giới tính
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedPatient.gender === "male" ? "Nam" : selectedPatient.gender === "female" ? "Nữ" : "Khác"}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Điện thoại
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedPatient.phone}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Khoa
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedPatient.department || "Chưa phân khoa"}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Loại BHYT/BHXH
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedPatient.insuranceType || "Không có"}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Địa chỉ
+                    </label>
+                    <textarea
+                      value={selectedPatient.address}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                      rows={2}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Số thẻ BHYT/BHXH
+                    </label>
+                    <div className="relative">
+                      <ShieldCheck className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input
+                        type="text"
+                        value={selectedPatient.insuranceNumber || "Không có"}
+                        readOnly
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ngày điều trị
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="date"
+                      value={formData.treatmentDate}
+                      readOnly
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Destination */}
+          {/* Thông tin yêu cầu */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <Building2 className="w-5 h-5 mr-2 text-red-600" />
-              Nơi Chuyển Đến
+              <FileText className="w-5 h-5 mr-2 text-red-600" />
+              Thông tin yêu cầu
             </h4>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lý do chuyển viện *
+                </label>
+                <textarea
+                  required
+                  value={formData.reason}
+                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                  rows={3}
+                  placeholder="Mô tả lý do cần chuyển viện"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ngày chuyển viện *
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="date"
+                      required
+                      value={formData.transferDate}
+                      onChange={(e) => setFormData({ ...formData, transferDate: e.target.value })}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Thời gian dự kiến
+                  </label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="time"
+                      value={formData.estimatedTime}
+                      onChange={(e) => setFormData({ ...formData, estimatedTime: e.target.value })}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Số điện thoại cơ sở chuyển đến
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="tel"
+                      value={formData.destinationPhone}
+                      onChange={(e) => setFormData({ ...formData, destinationPhone: e.target.value })}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                      placeholder="Số điện thoại liên hệ"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Địa chỉ cơ sở chuyển đến *
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+                  <textarea
+                    required
+                    value={formData.destinationAddress}
+                    onChange={(e) => setFormData({ ...formData, destinationAddress: e.target.value })}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                    rows={2}
+                    placeholder="Địa chỉ đầy đủ của cơ sở y tế"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Cơ sở y tế chuyển đến *
@@ -1273,99 +1462,47 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Số điện thoại cơ sở
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="tel"
-                    value={formData.destinationPhone}
-                    onChange={(e) => setFormData({ ...formData, destinationPhone: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                    placeholder="Số điện thoại liên hệ"
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Chẩn đoán *
+                  </label>
+                  <textarea
+                    required
+                    value={formData.diagnosis}
+                    onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                    rows={3}
+                    placeholder="Chẩn đoán chi tiết"
                   />
                 </div>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Địa chỉ cơ sở chuyển đến *
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
-                <textarea
-                  required
-                  value={formData.destinationAddress}
-                  onChange={(e) => setFormData({ ...formData, destinationAddress: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                  rows={2}
-                  placeholder="Địa chỉ đầy đủ của cơ sở y tế"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mã ICD10
+                  </label>
+                  <div className="relative">
+                    <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="text"
+                      value={formData.icd10Code}
+                      onChange={(e) => setFormData({ ...formData, icd10Code: e.target.value })}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                      placeholder="VD: I21.9"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Medical Information */}
-          <div>
-            <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <Activity className="w-5 h-5 mr-2 text-red-600" />
-              Thông Tin Y Tế
-            </h4>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Chẩn đoán *
-                </label>
-                <textarea
-                  required
-                  value={formData.diagnosis}
-                  onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                  rows={3}
-                  placeholder="Chẩn đoán chi tiết"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mã ICD10
-                </label>
-                <div className="relative">
-                  <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    value={formData.icd10Code}
-                    onChange={(e) => setFormData({ ...formData, icd10Code: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                    placeholder="VD: I21.9"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Lý do chuyển viện *
-              </label>
-              <textarea
-                required
-                value={formData.reason}
-                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                rows={3}
-                placeholder="Mô tả lý do cần chuyển viện"
-              />
-            </div>
-          </div>
-
-          {/* Vital Signs */}
+          {/* Dấu hiệu sinh tồn */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <Heart className="w-5 h-5 mr-2 text-red-600" />
-              Dấu Hiệu Sinh Tồn
+              Dấu hiệu sinh tồn
             </h4>
+            
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1431,7 +1568,7 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
 
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tình trạng ý thức
+                Ý thức
               </label>
               <input
                 type="text"
@@ -1443,12 +1580,13 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
             </div>
           </div>
 
-          {/* Clinical Progress */}
+          {/* Thông tin lâm sàng */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <Clipboard className="w-5 h-5 mr-2 text-red-600" />
-              Thông Tin Lâm Sàng
+              Thông tin lâm sàng
             </h4>
+            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1475,15 +1613,8 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
                 />
               </div>
             </div>
-          </div>
 
-          {/* Additional Info */}
-          <div>
-            <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <FileText className="w-5 h-5 mr-2 text-red-600" />
-              Thông Tin Bổ Sung
-            </h4>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Mã người đi cùng
@@ -1501,7 +1632,7 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ghi chú bổ sung
+                  Ghi chú (nếu có)
                 </label>
                 <textarea
                   value={formData.notes}
@@ -1510,6 +1641,41 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
                   rows={3}
                   placeholder="Thông tin bổ sung khác"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Chi tiết phê duyệt */}
+          <div>
+            <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2 text-red-600" />
+              Chi tiết phê duyệt
+            </h4>
+            
+            <div className="bg-gray-50 rounded-xl p-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Trạng thái
+                  </label>
+                  <input
+                    type="text"
+                    value="Chờ xử lý"
+                    readOnly
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ngày phê duyệt
+                  </label>
+                  <input
+                    type="text"
+                    value="Chưa phê duyệt"
+                    readOnly
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                  />
+                </div>
               </div>
             </div>
           </div>

@@ -41,6 +41,7 @@ import {
   LogOut,
 } from "lucide-react";
 import ExaminationRegistration from "./components/ExaminationRegistration";
+import PatientMedicalRecords from "./components/PatientMedicalRecords";
 
 interface MenuItem {
   id: string;
@@ -216,6 +217,7 @@ function LoginPage() {
 function HospitalApp() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+  const [selectedPatientForRecords, setSelectedPatientForRecords] = useState<any>(null);
   const loggedInUser = useQuery(api.auth.loggedInUser);
 
   const toggleMenu = (menuId: string) => {
@@ -231,11 +233,23 @@ function HospitalApp() {
       toggleMenu(menuId);
     } else {
       setActiveTab(menuId);
+      setSelectedPatientForRecords(null); // Reset when changing tabs
     }
   };
 
   const handleSubMenuClick = (menuId: string) => {
     setActiveTab(menuId);
+    setSelectedPatientForRecords(null); // Reset when changing tabs
+  };
+
+  const handleViewPatientMedicalRecords = (patient: any) => {
+    setSelectedPatientForRecords(patient);
+    setActiveTab("patient-medical-records");
+  };
+
+  const handleBackToPatients = () => {
+    setSelectedPatientForRecords(null);
+    setActiveTab("patients");
   };
 
   if (loggedInUser === undefined) {
@@ -345,7 +359,7 @@ function HospitalApp() {
               <span className="text-white font-medium text-sm">L</span>
             </div>
             <div className="flex-1">
-              <div className="text-white text-sm font-medium">Lê Thị Thủy Nga</div>
+              <div className="text-white text-sm font-medium">Lê Thị Thúy Nga</div>
               <div className="text-white/60 text-xs">Nhân viên kỹ thuật</div>
             </div>
             <button className="text-white/60 hover:text-white transition-colors">
@@ -360,7 +374,15 @@ function HospitalApp() {
         <main className="flex-1 p-8 bg-gray-50 min-h-screen overflow-auto">
           <div className="max-w-7xl mx-auto">
             {activeTab === "dashboard" && <Dashboard />}
-            {activeTab === "patients" && <PatientManagement />}
+            {activeTab === "patients" && (
+              <PatientManagement onViewMedicalRecords={handleViewPatientMedicalRecords} />
+            )}
+            {activeTab === "patient-medical-records" && selectedPatientForRecords && (
+              <PatientMedicalRecords 
+                patient={selectedPatientForRecords} 
+                onBack={handleBackToPatients}
+              />
+            )}
             {activeTab === "appointments" && <AppointmentManagement />}
             {activeTab === "staff" && <StaffManagement />}
             {activeTab === "records" && <MedicalRecords />}
@@ -371,7 +393,7 @@ function HospitalApp() {
             {/* Placeholder for other pages */}
             {![
               "dashboard", "patients", "appointments", "staff", 
-              "records", "prescriptions", "transfers", "register-exam",
+              "records", "prescriptions", "transfers", "register-exam", "patient-medical-records"
             ].includes(activeTab) && (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">

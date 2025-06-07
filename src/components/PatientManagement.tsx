@@ -27,7 +27,11 @@ import {
   Stethoscope
 } from "lucide-react";
 
-export default function PatientManagement() {
+interface PatientManagementProps {
+  onViewMedicalRecords: (patient: any) => void;
+}
+
+export default function PatientManagement({ onViewMedicalRecords }: PatientManagementProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingPatient, setEditingPatient] = useState<any>(null);
@@ -67,15 +71,6 @@ export default function PatientManagement() {
   const handleEdit = (patient: any) => {
     setEditingPatient(patient);
     setShowForm(true);
-  };
-
-  // Function để navigate đến trang hồ sơ bệnh án của bệnh nhân
-  const handleViewMedicalRecords = (patient: any) => {
-    // Trong thực tế, bạn có thể sử dụng React Router để navigate
-    // Ở đây tôi sẽ mở modal hoặc cập nhật state để hiển thị medical records
-    window.dispatchEvent(new CustomEvent('viewPatientMedicalRecords', { 
-      detail: { patientId: patient._id, patientName: `${patient.firstName} ${patient.lastName}` }
-    }));
   };
 
   return (
@@ -250,22 +245,22 @@ export default function PatientManagement() {
                     </td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => handleViewMedicalRecords(patient)}
-                        className="inline-flex items-center px-3 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors group"
+                        onClick={() => onViewMedicalRecords(patient)}
+                        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 shadow-sm hover:shadow-md group"
                         title="Xem hồ sơ bệnh án"
                       >
                         <FileText className="w-4 h-4 mr-2" />
-                        <span className="text-sm font-medium">Xem hồ sơ</span>
+                        <span className="text-sm font-medium">Hồ sơ bệnh án</span>
                         <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                       </button>
                       <div className="mt-2">
                         <div className="flex items-center text-xs text-gray-500">
                           <Activity className="w-3 h-3 mr-1" />
-                          <span>5 bệnh án</span> {/* Mock data - thay bằng query thực tế */}
+                          <span>Cập nhật gần đây</span>
                         </div>
                         <div className="flex items-center text-xs text-gray-500 mt-1">
                           <Clock className="w-3 h-3 mr-1" />
-                          <span>Cập nhật: 2 ngày trước</span>
+                          <span>{new Date(patient._creationTime).toLocaleDateString('vi-VN')}</span>
                         </div>
                       </div>
                     </td>
