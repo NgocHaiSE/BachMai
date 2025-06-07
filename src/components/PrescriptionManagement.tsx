@@ -27,7 +27,12 @@ import {
   Calculator,
   Download,
   CreditCard,
-  Activity
+  Activity,
+  Receipt,
+  Shield,
+  CheckCircle,
+  XCircle,
+  MoreVertical
 } from 'lucide-react';
 
 // Mock data cho demo
@@ -63,6 +68,7 @@ const mockPrescriptions = [
     totalAmount: 450000,
     insuranceAmount: 360000,
     finalAmount: 90000,
+    hasInsurance: true,
     notes: "Uống đều đặn, tái khám sau 1 tháng"
   },
   {
@@ -96,6 +102,7 @@ const mockPrescriptions = [
     totalAmount: 160000,
     insuranceAmount: 128000,
     finalAmount: 32000,
+    hasInsurance: true,
     notes: "Uống trước ăn 30 phút"
   }
 ];
@@ -147,7 +154,7 @@ export default function PrescriptionManagement() {
   const [showForm, setShowForm] = useState(false);
   const [editingPrescription, setEditingPrescription] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState(null); // null, 'detail', 'preview'
+  const [viewMode, setViewMode] = useState(null); // null, 'detail', 'preview', 'invoice'
 
   const filteredPrescriptions = prescriptions.filter(prescription =>
     !searchTerm || 
@@ -272,31 +279,34 @@ export default function PrescriptionManagement() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-[1200px] w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Mã
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
+                      Mã Đơn Thuốc
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
                       Tên Bệnh Nhân
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                       SĐT
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                       Ngày Lập
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">
                       Chẩn Đoán
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Họ Tên Bác Sĩ
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
+                      Bác Sĩ
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ghi Chú
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
+                      BHYT
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-36">
+                      Thành Tiền
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                       Hành Động
                     </th>
                   </tr>
@@ -309,75 +319,72 @@ export default function PrescriptionManagement() {
                           <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center mr-3">
                             <Hash className="w-5 h-5 text-pink-600" />
                           </div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-gray-900 whitespace-nowrap">
                             {prescription.prescriptionCode}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-gray-900 whitespace-nowrap">
                           {prescription.patient.firstName} {prescription.patient.lastName}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-gray-900 whitespace-nowrap">
                           {prescription.patient.phone}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-gray-900 whitespace-nowrap">
                           {prescription.createdDate}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs truncate">
-                          {prescription.diagnosis}
+                        <div className="text-sm text-gray-900" style={{ maxWidth: '250px' }}>
+                          <div className="truncate" title={prescription.diagnosis}>
+                            {prescription.diagnosis}
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-gray-900 whitespace-nowrap">
                           BS. {prescription.doctor.firstName} {prescription.doctor.lastName}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-gray-500 whitespace-nowrap">
                           {prescription.doctor.department}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs truncate">
-                          {prescription.notes || "Không có"}
+                        <div className="flex items-center">
+                          {prescription.hasInsurance ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 whitespace-nowrap">
+                              <Shield className="w-3 h-3 mr-1" />
+                              Có BHYT
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 whitespace-nowrap">
+                              Không BHYT
+                            </span>
+                          )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          <button
-                            onClick={() => handleView(prescription, 'detail')}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title="Xem chi tiết"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleView(prescription, 'preview')}
-                            className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                            title="Xem trước phiếu"
-                          >
-                            <FileText className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleEdit(prescription)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Chỉnh sửa"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(prescription._id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Xóa"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-semibold text-pink-600 whitespace-nowrap">
+                          {prescription.finalAmount.toLocaleString('vi-VN')} đ
                         </div>
+                        {prescription.hasInsurance && (
+                          <div className="text-xs text-gray-500 whitespace-nowrap">
+                            Tổng: {prescription.totalAmount.toLocaleString('vi-VN')} đ
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <ActionDropdown
+                          prescription={prescription}
+                          onView={handleView}
+                          onEdit={handleEdit}
+                          onDelete={handleDelete}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -408,6 +415,137 @@ export default function PrescriptionManagement() {
   );
 }
 
+function ActionDropdown({ prescription, onView, onEdit, onDelete }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = React.useRef(null);
+  const buttonRef = React.useRef(null);
+
+  // Đóng dropdown khi click ra ngoài
+  React.useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const menuItems = [
+    {
+      icon: Eye,
+      label: "Xem chi tiết",
+      onClick: () => onView(prescription, 'detail'),
+      color: "text-green-600 hover:bg-green-50"
+    },
+    {
+      icon: Receipt,
+      label: "In hóa đơn",
+      onClick: () => onView(prescription, 'invoice'),
+      color: "text-blue-600 hover:bg-blue-50"
+    },
+    {
+      icon: FileText,
+      label: "Xem trước phiếu",
+      onClick: () => onView(prescription, 'preview'),
+      color: "text-purple-600 hover:bg-purple-50"
+    },
+    {
+      icon: Edit3,
+      label: "Chỉnh sửa",
+      onClick: () => onEdit(prescription),
+      color: "text-orange-600 hover:bg-orange-50"
+    },
+    {
+      icon: Trash2,
+      label: "Xóa",
+      onClick: () => onDelete(prescription._id),
+      color: "text-red-600 hover:bg-red-50"
+    }
+  ];
+
+  const handleMenuItemClick = (item) => {
+    item.onClick();
+    setIsOpen(false);
+  };
+
+  // Tính toán vị trí dropdown
+  const getDropdownPosition = () => {
+    if (!buttonRef.current) return {};
+    
+    const buttonRect = buttonRef.current.getBoundingClientRect();
+    const dropdownHeight = menuItems.length * 40 + 8; // Estimate height
+    const viewportHeight = window.innerHeight;
+    
+    // Kiểm tra có đủ không gian phía trên không
+    const spaceAbove = buttonRect.top;
+    const spaceBelow = viewportHeight - buttonRect.bottom;
+    
+    // Nếu không đủ không gian phía trên, hiển thị bên dưới
+    const showAbove = spaceAbove > dropdownHeight && spaceAbove > spaceBelow;
+    
+    return {
+      position: 'fixed',
+      right: `${window.innerWidth - buttonRect.right}px`,
+      [showAbove ? 'bottom' : 'top']: showAbove 
+        ? `${viewportHeight - buttonRect.top + 4}px`
+        : `${buttonRect.bottom + 4}px`,
+      zIndex: 1000
+    };
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        ref={buttonRef}
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+        title="Hành động"
+        type="button"
+      >
+        <MoreVertical className="w-5 h-5" />
+      </button>
+      
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-transparent"
+            style={{ zIndex: 999 }}
+            onClick={() => setIsOpen(false)}
+          />
+          
+          {/* Dropdown menu */}
+          <div 
+            className="w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-1"
+            style={getDropdownPosition()}
+          >
+            {menuItems.map((item, index) => {
+              const IconComponent = item.icon;
+              return (
+                <button
+                  key={index}
+                  onClick={() => handleMenuItemClick(item)}
+                  className={`w-full flex items-center px-4 py-2 text-sm transition-colors ${item.color}`}
+                  type="button"
+                >
+                  <IconComponent className="w-4 h-4 mr-3" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines, onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
     doctorId: prescription?.doctor?._id || "",
@@ -415,6 +553,7 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
     diagnosis: prescription?.diagnosis || "",
     notes: prescription?.notes || "",
     medications: prescription?.medications || [],
+    hasInsurance: prescription?.hasInsurance || false,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -433,14 +572,14 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
   const selectedPatient = patients.find(p => p._id === formData.patientId);
   const selectedDoctor = doctors.find(d => d._id === formData.doctorId);
 
-  const calculateTotals = (medications) => {
+  const calculateTotals = (medications, hasInsurance) => {
     const totalAmount = medications.reduce((sum, med) => sum + med.totalPrice, 0);
-    const insuranceAmount = totalAmount * 0.8; // 80% bảo hiểm chi trả
+    const insuranceAmount = hasInsurance ? totalAmount * 0.8 : 0; // 80% bảo hiểm chi trả
     const finalAmount = totalAmount - insuranceAmount;
     return { totalAmount, insuranceAmount, finalAmount };
   };
 
-  const { totalAmount, insuranceAmount, finalAmount } = calculateTotals(formData.medications);
+  const { totalAmount, insuranceAmount, finalAmount } = calculateTotals(formData.medications, formData.hasInsurance);
 
   const filteredMedicines = medicines.filter(med =>
     med.name.toLowerCase().includes(medicineSearchTerm.toLowerCase()) ||
@@ -487,8 +626,11 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
       unitPrice: medicine.unitPrice,
       totalPrice: newMedication.quantity * medicine.unitPrice
     });
-    setShowMedicineSearch(false);
     setMedicineSearchTerm("");
+  };
+
+  const toggleInsurance = () => {
+    setFormData({ ...formData, hasInsurance: !formData.hasInsurance });
   };
 
   const handleSubmit = () => {
@@ -515,10 +657,14 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
     }
   };
 
-  const isReadOnly = viewMode === 'detail' || viewMode === 'preview';
+  const isReadOnly = viewMode === 'detail';
 
   if (viewMode === 'preview') {
     return <PrintPreview prescription={{ ...prescription, ...formData }} onCancel={onCancel} />;
+  }
+
+  if (viewMode === 'invoice') {
+    return <InvoicePreview prescription={{ ...prescription, ...formData }} onCancel={onCancel} />;
   }
 
   return (
@@ -777,40 +923,83 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
                 )}
               </div>
 
-              {/* Tổng tiền */}
-              <div className="mt-6 bg-gray-50 rounded-xl p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white p-4 rounded-xl border">
+              {/* Insurance toggle và tính toán */}
+              <div className="mt-6 space-y-6">
+                {/* Insurance Toggle */}
+                {!isReadOnly && selectedPatient?.insuranceNumber && (
+                  <div className="bg-blue-50 rounded-xl p-4">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Tổng Tiền</p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          {totalAmount.toLocaleString('vi-VN')} đ
-                        </p>
+                      <div className="flex items-center">
+                        <Shield className="w-6 h-6 text-blue-600 mr-3" />
+                        <div>
+                          <h5 className="font-medium text-gray-900">Áp dụng Bảo hiểm Y tế</h5>
+                          <p className="text-sm text-gray-600">
+                            Bệnh nhân có số BHYT: {selectedPatient.insuranceNumber}
+                          </p>
+                        </div>
                       </div>
-                      <DollarSign className="w-8 h-8 text-blue-600" />
+                      <button
+                        type="button"
+                        onClick={toggleInsurance}
+                        className={`
+                          relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                          ${formData.hasInsurance ? 'bg-blue-600' : 'bg-gray-200'}
+                        `}
+                      >
+                        <span
+                          className={`
+                            inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                            ${formData.hasInsurance ? 'translate-x-6' : 'translate-x-1'}
+                          `}
+                        />
+                      </button>
                     </div>
                   </div>
-                  <div className="bg-white p-4 rounded-xl border">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Số Tiền BHYT Trả</p>
-                        <p className="text-2xl font-bold text-green-600">
-                          {insuranceAmount.toLocaleString('vi-VN')} đ
-                        </p>
+                )}
+
+                {/* Tổng tiền */}
+                <div className="bg-gray-50 rounded-xl p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-white p-4 rounded-xl border">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-600">Tổng Tiền</p>
+                          <p className="text-2xl font-bold text-gray-900">
+                            {totalAmount.toLocaleString('vi-VN')} đ
+                          </p>
+                        </div>
+                        <DollarSign className="w-8 h-8 text-blue-600" />
                       </div>
-                      <ShieldCheck className="w-8 h-8 text-green-600" />
                     </div>
-                  </div>
-                  <div className="bg-white p-4 rounded-xl border border-pink-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-pink-600">Thành Tiền</p>
-                        <p className="text-3xl font-bold text-pink-600">
-                          {finalAmount.toLocaleString('vi-VN')} đ
-                        </p>
+                    
+                    <div className="bg-white p-4 rounded-xl border">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-600">Số Tiền BHYT Trả</p>
+                          <p className={`text-2xl font-bold ${formData.hasInsurance ? 'text-green-600' : 'text-gray-400'}`}>
+                            {insuranceAmount.toLocaleString('vi-VN')} đ
+                          </p>
+                          {formData.hasInsurance && (
+                            <p className="text-xs text-green-600">80% tổng tiền</p>
+                          )}
+                        </div>
+                        <ShieldCheck className={`w-8 h-8 ${formData.hasInsurance ? 'text-green-600' : 'text-gray-400'}`} />
                       </div>
-                      <Calculator className="w-8 h-8 text-pink-600" />
+                    </div>
+                    
+                    <div className="bg-white p-4 rounded-xl border border-pink-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-pink-600">Thành Tiền</p>
+                          <p className="text-3xl font-bold text-pink-600">
+                            {finalAmount.toLocaleString('vi-VN')} đ
+                          </p>
+                          {formData.hasInsurance && (
+                            <p className="text-xs text-pink-600">Sau trừ BHYT</p>
+                          )}
+                        </div>
+                        <Calculator className="w-8 h-8 text-pink-600" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -827,21 +1016,38 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
             >
               {isReadOnly ? "Đóng" : "Hủy"}
             </button>
+            
             {viewMode === 'detail' && (
-              <button
-                type="button"
-                onClick={() => {
-                  onCancel();
-                  setTimeout(() => {
-                    handleView(prescription, 'preview');
-                  }, 100);
-                }}
-                className="px-6 py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors flex items-center"
-              >
-                <FileText className="w-5 h-5 mr-2" />
-                Xem Trước Phiếu
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onCancel();
+                    setTimeout(() => {
+                      handleView(prescription, 'invoice');
+                    }, 100);
+                  }}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center"
+                >
+                  <Receipt className="w-5 h-5 mr-2" />
+                  In Hóa Đơn
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onCancel();
+                    setTimeout(() => {
+                      handleView(prescription, 'preview');
+                    }, 100);
+                  }}
+                  className="px-6 py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors flex items-center"
+                >
+                  <FileText className="w-5 h-5 mr-2" />
+                  Xem Trước Phiếu
+                </button>
+              </>
             )}
+            
             {!isReadOnly && (
               <button
                 type="button"
@@ -888,166 +1094,226 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
 
 function MedicineSearchModal({ medicines, searchTerm, onSearchChange, newMedication, setNewMedication, onSelectMedicine, onAddMedication, onCancel }) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-60">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+      <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
         <div className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Tìm Kiếm Thuốc</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Tìm Kiếm & Thêm Thuốc</h3>
             <button onClick={onCancel} className="p-2 hover:bg-gray-100 rounded-lg">
               <X className="w-5 h-5 text-gray-500" />
             </button>
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm thuốc theo tên hoặc mã..."
-              value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
-            />
-          </div>
-
-          {/* Medicine List */}
-          <div className="border rounded-xl overflow-hidden max-h-60 overflow-y-auto">
-            {medicines.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">
-                Không tìm thấy thuốc phù hợp
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-200">
-                {medicines.map((medicine) => (
-                  <button
-                    key={medicine.code}
-                    onClick={() => onSelectMedicine(medicine)}
-                    className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <div className="font-medium text-gray-900">{medicine.name}</div>
-                        <div className="text-sm text-gray-500">Mã: {medicine.code}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium text-gray-900">
-                          {medicine.unitPrice.toLocaleString('vi-VN')} đ
-                        </div>
-                        <div className="text-sm text-gray-500">Đơn giá</div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Add Medicine */}
-          <div className="bg-pink-50 rounded-xl p-6">
-            <h4 className="font-medium text-gray-900 mb-4">Thông tin thuốc</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mã Thuốc *</label>
-                <input
-                  type="text"
-                  value={newMedication.code}
-                  onChange={(e) => setNewMedication({ ...newMedication, code: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
-                  placeholder="VD: MED001"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tên Thuốc *</label>
-                <input
-                  type="text"
-                  value={newMedication.name}
-                  onChange={(e) => setNewMedication({ ...newMedication, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
-                  placeholder="Tên thuốc"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Số Lượng *</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={newMedication.quantity}
-                  onChange={(e) => {
-                    const quantity = parseInt(e.target.value);
-                    setNewMedication({ 
-                      ...newMedication, 
-                      quantity,
-                      totalPrice: quantity * newMedication.unitPrice
-                    });
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hạn Sử Dụng</label>
-                <input
-                  type="date"
-                  value={newMedication.expiryDate}
-                  onChange={(e) => setNewMedication({ ...newMedication, expiryDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Liều Dùng</label>
-                <input
-                  type="text"
-                  value={newMedication.dosage}
-                  onChange={(e) => setNewMedication({ ...newMedication, dosage: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
-                  placeholder="VD: 1 viên uống 2 lần/ngày"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Đơn Giá (VNĐ)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1000"
-                  value={newMedication.unitPrice}
-                  onChange={(e) => {
-                    const unitPrice = parseFloat(e.target.value);
-                    setNewMedication({ 
-                      ...newMedication, 
-                      unitPrice,
-                      totalPrice: newMedication.quantity * unitPrice
-                    });
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
-                />
-              </div>
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tổng Tiền</label>
+        <div className="flex flex-col h-full max-h-[calc(90vh-80px)]">
+          <div className="p-6 space-y-6 flex-1 overflow-y-auto">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                value={`${newMedication.totalPrice.toLocaleString('vi-VN')} đ`}
-                readOnly
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+                placeholder="Tìm kiếm thuốc theo tên hoặc mã để hiển thị danh sách..."
+                value={searchTerm}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+                autoFocus
               />
             </div>
 
+            {/* Medicine List - Only show when searching */}
+            {searchTerm && (
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h4 className="font-medium text-gray-900 mb-3">
+                  Kết quả tìm kiếm ({medicines.length} thuốc)
+                </h4>
+                <div className="border rounded-xl overflow-hidden bg-white max-h-64 overflow-y-auto">
+                  {medicines.length === 0 ? (
+                    <div className="p-6 text-center text-gray-500">
+                      <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p>Không tìm thấy thuốc phù hợp với "{searchTerm}"</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-200">
+                      {medicines.map((medicine) => (
+                        <button
+                          key={medicine.code}
+                          onClick={() => onSelectMedicine(medicine)}
+                          className="w-full p-4 text-left hover:bg-blue-50 transition-colors group"
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900 group-hover:text-blue-600">
+                                {medicine.name}
+                              </div>
+                              <div className="text-sm text-gray-500">Mã: {medicine.code}</div>
+                            </div>
+                            <div className="text-right ml-4">
+                              <div className="font-medium text-gray-900">
+                                {medicine.unitPrice.toLocaleString('vi-VN')} đ
+                              </div>
+                              <div className="text-sm text-gray-500">Đơn giá</div>
+                            </div>
+                            <div className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Plus className="w-5 h-5 text-blue-600" />
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Add Medicine Form */}
+            <div className="bg-pink-50 rounded-xl p-6">
+              <h4 className="font-medium text-gray-900 mb-4 flex items-center">
+                <Package className="w-5 h-5 text-pink-600 mr-2" />
+                Thông Tin Thuốc Cần Thêm
+              </h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mã Thuốc <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newMedication.code}
+                    onChange={(e) => setNewMedication({ ...newMedication, code: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                    placeholder="VD: MED001"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tên Thuốc <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newMedication.name}
+                    onChange={(e) => setNewMedication({ ...newMedication, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                    placeholder="Tên thuốc"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Số Lượng <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newMedication.quantity}
+                    onChange={(e) => {
+                      const quantity = parseInt(e.target.value) || 1;
+                      setNewMedication({ 
+                        ...newMedication, 
+                        quantity,
+                        totalPrice: quantity * newMedication.unitPrice
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Hạn Sử Dụng
+                  </label>
+                  <input
+                    type="date"
+                    value={newMedication.expiryDate}
+                    onChange={(e) => setNewMedication({ ...newMedication, expiryDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Đơn Giá (VNĐ) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    value={newMedication.unitPrice}
+                    onChange={(e) => {
+                      const unitPrice = parseFloat(e.target.value) || 0;
+                      setNewMedication({ 
+                        ...newMedication, 
+                        unitPrice,
+                        totalPrice: newMedication.quantity * unitPrice
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                    placeholder="0"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tổng Tiền
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={`${newMedication.totalPrice.toLocaleString('vi-VN')} đ`}
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 font-medium"
+                    />
+                    <Calculator className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Liều Dùng & Cách Sử Dụng
+                </label>
+                <textarea
+                  value={newMedication.dosage}
+                  onChange={(e) => setNewMedication({ ...newMedication, dosage: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                  rows={2}
+                  placeholder="VD: 1 viên uống 2 lần/ngày sau ăn"
+                />
+              </div>
+
+              {/* Validation */}
+              {(!newMedication.code || !newMedication.name || !newMedication.unitPrice) && (
+                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center">
+                    <AlertCircle className="w-4 h-4 text-yellow-600 mr-2" />
+                    <span className="text-sm text-yellow-700">
+                      Vui lòng điền đầy đủ mã thuốc, tên thuốc và đơn giá
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Fixed Footer */}
+          <div className="border-t border-gray-200 p-6 bg-gray-50">
             <div className="flex justify-end space-x-4">
               <button
                 type="button"
                 onClick={onCancel}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                className="px-6 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg font-medium transition-colors"
               >
                 Hủy
               </button>
               <button
                 type="button"
                 onClick={onAddMedication}
-                className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+                disabled={!newMedication.code || !newMedication.name || !newMedication.unitPrice}
+                className="px-6 py-2 bg-gradient-to-r from-pink-600 to-pink-700 text-white rounded-lg font-medium hover:from-pink-700 hover:to-pink-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                Thêm Thuốc
+                <Plus className="w-4 h-4 mr-2" />
+                Thêm Thuốc Vào Đơn
               </button>
             </div>
           </div>
@@ -1175,6 +1441,154 @@ function PrintPreview({ prescription, onCancel }) {
                 <p className="mb-16"><strong>Bác sĩ kê đơn</strong></p>
                 <p>BS. {prescription.doctor?.firstName} {prescription.doctor?.lastName}</p>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InvoicePreview({ prescription, onCancel }) {
+  const handlePrint = () => {
+    alert("Chức năng in hóa đơn sẽ được thực hiện trong môi trường thực tế");
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Hóa Đơn Thanh Toán</h3>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handlePrint}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              In Hóa Đơn
+            </button>
+            <button
+              onClick={onCancel}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-8">
+          <div className="max-w-full mx-auto bg-white">
+            {/* Header */}
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">BỆNH VIỆN BẠCH MAI</h1>
+              <h2 className="text-lg font-medium text-gray-700 mb-1">NHA THUOC SO 02</h2>
+              <p className="text-sm text-gray-600 mb-6">78 Đường Giải Phóng, Đống Đa, Hà Nội - ĐT: (024) 3869 3731</p>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">HÓA ĐƠN THANH TOÁN</h2>
+              <p className="text-sm text-gray-600">(Biên nhận có BHTT)</p>
+            </div>
+
+            {/* Invoice Info */}
+            <div className="grid grid-cols-2 gap-8 mb-6">
+              <div>
+                <p className="mb-2 text-sm">Người mua hàng: <strong>{prescription.patient?.firstName} {prescription.patient?.lastName}</strong></p>
+                <p className="mb-2 text-sm">Địa chỉ: {prescription.patient?.address}</p>
+                <p className="mb-2 text-sm">Số BHYT: <strong>{prescription.patient?.insuranceNumber}</strong></p>
+                <p className="mb-2 text-sm">ĐT: {prescription.patient?.phone}</p>
+              </div>
+              <div>
+                <p className="mb-2 text-sm">Mã đơn thuốc: <strong>#{prescription.prescriptionCode}</strong></p>
+                <p className="mb-2 text-sm">Ngày: {prescription.createdDate || new Date().toISOString().split('T')[0]}</p>
+                <p className="mb-2 text-sm">Bác sĩ phụ trách: <strong>BS. {prescription.doctor?.firstName} {prescription.doctor?.lastName}</strong></p>
+                <p className="mb-2 text-sm">Chẩn đoán bệnh: {prescription.diagnosis}</p>
+              </div>
+            </div>
+
+            {/* Medicine Table */}
+            <table className="w-full border-collapse border border-gray-300 mb-6 text-sm">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="border border-gray-300 px-2 py-2 text-left w-10">STT</th>
+                  <th className="border border-gray-300 px-2 py-2 text-left">Tên hàng</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center w-16">Số lượng</th>
+                  <th className="border border-gray-300 px-2 py-2 text-right w-24">Đơn giá (VND)</th>
+                  <th className="border border-gray-300 px-2 py-2 text-right w-24">Thành tiền (VND)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {prescription.medications?.map((med, index) => (
+                  <tr key={index}>
+                    <td className="border border-gray-300 px-2 py-2 text-center">{index + 1}</td>
+                    <td className="border border-gray-300 px-2 py-2">
+                      <div>
+                        <div className="font-medium">{med.name}</div>
+                        <div className="text-xs text-gray-600">{med.dosage}</div>
+                      </div>
+                    </td>
+                    <td className="border border-gray-300 px-2 py-2 text-center">{med.quantity}</td>
+                    <td className="border border-gray-300 px-2 py-2 text-right">
+                      {med.unitPrice.toLocaleString('vi-VN')}
+                    </td>
+                    <td className="border border-gray-300 px-2 py-2 text-right font-medium">
+                      {med.totalPrice.toLocaleString('vi-VN')}
+                    </td>
+                  </tr>
+                ))}
+                
+                {/* Empty rows to fill space */}
+                {[...Array(Math.max(0, 5 - (prescription.medications?.length || 0)))].map((_, index) => (
+                  <tr key={`empty-${index}`}>
+                    <td className="border border-gray-300 px-2 py-2 text-center">&nbsp;</td>
+                    <td className="border border-gray-300 px-2 py-2">&nbsp;</td>
+                    <td className="border border-gray-300 px-2 py-2 text-center">&nbsp;</td>
+                    <td className="border border-gray-300 px-2 py-2">&nbsp;</td>
+                    <td className="border border-gray-300 px-2 py-2">&nbsp;</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Totals */}
+            <div className="mb-6">
+              <div className="flex justify-between items-center py-2 text-sm">
+                <span>Tổng cộng:</span>
+                <span className="font-bold">{prescription.totalAmount?.toLocaleString('vi-VN')} VND</span>
+              </div>
+              <div className="flex justify-between items-center py-2 text-sm">
+                <span>Số tiền BHYT đã trả:</span>
+                <span className="font-bold text-green-600">{prescription.insuranceAmount?.toLocaleString('vi-VN')} VND</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-t-2 border-gray-300 text-base">
+                <span className="font-bold">Thành tiền:</span>
+                <span className="font-bold text-lg">{prescription.finalAmount?.toLocaleString('vi-VN')} VND</span>
+              </div>
+            </div>
+
+            {/* Footer notes */}
+            <div className="text-xs text-gray-600 mb-6">
+              <p className="mb-1">Lưu ý: Phiếu hóa đơn này có hiệu lực trong 03 tháng kể từ ngày khám bệnh.</p>
+              <p className="mb-1">Trân trọng cảm ơn Quý khách đã sử dụng dịch vụ của Bệnh viện.</p>
+            </div>
+
+            {/* Signatures */}
+            <div className="grid grid-cols-3 gap-8 mt-8 text-center text-sm">
+              <div>
+                <p className="mb-12 font-medium">Người bệnh</p>
+                <p className="text-xs">(Ký và ghi rõ họ tên)</p>
+              </div>
+              <div>
+                <p className="mb-12 font-medium">Thu ngân</p>
+                <p className="text-xs">Thái Thị Minh Tú</p>
+              </div>
+              <div>
+                <p className="mb-12 font-medium">Bác sĩ</p>
+                <p className="text-xs">BS. {prescription.doctor?.firstName} {prescription.doctor?.lastName}</p>
+              </div>
+            </div>
+
+            {/* Date and time stamp */}
+            <div className="text-center mt-8 text-xs text-gray-500">
+              <p>Ngày {new Date().getDate()} tháng {new Date().getMonth() + 1} năm {new Date().getFullYear()}</p>
+              <p>THU NGAN</p>
             </div>
           </div>
         </div>
