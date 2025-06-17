@@ -90,6 +90,12 @@ class ApiClient {
     delete: (id: string) => this.delete<any>(`/pdk-kham/${id}`),
   };
 
+  departments = {
+    getAll: () => this.get<any>('/khoa'),
+    search: (tuKhoa: string) => this.get<any>(`/khoa/search?tuKhoa=${encodeURIComponent(tuKhoa)}`),
+    getById: (id: string) => this.get<any>(`/khoa/${id}`),
+  };
+
   // Medical examination APIs
   examinations = {
     search: (params: any) => {

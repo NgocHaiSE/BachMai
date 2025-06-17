@@ -442,3 +442,21 @@ export function useDashboardStats() {
 export function useDashboardActivity() {
   return useApi(() => apiClient.dashboard.getRecentActivity());
 }
+
+// Department hooks
+export function useDepartments(searchTerm = '') {
+  return useApi(
+    () => searchTerm ? apiClient.departments.search(searchTerm) : apiClient.departments.getAll(),
+    [searchTerm]
+  );
+}
+
+export function useDepartment(id: string) {
+  return useApi(
+    () => apiClient.departments.getById(id),
+    [id],
+    !!id
+  );
+}
+
+

@@ -1,7 +1,8 @@
 import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { SignInForm } from "./SignInForm";
-import { SignOutButton } from "./SignOutButton";
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import LoginForm from './components/LoginForm';
+import LogoutButton from './components/LogoutButton';
 import { Toaster } from "sonner";
 import { useState } from "react";
 import Dashboard from "./components/Dashboard";
@@ -12,13 +13,13 @@ import MedicalRecords from "./components/MedicalRecords";
 import TransferManagement from "./components/TransferManagement";
 import PrescriptionManagement from "./components/PrescriptionManagement";
 import VaccinationManagement from "./components/VaccinationManagement";
-import { 
-  BarChart3, 
-  Users, 
-  Calendar, 
-  UserCheck, 
-  FileText, 
-  Pill, 
+import {
+  BarChart3,
+  Users,
+  Calendar,
+  UserCheck,
+  FileText,
+  Pill,
   Truck,
   Activity,
   Loader2,
@@ -199,48 +200,33 @@ const menuItems: MenuItem[] = [
   }
 ];
 
-export default function App() {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Authenticated>
-        <HospitalApp />
-      </Authenticated>
-      <Unauthenticated>
-        <LoginPage />
-      </Unauthenticated>
-      <Toaster />
-    </div>
-  );
-}
-
-function LoginPage() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-50">
-      <div className="max-w-md w-full mx-4">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 backdrop-blur-sm">
-          <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-              <Activity className="w-10 h-10 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-3">Hệ Thống Quản Lý Bệnh Viện</h1>
-            <p className="text-gray-600 text-lg">Đăng nhập để tiếp tục</p>
-          </div>
-          <SignInForm />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function HospitalApp() {
+const AppContent: React.FC = () => {
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const [selectedPatientForRecords, setSelectedPatientForRecords] = useState<any>(null);
-  const loggedInUser = useQuery(api.auth.loggedInUser);
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not authenticated - show login form
+  if (!isAuthenticated) {
+    return <LoginForm />;
+  }
+
+  // Rest of your HospitalApp component logic...
   const toggleMenu = (menuId: string) => {
-    setExpandedMenus(prev => 
-      prev.includes(menuId) 
+    setExpandedMenus(prev =>
+      prev.includes(menuId)
         ? prev.filter(id => id !== menuId)
         : [...prev, menuId]
     );
@@ -251,13 +237,13 @@ function HospitalApp() {
       toggleMenu(menuId);
     } else {
       setActiveTab(menuId);
-      setSelectedPatientForRecords(null); // Reset when changing tabs
+      setSelectedPatientForRecords(null);
     }
   };
 
   const handleSubMenuClick = (menuId: string) => {
     setActiveTab(menuId);
-    setSelectedPatientForRecords(null); // Reset when changing tabs
+    setSelectedPatientForRecords(null);
   };
 
   const handleViewPatientMedicalRecords = (patient: any) => {
@@ -270,23 +256,11 @@ function HospitalApp() {
     setActiveTab("patients");
   };
 
-  if (loggedInUser === undefined) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Đang tải...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
-
       <div className="flex">
-        {/* Sidebar */}
-        <nav className="w-72 bg-[#280559] min-h-screen sticky top-16 shadow-xl rounded-tr-[32px] rounded-br-[32px] ">
+        {/* Sidebar - same as your original code */}
+        <nav className="w-72 bg-[#280559] min-h-screen sticky top-16 shadow-xl rounded-tr-[32px] rounded-br-[32px]">
           {/* Sidebar Header */}
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center">
@@ -294,11 +268,12 @@ function HospitalApp() {
                 <Activity className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h2 className="text-white font-bold text-lg leading-tight">BỆNH VIỆN<br/>BẠCH MAI</h2>
+                <h2 className="text-white font-bold text-lg leading-tight">BỆNH VIỆN<br />BẠCH MAI</h2>
               </div>
             </div>
           </div>
 
+          {/* Menu Items */}
           <div className="p-4">
             <ul className="space-y-1">
               {menuItems.map((item) => {
@@ -311,17 +286,15 @@ function HospitalApp() {
                   <li key={item.id}>
                     <button
                       onClick={() => handleMenuClick(item.id, !!hasChildren)}
-                      className={`w-full flex items-center justify-between px-4 py-4 text-left transition-all duration-200 group ${
-                        isActive
+                      className={`w-full flex items-center justify-between px-4 py-4 text-left transition-all duration-200 group ${isActive
                           ? "bg-white/90 text-[#280559] rounded-xl shadow-lg font-medium"
                           : "text-white hover:bg-white/10 hover:text-white rounded-lg"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center">
-                        <IconComponent 
-                          className={`mr-3 h-5 w-5 transition-colors ${
-                            isActive ? "text-[#280559]" : "text-white/80 group-hover:text-white"
-                          }`} 
+                        <IconComponent
+                          className={`mr-3 h-5 w-5 transition-colors ${isActive ? "text-[#280559]" : "text-white/80 group-hover:text-white"
+                            }`}
                         />
                         <span className={`font-medium ${isActive ? 'text-[#280559]' : 'text-white group-hover:text-white'}`}>
                           {item.name}
@@ -332,9 +305,8 @@ function HospitalApp() {
                           <div className="w-2 h-2 bg-[#280559] rounded-full mr-2"></div>
                         )}
                         {hasChildren && (
-                          <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${
-                            isExpanded ? 'rotate-90' : ''
-                          } ${isActive ? 'text-[#280559]' : 'text-white/80 group-hover:text-white'}`} />
+                          <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''
+                            } ${isActive ? 'text-[#280559]' : 'text-white/80 group-hover:text-white'}`} />
                         )}
                       </div>
                     </button>
@@ -352,8 +324,8 @@ function HospitalApp() {
                               onClick={() => handleSubMenuClick(subItem.id)}
                               className={`
                                 w-full text-left px-4 py-3 text-sm rounded-xl transition-all duration-200
-                                ${activeTab === subItem.id 
-                                  ? 'bg-white/90 text-[#280559] shadow-md font-medium' 
+                                ${activeTab === subItem.id
+                                  ? 'bg-white/90 text-[#280559] shadow-md font-medium'
                                   : 'text-white/90 hover:bg-white/10 hover:text-white'
                                 }
                               `}
@@ -370,23 +342,22 @@ function HospitalApp() {
             </ul>
           </div>
 
-        {/* User Info */}
-        <div className="p-4 border-t border-white/10">
-          <div className="flex items-center">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center mr-3">
-              <span className="text-white font-medium text-sm">L</span>
+          {/* User Info */}
+          <div className="p-4 border-t border-white/10">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center mr-3">
+                <span className="text-white font-medium text-sm">
+                  {user?.HoTen?.charAt(0) || 'U'}
+                </span>
+              </div>
+              <div className="flex-1">
+                <div className="text-white text-sm font-medium">{user?.HoTen || 'Người dùng'}</div>
+                <div className="text-white/60 text-xs">{user?.ChucVu || 'Nhân viên'}</div>
+              </div>
+              <LogoutButton />
             </div>
-            <div className="flex-1">
-              <div className="text-white text-sm font-medium">Lê Thị Thúy Nga</div>
-              <div className="text-white/60 text-xs">Nhân viên kỹ thuật</div>
-            </div>
-            <button className="text-white/60 hover:text-white transition-colors">
-              <Settings className="w-4 h-4" />
-            </button>
           </div>
-        </div>
         </nav>
-
 
         {/* Main Content */}
         <main className="flex-1 p-8 bg-gray-50 min-h-screen overflow-auto">
@@ -396,8 +367,8 @@ function HospitalApp() {
               <PatientManagement onViewMedicalRecords={handleViewPatientMedicalRecords} />
             )}
             {activeTab === "patient-medical-records" && selectedPatientForRecords && (
-              <PatientMedicalRecords 
-                patient={selectedPatientForRecords} 
+              <PatientMedicalRecords
+                patient={selectedPatientForRecords}
                 onBack={handleBackToPatients}
               />
             )}
@@ -409,27 +380,37 @@ function HospitalApp() {
             {activeTab === "transfers" && <TransferManagement />}
             {activeTab === "register-exam" && <ExaminationRegistration />}
             {activeTab === "vaccination" && <VaccinationManagement />}
-            
+
             {/* Placeholder for other pages */}
             {![
-              "dashboard", "patients", "appointments", "staff", 
+              "dashboard", "patients", "appointments", "staff",
               "records", "prescriptions", "transfers", "register-exam", "patient-medical-records", "vaccination"
             ].includes(activeTab) && (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <FileText className="w-8 h-8 text-gray-400" />
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <FileText className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Trang đang phát triển
+                  </h3>
+                  <p className="text-gray-600">
+                    Chức năng "{menuItems.find(m => m.id === activeTab || m.children?.some(c => c.id === activeTab))?.name || activeTab}" sẽ được cập nhật trong phiên bản tiếp theo
+                  </p>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Trang đang phát triển
-                </h3>
-                <p className="text-gray-600">
-                  Chức năng "{menuItems.find(m => m.id === activeTab || m.children?.some(c => c.id === activeTab))?.name || activeTab}" sẽ được cập nhật trong phiên bản tiếp theo
-                </p>
-              </div>
-            )}
+              )}
           </div>
         </main>
       </div>
     </div>
   );
-}
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+};
+
+export default App;

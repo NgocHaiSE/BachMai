@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useEffect } from "react";
+import { useAuth } from '../contexts/AuthContext';
 import { toast } from "sonner";
 import {
   ClipboardList,
@@ -91,10 +92,11 @@ export default function ExaminationRegistration() {
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const { user } = useAuth();
 
   // Get examination records
   const { data: records, loading, error, refetch } = useAppointments({
-    TuNgay: fromDate || "2000-01-01", // fallback nếu chưa chọn
+    TuNgay: fromDate || "2000-01-01", 
     DenNgay: toDate || new Date().toISOString().split('T')[0],
     // Keyword: advanceSearch
   });
@@ -126,21 +128,27 @@ export default function ExaminationRegistration() {
   }) || [];
 
   function removeVietnameseTones(str = "") {
-  return str
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d").replace(/Đ/g, "D")
-    .toLowerCase();
-}
+    return str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d").replace(/Đ/g, "D")
+      .toLowerCase();
+  }
 
 
   const handleSubmit = async (formData: any) => {
     try {
+      // Thêm idNguoiDung vào formData trước khi gửi
+      const dataToSubmit = {
+        ...formData,
+        idNguoiDung: user?.idNguoiDung // Thêm dòng này
+      };
+
       if (editingRecord) {
-        await updateRecord({ id: editingRecord.idDKKhambenh, ...formData });
+        await updateRecord({ id: editingRecord.idDKKhambenh, ...dataToSubmit });
         toast.success("Cập nhật phiếu đăng ký thành công");
       } else {
-        await createRecord(formData);
+        await createRecord(dataToSubmit);
         toast.success("Đăng ký khám bệnh thành công");
       }
       setShowForm(false);
@@ -382,7 +390,7 @@ export default function ExaminationRegistration() {
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(record.idDKKhambenh)}
+                          onClick={() => handleDelete(record.MaPhieuDangKy)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Xóa"
                         >
@@ -450,9 +458,10 @@ export default function ExaminationRegistration() {
   );
 }
 
+
 function toSQLDateTime(datetimeLocal) {
   // input: '2025-06-12T10:57'
-  if (!datetimeLocal) return null;
+  if (!datetimeLocal) return ''; // Trả về chuỗi rỗng thay vì null
   return datetimeLocal.replace('T', ' ') + ':00';
 }
 
@@ -467,6 +476,16 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
     KhamBHYT: false,
     idKhoa: ""
   });
+
+
+  // Danh sách khoa với idKhoa và tên khoa
+  const departments = [
+    { idKhoa: "K0001", tenKhoa: "Khoa Nội tổng hợp" },
+    { idKhoa: "K0002", tenKhoa: "Khoa Cấp cứu" },
+    { idKhoa: "K0003", tenKhoa: "Khoa Xét nghiệm" },
+    { idKhoa: "K0004", tenKhoa: "Khoa Chẩn đoán Hình ảnh" },
+    { idKhoa: "K0005", tenKhoa: "Khoa Y học cổ truyền" },
+  ];
 
   useEffect(() => {
     setFormData({
@@ -505,11 +524,6 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
     }
   };
 
-  const departments = [
-    "Nội tổng hợp", "Ngoại tổng hợp", "Tim mạch", "Tiêu hóa",
-    "Hô hấp", "Thần kinh", "Cơ xương khớp", "Da liễu",
-    "Mắt", "Tai mũi họng", "Sản phụ khoa", "Nhi khoa"
-  ];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -552,7 +566,7 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
                   <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    value={record?.idDKKhambenh || "Tự động tạo"}
+                    value={record?.MaPhieuDangKy || "Tự động tạo"}
                     readOnly
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                   />
@@ -617,8 +631,8 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
                   >
                     <option value="">Chọn khoa khám</option>
                     {departments.map((dept) => (
-                      <option key={dept} value={dept}>
-                        {dept}
+                      <option key={dept.idKhoa} value={dept.idKhoa}>
+                        {dept.tenKhoa}
                       </option>
                     ))}
                   </select>
