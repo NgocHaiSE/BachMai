@@ -211,9 +211,6 @@ export default function PrescriptionManagement() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center">
-            <div className="w-12 h-12 bg-pink-100 rounded-2xl flex items-center justify-center mr-4">
-              <Pill className="w-7 h-7 text-pink-600" />
-            </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Quản Lý Đơn Thuốc</h1>
             </div>
@@ -224,7 +221,7 @@ export default function PrescriptionManagement() {
               setViewMode(null);
               setShowForm(true);
             }}
-            className="inline-flex items-center px-4 py-3 bg-gradient-to-r from-pink-600 to-pink-700 text-white font-semibold rounded-xl hover:from-pink-700 hover:to-pink-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            className="inline-flex items-center px-4 py-3 btn-primary font-semibold rounded-xl hover:from-pink-700 hover:to-pink-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
             <Plus className="w-5 h-5 mr-2" />
             Thêm Đơn Thuốc Mới
@@ -241,7 +238,7 @@ export default function PrescriptionManagement() {
                 placeholder="Tìm kiếm theo mã đơn, tên bệnh nhân, số điện thoại, chẩn đoán..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 transition-colors"
               />
             </div>
             <button className="inline-flex items-center px-4 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors">
@@ -271,7 +268,7 @@ export default function PrescriptionManagement() {
                   setViewMode(null);
                   setShowForm(true);
                 }}
-                className="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+                className="inline-flex items-center px-4 py-2 rounded-lg btn-primary transition-colors"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Tạo đơn thuốc đầu tiên
@@ -316,9 +313,6 @@ export default function PrescriptionManagement() {
                     <tr key={prescription._id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center mr-3">
-                            <Hash className="w-5 h-5 text-pink-600" />
-                          </div>
                           <div className="text-sm font-medium text-gray-900 whitespace-nowrap">
                             {prescription.prescriptionCode}
                           </div>
@@ -369,7 +363,7 @@ export default function PrescriptionManagement() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm font-semibold text-pink-600 whitespace-nowrap">
+                        <div className="text-sm font-semibold whitespace-nowrap">
                           {prescription.finalAmount.toLocaleString('vi-VN')} đ
                         </div>
                         {prescription.hasInsurance && (
@@ -673,11 +667,11 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <div className="w-10 h-10 bg-pink-100 rounded-xl flex items-center justify-center mr-3">
-                <Pill className="w-6 h-6 text-pink-600" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mr-3">
+                <Pill className="w-6 h-6 text-[#280559]" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-[#280559]">
                   {viewMode === 'detail' ? "Chi Tiết Đơn Thuốc" : 
                    prescription ? "Sửa Đơn Thuốc" : "Thêm Đơn Thuốc Mới"}
                 </h3>
@@ -701,7 +695,7 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
             {/* Thông tin chung */}
             <div className="bg-gray-50 rounded-2xl p-6">
               <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <FileText className="w-5 h-5 mr-2 text-pink-600" />
+                <FileText className="w-5 h-5 mr-2 text-[#280559]" />
                 Thông Tin Chung
               </h4>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -849,14 +843,14 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-lg font-medium text-gray-900 flex items-center">
-                  <Package className="w-5 h-5 mr-2 text-pink-600" />
+                  <Package className="w-5 h-5 mr-2 " />
                   Danh Sách Thuốc
                 </h4>
                 {!isReadOnly && (
                   <button
                     type="button"
                     onClick={() => setShowMedicineSearch(true)}
-                    className="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+                    className="inline-flex items-center px-4 py-2 rounded-xl btn-primary transition-colors"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Thêm Thuốc
@@ -975,7 +969,7 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
                     <div className="bg-white p-4 rounded-xl border">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm text-gray-600">Số Tiền BHYT Trả</p>
+                          <p className="text-sm text-green-600">Số Tiền BHYT Trả</p>
                           <p className={`text-2xl font-bold ${formData.hasInsurance ? 'text-green-600' : 'text-gray-400'}`}>
                             {insuranceAmount.toLocaleString('vi-VN')} đ
                           </p>
@@ -987,18 +981,18 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
                       </div>
                     </div>
                     
-                    <div className="bg-white p-4 rounded-xl border border-pink-200">
+                    <div className="bg-white p-4 rounded-xl border border-[#280559]">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm text-pink-600">Thành Tiền</p>
-                          <p className="text-3xl font-bold text-pink-600">
+                          <p className="text-sm text-[#280559]">Thành Tiền</p>
+                          <p className="text-3xl font-bold text-[#280559]">
                             {finalAmount.toLocaleString('vi-VN')} đ
                           </p>
                           {formData.hasInsurance && (
-                            <p className="text-xs text-pink-600">Sau trừ BHYT</p>
+                            <p className="text-xs text-[#280559]">Sau trừ BHYT</p>
                           )}
                         </div>
-                        <Calculator className="w-8 h-8 text-pink-600" />
+                        <Calculator className="w-8 h-8 text-[#280559]" />
                       </div>
                     </div>
                   </div>
@@ -1027,7 +1021,7 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
                       handleView(prescription, 'invoice');
                     }, 100);
                   }}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center"
+                  className="px-6 py-3 btn-primary rounded-xl font-medium transition-colors flex items-center"
                 >
                   <Receipt className="w-5 h-5 mr-2" />
                   In Hóa Đơn
@@ -1040,7 +1034,7 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
                       handleView(prescription, 'preview');
                     }, 100);
                   }}
-                  className="px-6 py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors flex items-center"
+                  className="px-6 py-3 btn-primary rounded-xl font-medium flex items-center"
                 >
                   <FileText className="w-5 h-5 mr-2" />
                   Xem Trước Phiếu
@@ -1053,7 +1047,7 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
                 type="button"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="px-6 py-3 bg-gradient-to-r from-pink-600 to-pink-700 text-white rounded-xl font-medium hover:from-pink-700 hover:to-pink-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="px-6 py-3 bg-gradient-to-r btn-primary rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
                 {isSubmitting ? (
                   <>
@@ -1115,7 +1109,7 @@ function MedicineSearchModal({ medicines, searchTerm, onSearchChange, newMedicat
                 placeholder="Tìm kiếm thuốc theo tên hoặc mã để hiển thị danh sách..."
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+                className="w-full pl-10 pr-4 py-3 border  rounded-xl  transition-colors"
                 autoFocus
               />
             </div>
@@ -1166,9 +1160,9 @@ function MedicineSearchModal({ medicines, searchTerm, onSearchChange, newMedicat
             )}
 
             {/* Add Medicine Form */}
-            <div className="bg-pink-50 rounded-xl p-6">
+            <div className="bg-gray-50 rounded-xl p-6">
               <h4 className="font-medium text-gray-900 mb-4 flex items-center">
-                <Package className="w-5 h-5 text-pink-600 mr-2" />
+                <Package className="w-5 h-5 mr-2" />
                 Thông Tin Thuốc Cần Thêm
               </h4>
               
@@ -1276,7 +1270,7 @@ function MedicineSearchModal({ medicines, searchTerm, onSearchChange, newMedicat
                 <textarea
                   value={newMedication.dosage}
                   onChange={(e) => setNewMedication({ ...newMedication, dosage: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2"
                   rows={2}
                   placeholder="VD: 1 viên uống 2 lần/ngày sau ăn"
                 />
@@ -1310,7 +1304,7 @@ function MedicineSearchModal({ medicines, searchTerm, onSearchChange, newMedicat
                 type="button"
                 onClick={onAddMedication}
                 disabled={!newMedication.code || !newMedication.name || !newMedication.unitPrice}
-                className="px-6 py-2 bg-gradient-to-r from-pink-600 to-pink-700 text-white rounded-lg font-medium hover:from-pink-700 hover:to-pink-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="px-6 py-2 bg-gradient-to-r btn-primary rounded-lg font-mediumtransition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Thêm Thuốc Vào Đơn
@@ -1336,7 +1330,7 @@ function PrintPreview({ prescription, onCancel }) {
           <div className="flex items-center space-x-3">
             <button
               onClick={handlePrint}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center px-4 py-2 btn-primary rounded-lg transition-colors"
             >
               <Download className="w-4 h-4 mr-2" />
               In Phiếu
@@ -1462,7 +1456,7 @@ function InvoicePreview({ prescription, onCancel }) {
           <div className="flex items-center space-x-3">
             <button
               onClick={handlePrint}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center px-4 py-2 btn-primary rounded-xl transition-colors"
             >
               <Download className="w-4 h-4 mr-2" />
               In Hóa Đơn

@@ -1,8 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
-import type { Id } from "../../convex/_generated/dataModel";
 import { 
   Search, 
   Plus, 
@@ -26,6 +23,12 @@ import {
   Clock,
   Stethoscope
 } from "lucide-react";
+import { 
+  usePatients, 
+  useCreatePatient, 
+  useUpdatePatient, 
+  useDeletePatient 
+} from "../hooks/api";
 
 interface PatientManagementProps {
   onViewMedicalRecords: (patient: any) => void;
@@ -36,15 +39,15 @@ export default function PatientManagement({ onViewMedicalRecords }: PatientManag
   const [showForm, setShowForm] = useState(false);
   const [editingPatient, setEditingPatient] = useState<any>(null);
 
-  const patients = useQuery(api.patients.search, { searchTerm });
-  const createPatient = useMutation(api.patients.create);
-  const updatePatient = useMutation(api.patients.update);
-  const deletePatient = useMutation(api.patients.remove);
+  const { data: patients, loading, error, refetch } = usePatients(searchTerm);
+  const { mutate: createPatient } = useCreatePatient();
+  const { mutate: updatePatient } = useUpdatePatient();
+  const { mutate: deletePatient } = useDeletePatient();
 
   const handleSubmit = async (formData: any) => {
     try {
       if (editingPatient) {
-        await updatePatient({ id: editingPatient._id, ...formData });
+        await updatePatient({ id: editingPatient.idBenhNhan, ...formData });
         toast.success("Cập nhật thông tin bệnh nhân thành công");
       } else {
         await createPatient(formData);
@@ -52,18 +55,20 @@ export default function PatientManagement({ onViewMedicalRecords }: PatientManag
       }
       setShowForm(false);
       setEditingPatient(null);
-    } catch (error) {
-      toast.error("Lưu thông tin bệnh nhân thất bại");
+      refetch();
+    } catch (error: any) {
+      toast.error(error.message || "Lưu thông tin bệnh nhân thất bại");
     }
   };
 
-  const handleDelete = async (id: Id<"patients">) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Bạn có chắc chắn muốn xóa bệnh nhân này?")) {
       try {
-        await deletePatient({ id });
+        await deletePatient(id);
         toast.success("Xóa bệnh nhân thành công");
-      } catch (error) {
-        toast.error("Xóa bệnh nhân thất bại");
+        refetch();
+      } catch (error: any) {
+        toast.error(error.message || "Xóa bệnh nhân thất bại");
       }
     }
   };
@@ -72,6 +77,25 @@ export default function PatientManagement({ onViewMedicalRecords }: PatientManag
     setEditingPatient(patient);
     setShowForm(true);
   };
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div className="text-center py-12">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Lỗi tải dữ liệu</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={refetch}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -117,7 +141,7 @@ export default function PatientManagement({ onViewMedicalRecords }: PatientManag
           </button>
         </div>
         
-        {patients && (
+        {Array.isArray(patients) && (
           <div className="mt-4 flex items-center text-sm text-gray-600">
             <Users className="w-4 h-4 mr-1" />
             Tìm thấy {patients.length} bệnh nhân
@@ -127,11 +151,11 @@ export default function PatientManagement({ onViewMedicalRecords }: PatientManag
 
       {/* Patient List */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        {patients === undefined ? (
+        {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           </div>
-        ) : patients.length === 0 ? (
+        ) : !Array.isArray(patients) || patients.length === 0 ? (
           <div className="text-center py-12">
             <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy bệnh nhân</h3>
@@ -173,8 +197,8 @@ export default function PatientManagement({ onViewMedicalRecords }: PatientManag
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {patients.map((patient) => (
-                  <tr key={patient._id} className="hover:bg-gray-50 transition-colors">
+                {patients.map((patient: any) => (
+                  <tr key={patient.idBenhNhan} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
@@ -182,11 +206,11 @@ export default function PatientManagement({ onViewMedicalRecords }: PatientManag
                         </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900">
-                            {patient.firstName} {patient.lastName}
+                            {patient.HoTen}
                           </div>
                           <div className="text-sm text-gray-500 flex items-center mt-1">
                             <Calendar className="w-4 h-4 mr-1" />
-                            Sinh: {patient.dateOfBirth}
+                            Sinh: {patient.NgaySinh ? new Date(patient.NgaySinh).toLocaleDateString('vi-VN') : 'N/A'}
                           </div>
                         </div>
                       </div>
@@ -195,57 +219,48 @@ export default function PatientManagement({ onViewMedicalRecords }: PatientManag
                       <div className="space-y-1">
                         <div className="text-sm text-gray-900 flex items-center">
                           <Phone className="w-4 h-4 mr-2 text-gray-400" />
-                          {patient.phone}
+                          {patient.SDT || 'N/A'}
                         </div>
-                        {patient.email && (
-                          <div className="text-sm text-gray-500 flex items-center">
-                            <Mail className="w-4 h-4 mr-2 text-gray-400" />
-                            {patient.email}
-                          </div>
-                        )}
+                        <div className="text-sm text-gray-500 flex items-center">
+                          <Mail className="w-4 h-4 mr-2 text-gray-400" />
+                          {patient.Email || 'N/A'}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-2">
                         <div className="flex items-center text-sm text-gray-900">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            patient.gender === "male" ? "bg-blue-100 text-blue-800" :
-                            patient.gender === "female" ? "bg-pink-100 text-pink-800" :
+                            patient.GioiTinh === "Nam" ? "bg-blue-100 text-blue-800" :
+                            patient.GioiTinh === "Nữ" ? "bg-pink-100 text-pink-800" :
                             "bg-gray-100 text-gray-800"
                           }`}>
-                            {patient.gender === "male" ? "Nam" : 
-                             patient.gender === "female" ? "Nữ" : "Khác"}
+                            {patient.GioiTinh || "N/A"}
                           </span>
-                          {patient.bloodType && (
-                            <span className="ml-2 flex items-center text-red-600">
-                              <Heart className="w-4 h-4 mr-1" />
-                              {patient.bloodType}
-                            </span>
-                          )}
                         </div>
-                        {(patient.allergies ?? []).length > 0 && (
+                        {patient.DiUng && (
                           <div className="flex items-center text-sm text-orange-600">
                             <AlertTriangle className="w-4 h-4 mr-1" />
-                            Dị ứng: {(patient.allergies ?? []).join(", ")}
+                            Dị ứng: {patient.DiUng}
                           </div>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{patient.emergencyContact.name}</div>
+                        <div className="text-sm font-medium text-gray-900">{patient.HoTenThanNhan || 'N/A'}</div>
                         <div className="text-sm text-gray-500 flex items-center mt-1">
                           <Phone className="w-4 h-4 mr-1" />
-                          {patient.emergencyContact.phone}
+                          {patient.SDTThanNhan || 'N/A'}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {patient.emergencyContact.relationship}
+                          {patient.MoiQuanHe || 'N/A'}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => onViewMedicalRecords(patient)}
+                        // onClick={() => onViewMedicalRecords(patient)}
                         className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 shadow-sm hover:shadow-md group"
                         title="Xem hồ sơ bệnh án"
                       >
@@ -260,7 +275,7 @@ export default function PatientManagement({ onViewMedicalRecords }: PatientManag
                         </div>
                         <div className="flex items-center text-xs text-gray-500 mt-1">
                           <Clock className="w-3 h-3 mr-1" />
-                          <span>{new Date(patient._creationTime).toLocaleDateString('vi-VN')}</span>
+                          <span>N/A</span>
                         </div>
                       </div>
                     </td>
@@ -274,7 +289,7 @@ export default function PatientManagement({ onViewMedicalRecords }: PatientManag
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(patient._id)}
+                          onClick={() => handleDelete(patient.idBenhNhan)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Xóa"
                         >
@@ -307,21 +322,25 @@ export default function PatientManagement({ onViewMedicalRecords }: PatientManag
 
 function PatientForm({ patient, onSubmit, onCancel }: any) {
   const [formData, setFormData] = useState({
-    firstName: patient?.firstName || "",
-    lastName: patient?.lastName || "",
-    email: patient?.email || "",
-    phone: patient?.phone || "",
-    dateOfBirth: patient?.dateOfBirth || "",
-    gender: patient?.gender || "male",
-    address: patient?.address || "",
-    emergencyContact: {
-      name: patient?.emergencyContact?.name || "",
-      phone: patient?.emergencyContact?.phone || "",
-      relationship: patient?.emergencyContact?.relationship || "",
-    },
-    bloodType: patient?.bloodType || "",
-    allergies: patient?.allergies || [],
-    medicalHistory: patient?.medicalHistory || "",
+    HoTen: patient?.HoTen || "",
+    NgaySinh: patient?.NgaySinh ? new Date(patient.NgaySinh).toISOString().split('T')[0] : "",
+    GioiTinh: patient?.GioiTinh || "Nam",
+    NgheNghiep: patient?.NgheNghiep || "",
+    DanToc: patient?.DanToc || "",
+    SDT: patient?.SDT || "",
+    DiaChi: patient?.DiaChi || "",
+    CCCD: patient?.CCCD || "",
+    BHYT: patient?.BHYT || "",
+    ThoiHanBHYT: patient?.ThoiHanBHYT ? new Date(patient.ThoiHanBHYT).toISOString().split('T')[0] : "",
+    DoiTuongUuTien: patient?.DoiTuongUuTien || "",
+    HoTenThanNhan: patient?.HoTenThanNhan || "",
+    MoiQuanHe: patient?.MoiQuanHe || "",
+    SDTThanNhan: patient?.SDTThanNhan || "",
+    BenhManTinh: patient?.BenhManTinh || "",
+    DiUng: patient?.DiUng || "",
+    PhauThuatDaLam: patient?.PhauThuatDaLam || "",
+    TrangThai: patient?.TrangThai || "Đang điều trị",
+    idLoaiBHYT: patient?.idLoaiBHYT || "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -334,11 +353,6 @@ function PatientForm({ patient, onSubmit, onCancel }: any) {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleAllergyChange = (value: string) => {
-    const allergies = value.split(",").map(a => a.trim()).filter(a => a);
-    setFormData({ ...formData, allergies });
   };
 
   return (
@@ -379,139 +393,102 @@ function PatientForm({ patient, onSubmit, onCancel }: any) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tên *
+                    Họ Tên *
                   </label>
                   <input
                     type="text"
                     required
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    value={formData.HoTen}
+                    onChange={(e) => setFormData({ ...formData, HoTen: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    placeholder="Nhập tên"
+                    placeholder="Nhập họ tên"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Họ *
+                    Ngày Sinh
                   </label>
                   <input
-                    type="text"
-                    required
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    type="date"
+                    value={formData.NgaySinh}
+                    onChange={(e) => setFormData({ ...formData, NgaySinh: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    placeholder="Nhập họ"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      placeholder="example@email.com"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Số Điện Thoại *
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="tel"
-                      required
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      placeholder="0123 456 789"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ngày Sinh *
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="date"
-                      required
-                      value={formData.dateOfBirth}
-                      onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Giới Tính *
+                    Giới Tính
                   </label>
                   <select
-                    value={formData.gender}
-                    onChange={(e) => setFormData({ ...formData, gender: e.target.value as any })}
+                    value={formData.GioiTinh}
+                    onChange={(e) => setFormData({ ...formData, GioiTinh: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   >
-                    <option value="male">Nam</option>
-                    <option value="female">Nữ</option>
-                    <option value="other">Khác</option>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                    <option value="Khác">Khác</option>
                   </select>
                 </div>
-              </div>
-            </div>
-
-            {/* Thông tin y tế */}
-            <div>
-              <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Heart className="w-5 h-5 mr-2 text-red-600" />
-                Thông Tin Y Tế
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nhóm Máu
+                    Nghề Nghiệp
                   </label>
                   <input
                     type="text"
-                    value={formData.bloodType}
-                    onChange={(e) => setFormData({ ...formData, bloodType: e.target.value })}
+                    value={formData.NgheNghiep}
+                    onChange={(e) => setFormData({ ...formData, NgheNghiep: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    placeholder="VD: A+, B-, O+, AB+"
+                    placeholder="Nhập nghề nghiệp"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Dị Ứng
+                    Dân Tộc
                   </label>
-                  <div className="relative">
-                    <AlertTriangle className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
-                    <input
-                      type="text"
-                      value={formData.allergies.join(", ")}
-                      onChange={(e) => handleAllergyChange(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      placeholder="VD: Penicillin, Đậu phộng (cách nhau bằng dấu phẩy)"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    value={formData.DanToc}
+                    onChange={(e) => setFormData({ ...formData, DanToc: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="Nhập dân tộc"
+                  />
                 </div>
-              </div>
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tiền Sử Bệnh
-                </label>
-                <textarea
-                  value={formData.medicalHistory}
-                  onChange={(e) => setFormData({ ...formData, medicalHistory: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  rows={4}
-                  placeholder="Mô tả các bệnh lý, phẫu thuật, điều trị trước đây..."
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Số Điện Thoại
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.SDT}
+                    onChange={(e) => setFormData({ ...formData, SDT: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="0123 456 789"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    CCCD/CMND
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.CCCD}
+                    onChange={(e) => setFormData({ ...formData, CCCD: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="Nhập số CCCD/CMND"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Số BHYT
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.BHYT}
+                    onChange={(e) => setFormData({ ...formData, BHYT: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="Nhập số thẻ BHYT"
+                  />
+                </div>
               </div>
             </div>
 
@@ -519,9 +496,8 @@ function PatientForm({ patient, onSubmit, onCancel }: any) {
             <div>
               <h4 className="text-lg font-medium text-gray-900 mb-4">Địa Chỉ</h4>
               <textarea
-                required
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                value={formData.DiaChi}
+                onChange={(e) => setFormData({ ...formData, DiaChi: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 rows={3}
                 placeholder="Nhập địa chỉ đầy đủ..."
@@ -537,52 +513,86 @@ function PatientForm({ patient, onSubmit, onCancel }: any) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Họ Tên *
+                    Họ Tên Thân Nhân
                   </label>
                   <input
                     type="text"
-                    required
-                    value={formData.emergencyContact.name}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      emergencyContact: { ...formData.emergencyContact, name: e.target.value }
-                    })}
+                    value={formData.HoTenThanNhan}
+                    onChange={(e) => setFormData({ ...formData, HoTenThanNhan: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     placeholder="Nhập họ tên"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Số Điện Thoại *
+                    Số Điện Thoại
                   </label>
                   <input
                     type="tel"
-                    required
-                    value={formData.emergencyContact.phone}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      emergencyContact: { ...formData.emergencyContact, phone: e.target.value }
-                    })}
+                    value={formData.SDTThanNhan}
+                    onChange={(e) => setFormData({ ...formData, SDTThanNhan: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     placeholder="0123 456 789"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mối Quan Hệ *
+                    Mối Quan Hệ
                   </label>
                   <input
                     type="text"
-                    required
-                    value={formData.emergencyContact.relationship}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      emergencyContact: { ...formData.emergencyContact, relationship: e.target.value }
-                    })}
+                    value={formData.MoiQuanHe}
+                    onChange={(e) => setFormData({ ...formData, MoiQuanHe: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     placeholder="VD: Vợ/Chồng, Con, Cha/Mẹ"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Thông tin y tế */}
+            <div>
+              <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <Heart className="w-5 h-5 mr-2 text-red-600" />
+                Thông Tin Y Tế
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Bệnh Mãn Tính
+                  </label>
+                  <textarea
+                    value={formData.BenhManTinh}
+                    onChange={(e) => setFormData({ ...formData, BenhManTinh: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    rows={3}
+                    placeholder="Mô tả các bệnh mãn tính..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Dị Ứng
+                  </label>
+                  <textarea
+                    value={formData.DiUng}
+                    onChange={(e) => setFormData({ ...formData, DiUng: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    rows={3}
+                    placeholder="Mô tả các chất dị ứng..."
+                  />
+                </div>
+              </div>
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phẫu Thuật Đã Làm
+                </label>
+                <textarea
+                  value={formData.PhauThuatDaLam}
+                  onChange={(e) => setFormData({ ...formData, PhauThuatDaLam: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  rows={3}
+                  placeholder="Mô tả các phẫu thuật đã thực hiện..."
+                />
               </div>
             </div>
           </div>

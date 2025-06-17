@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useEffect } from "react";
 import { toast } from "sonner";
-import { 
-  ClipboardList, 
-  Plus, 
-  Edit3, 
-  Trash2, 
-  X, 
-  Save, 
+import {
+  ClipboardList,
+  Plus,
+  Edit3,
+  Trash2,
+  X,
+  Save,
   Loader2,
   User,
   Search,
@@ -30,52 +30,61 @@ import {
   Activity,
   RefreshCw
 } from "lucide-react";
+import {
+  useAppointments,
+  useCreateAppointment,
+  useUpdateAppointment,
+  useUpdateAppointmentStatus,
+  useDeleteAppointment,
+  usePatients,
+  useCreatePatient
+} from "../hooks/api";
 
-// Mock data structures - replace with actual Convex queries
+// Data structures
 interface ExaminationRecord {
-  _id: string;
-  _creationTime: number;
-  recordNumber: string;
-  registrationTime: string;
-  patientName: string;
-  dateOfBirth: string;
-  gender: string;
-  examType: string;
-  reason: string;
-  priority: string;
-  patientId?: string;
-  department: string;
-  roomNumber: string;
-  symptomStartTime?: string;
-  createdBy: string;
+  MaPhieuDangKy: string;
+  NgayLap: string;
+  LyDoKham: string;
+  ThoiGianBatDauTrieuChung?: string;
+  PhongKhamSo?: string;
+  TienSuBenhLyBanThan?: string;
+  TienSuBenhLyGiaDinh?: string;
+  ThuocDangSuDung?: string;
+  KhamBHYT?: boolean;
+  TrangThai?: string;
+  idBenhNhan?: string;
+  idKhoa?: string;
+  BenhNhan?: {
+    HoTen: string;
+    NgaySinh: string;
+    GioiTinh: string;
+    SDT: string;
+  };
 }
 
 interface Patient {
-  _id: string;
-  patientCode: string;
-  fullName: string;
-  idNumber: string;
-  dateOfBirth: string;
-  gender: string;
-  occupation: string;
-  ethnicity: string;
-  phone: string;
-  address: string;
-  emergencyContact: {
-    name: string;
-    relationship: string;
-    phone: string;
-  };
-  insurance: {
-    number: string;
-    type: string;
-    validUntil: string;
-    coverage: string;
-    priority: string;
-  };
+  idBenhNhan: string;
+  HoTen: string;
+  CCCD: string;
+  NgaySinh: string;
+  GioiTinh: string;
+  NgheNghiep: string;
+  DanToc: string;
+  SDT: string;
+  DiaChi: string;
+  HoTenThanNhan: string;
+  MoiQuanHe: string;
+  SDTThanNhan: string;
+  BHYT: string;
+  ThoiHanBHYT: string;
+  DoiTuongUuTien: string;
 }
 
 export default function ExaminationRegistration() {
+  const [fromDate, setFromDate] = useState(""); // từ ngày
+  const [toDate, setToDate] = useState("");    // đến ngày
+  const [advanceSearch, setAdvanceSearch] = useState(""); // ô tìm kiếm nâng cao
+
   const [showForm, setShowForm] = useState(false);
   const [showPatientList, setShowPatientList] = useState(false);
   const [showNewPatientForm, setShowNewPatientForm] = useState(false);
@@ -83,127 +92,82 @@ export default function ExaminationRegistration() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
-  // Mock data - replace with actual Convex queries
-  const records: ExaminationRecord[] = [
-    {
-      _id: "1",
-      _creationTime: Date.now(),
-      recordNumber: "DK001",
-      registrationTime: "08:30 - 06/06/2025",
-      patientName: "Nguyễn Văn A",
-      dateOfBirth: "15/03/1985",
-      gender: "Nam",
-      examType: "Khám tổng quát",
-      reason: "Đau bụng, sốt",
-      priority: "Bình thường",
-      department: "Nội tổng hợp",
-      roomNumber: "101",
-      patientId: "p1",
-      createdBy: "user1"
-    },
-    {
-      _id: "2", 
-      _creationTime: Date.now() - 3600000,
-      recordNumber: "DK002",
-      registrationTime: "09:15 - 06/06/2025",
-      patientName: "Trần Thị B",
-      dateOfBirth: "22/07/1990",
-      gender: "Nữ",
-      examType: "Khám chuyên khoa",
-      reason: "Khám định kỳ",
-      priority: "Ưu tiên",
-      department: "Tim mạch",
-      roomNumber: "205",
-      patientId: "p2",
-      createdBy: "user1"
-    }
-  ];
+  // Get examination records
+  const { data: records, loading, error, refetch } = useAppointments({
+    TuNgay: fromDate || "2000-01-01", // fallback nếu chưa chọn
+    DenNgay: toDate || new Date().toISOString().split('T')[0],
+    // Keyword: advanceSearch
+  });
 
-  const patients: Patient[] = [
-    {
-      _id: "p1",
-      patientCode: "BN001",
-      fullName: "Nguyễn Văn A",
-      idNumber: "123456789",
-      dateOfBirth: "15/03/1985",
-      gender: "Nam",
-      occupation: "Kỹ sư",
-      ethnicity: "Kinh",
-      phone: "0123456789",
-      address: "123 Đường ABC, Quận 1, TP.HCM",
-      emergencyContact: {
-        name: "Nguyễn Thị C",
-        relationship: "Vợ",
-        phone: "0987654321"
-      },
-      insurance: {
-        number: "DN1234567890",
-        type: "BHYT",
-        validUntil: "31/12/2025",
-        coverage: "80%",
-        priority: "Bình thường"
-      }
-    },
-    {
-      _id: "p2",
-      patientCode: "BN002",
-      fullName: "Trần Thị B",
-      idNumber: "987654321",
-      dateOfBirth: "22/07/1990",
-      gender: "Nữ",
-      occupation: "Giáo viên",
-      ethnicity: "Kinh",
-      phone: "0987654321",
-      address: "456 Đường XYZ, Quận 2, TP.HCM",
-      emergencyContact: {
-        name: "Trần Văn D",
-        relationship: "Chồng",
-        phone: "0123456789"
-      },
-      insurance: {
-        number: "DN0987654321",
-        type: "BHYT",
-        validUntil: "31/12/2025",
-        coverage: "80%",
-        priority: "Ưu tiên"
-      }
-    }
-  ];
+  // Get patients for selection
+  const { data: patients } = usePatients('');
 
-  const filteredRecords = records.filter(record =>
-    !searchTerm || 
-    record.recordNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.reason.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const { mutate: createRecord } = useCreateAppointment();
+  const { mutate: updateRecord } = useUpdateAppointment();
+  const { mutate: updateStatus } = useUpdateAppointmentStatus();
+  const { mutate: deleteRecord } = useDeleteAppointment();
+  const { mutate: createPatient } = useCreatePatient();
+
+  const normalizedSearch = removeVietnameseTones(advanceSearch);
+
+  const filteredRecords = records?.filter((record: any) => {
+    // normalize các trường để so sánh
+    const id = removeVietnameseTones(record.idDKKhambenh || "");
+    const ten = removeVietnameseTones(record.TenBenhNhan || "");
+    const bhyt = removeVietnameseTones(record.BenhNhan?.BHYT || "");
+    const khoa = removeVietnameseTones(record.TenKhoa || "");
+    return (
+      !normalizedSearch ||
+      id.includes(normalizedSearch) ||
+      ten.includes(normalizedSearch) ||
+      bhyt.includes(normalizedSearch) ||
+      khoa.includes(normalizedSearch)
+    );
+  }) || [];
+
+  function removeVietnameseTones(str = "") {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d").replace(/Đ/g, "D")
+    .toLowerCase();
+}
+
 
   const handleSubmit = async (formData: any) => {
     try {
-      // Mock save - replace with actual Convex mutation
-      toast.success("Đăng ký khám bệnh thành công");
+      if (editingRecord) {
+        await updateRecord({ id: editingRecord.idDKKhambenh, ...formData });
+        toast.success("Cập nhật phiếu đăng ký thành công");
+      } else {
+        await createRecord(formData);
+        toast.success("Đăng ký khám bệnh thành công");
+      }
       setShowForm(false);
       setEditingRecord(null);
       setSelectedPatient(null);
-    } catch (error) {
-      toast.error("Đăng ký khám bệnh thất bại");
+      refetch();
+    } catch (error: any) {
+      toast.error(error.message || "Đăng ký khám bệnh thất bại");
     }
   };
 
   const handleDelete = async (id: string) => {
     if (confirm("Bạn có chắc chắn muốn xóa phiếu đăng ký này?")) {
       try {
-        // Mock delete - replace with actual Convex mutation
+        await deleteRecord(id);
         toast.success("Xóa phiếu đăng ký thành công");
-      } catch (error) {
-        toast.error("Xóa phiếu đăng ký thất bại");
+        refetch();
+      } catch (error: any) {
+        toast.error(error.message || "Xóa phiếu đăng ký thất bại");
       }
     }
   };
 
   const handleEdit = (record: any) => {
     setEditingRecord(record);
-    // Tìm bệnh nhân từ patientId của record
-    const patient = patients.find(p => p._id === record.patientId);
+    // Find patient from record's patientId
+    const patient = patients?.find((p: any) => p.idBenhNhan === record.idBenhNhan);
     setSelectedPatient(patient || null);
     setShowForm(true);
   };
@@ -220,7 +184,7 @@ export default function ExaminationRegistration() {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
+    switch (priority?.toLowerCase()) {
       case "khẩn cấp": return "bg-red-100 text-red-800 border-red-200";
       case "ưu tiên": return "bg-orange-100 text-orange-800 border-orange-200";
       case "bình thường": return "bg-green-100 text-green-800 border-green-200";
@@ -228,31 +192,46 @@ export default function ExaminationRegistration() {
     }
   };
 
-  const getExamTypeColor = (type: string) => {
-    switch (type.toLowerCase()) {
-      case "khám tổng quát": return "bg-blue-100 text-blue-800";
-      case "khám chuyên khoa": return "bg-purple-100 text-purple-800";
-      case "cấp cứu": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "đã hoàn thành": return "bg-green-100 text-green-800";
+      case "đang chờ": return "bg-yellow-100 text-yellow-800";
+      case "đã hủy": return "bg-red-100 text-red-800";
+      default: return "bg-blue-100 text-blue-800";
     }
   };
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div className="text-center py-12">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Lỗi tải dữ liệu</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={refetch}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center">
-          <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mr-3">
-            <ClipboardList className="w-6 h-6 text-green-600" />
-          </div>
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Đăng Ký Khám Bệnh</h2>
-            <p className="text-gray-600">Quản lý phiếu đăng ký khám bệnh của bệnh nhân</p>
           </div>
         </div>
         <button
           onClick={handleNewRecord}
-          className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-medium rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          className="inline-flex items-center px-4 py-3 btn-primary text-white font-medium rounded-xl  transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
         >
           <Plus className="w-5 h-5 mr-2" />
           Đăng Ký Khám Bệnh
@@ -261,23 +240,35 @@ export default function ExaminationRegistration() {
 
       {/* Search and Filter */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col md:flex-row gap-4 items-center">
+          <div className="flex gap-2 items-center">
+            <span className="text-gray-600">Từ ngày</span>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={e => setFromDate(e.target.value)}
+              className="border border-gray-300 rounded-xl px-3 py-2"
+            />
+            <span className="text-gray-600 ml-2">Đến ngày</span>
+            <input
+              type="date"
+              value={toDate}
+              onChange={e => setToDate(e.target.value)}
+              className="border border-gray-300 rounded-xl px-3 py-2"
+            />
+          </div>
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Tìm kiếm theo số phiếu, tên bệnh nhân, lý do khám..."
-              value={searchTerm}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+              placeholder="Tìm theo tên, mã BHYT, khoa phòng..."
+              value={advanceSearch}
+              onChange={e => setAdvanceSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
             />
           </div>
-          <button className="inline-flex items-center px-4 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors">
-            <Filter className="w-5 h-5 mr-2" />
-            Bộ lọc
-          </button>
         </div>
-        
+
         {filteredRecords && (
           <div className="mt-4 flex items-center text-sm text-gray-600">
             <ClipboardList className="w-4 h-4 mr-1" />
@@ -288,7 +279,11 @@ export default function ExaminationRegistration() {
 
       {/* Records List */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        {filteredRecords.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+          </div>
+        ) : filteredRecords.length === 0 ? (
           <div className="text-center py-12">
             <ClipboardList className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy phiếu đăng ký</h3>
@@ -297,7 +292,7 @@ export default function ExaminationRegistration() {
             </p>
             <button
               onClick={handleNewRecord}
-              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="inline-flex items-center px-4 py-2 btn-primary text-white rounded-lg  transition-colors"
             >
               <Plus className="w-4 h-4 mr-2" />
               Đăng ký khám bệnh đầu tiên
@@ -309,19 +304,22 @@ export default function ExaminationRegistration() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Thông Tin Phiếu
+                    Mã phiếu
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Bệnh Nhân
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Loại Khám
+                    Ngày lập
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Khoa/Phòng
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Lý Do Khám
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Mức Độ Ưu Tiên
+                    Trạng Thái
                   </th>
                   <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Thao Tác
@@ -329,58 +327,49 @@ export default function ExaminationRegistration() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredRecords.map((record: ExaminationRecord) => (
-                  <tr key={record._id} className="hover:bg-gray-50 transition-colors">
+                {filteredRecords.map((record: any) => (
+                  <tr key={record.idDKKhambenh} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
-                          <FileText className="w-6 h-6 text-green-600" />
-                        </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900 flex items-center">
                             <Hash className="w-4 h-4 mr-1 text-gray-400" />
-                            {record.recordNumber}
+                            {record.MaPhieuDangKy}
                           </div>
-                          <div className="text-sm text-gray-500 flex items-center mt-1">
-                            <Clock className="w-4 h-4 mr-1" />
-                            {record.registrationTime}
-                          </div>
+
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                          <User className="w-5 h-5 text-blue-600" />
-                        </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900">
-                            {record.patientName}
-                          </div>
-                          <div className="text-sm text-gray-500 mt-1">
-                            {record.dateOfBirth} - {record.gender}
+                            {record.TenBenhNhan || 'N/A'}
                           </div>
                         </div>
                       </div>
                     </td>
+
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getExamTypeColor(record.examType)}`}>
-                        {record.examType}
-                      </span>
-                      <div className="text-sm text-gray-500 mt-1 flex items-center">
-                        <Building2 className="w-4 h-4 mr-1" />
-                        {record.department} - P.{record.roomNumber}
+                      <div className="flex items-center">
+                        <div className="text-sm text-gray-500 flex items-center mt-1">
+                          {record.NgayLap ? new Date(record.NgayLap).toLocaleString('vi-VN') : 'N/A'}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 flex items-center">
+                        {record.TenKhoa || 'N/A'}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900 max-w-xs">
-                        {record.reason}
+                        {record.LyDoKham || 'N/A'}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getPriorityColor(record.priority)}`}>
-                        <AlertTriangle className="w-3 h-3 mr-1" />
-                        {record.priority}
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(record.TrangThai || 'Đang chờ')}`}>
+                        {record.TrangThai || 'Đang chờ'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -393,7 +382,7 @@ export default function ExaminationRegistration() {
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(record._id)}
+                          onClick={() => handleDelete(record.idDKKhambenh)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Xóa"
                         >
@@ -431,7 +420,7 @@ export default function ExaminationRegistration() {
       {/* Patient List Modal */}
       {showPatientList && (
         <PatientListModal
-          patients={patients}
+          patients={patients || []}
           onSelectPatient={handleSelectPatient}
           onAddNewPatient={() => {
             setShowPatientList(false);
@@ -444,9 +433,15 @@ export default function ExaminationRegistration() {
       {/* New Patient Form Modal */}
       {showNewPatientForm && (
         <NewPatientForm
-          onSubmit={(patient: Patient) => {
-            setSelectedPatient(patient);
-            setShowNewPatientForm(false);
+          onSubmit={async (patient: Patient) => {
+            try {
+              const newPatient = await createPatient(patient);
+              setSelectedPatient(newPatient);
+              setShowNewPatientForm(false);
+              toast.success("Thêm bệnh nhân mới thành công");
+            } catch (error: any) {
+              toast.error(error.message || "Thêm bệnh nhân thất bại");
+            }
           }}
           onCancel={() => setShowNewPatientForm(false)}
         />
@@ -455,15 +450,38 @@ export default function ExaminationRegistration() {
   );
 }
 
+function toSQLDateTime(datetimeLocal) {
+  // input: '2025-06-12T10:57'
+  if (!datetimeLocal) return null;
+  return datetimeLocal.replace('T', ' ') + ':00';
+}
+
 function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelectPatient, onChangePatient }: any) {
   const [formData, setFormData] = useState({
-    examType: record?.examType || "Khám tổng quát",
-    reason: record?.reason || "",
-    symptomStartTime: record?.symptomStartTime || "",
-    department: record?.department || "",
-    roomNumber: record?.roomNumber || "",
-    priority: record?.priority || "Bình thường"
+    LyDoKham: "",
+    ThoiGianBatDauTrieuChung: "",
+    PhongKhamSo: "",
+    TienSuBenhLyBanThan: "",
+    TienSuBenhLyGiaDinh: "",
+    ThuocDangSuDung: "",
+    KhamBHYT: false,
+    idKhoa: ""
   });
+
+  useEffect(() => {
+    setFormData({
+      LyDoKham: record?.LyDoKham || "",
+      ThoiGianBatDauTrieuChung: record?.ThoiGianBatDauTrieuChung
+        ? new Date(record.ThoiGianBatDauTrieuChung).toISOString().slice(0, 16)
+        : "",
+      PhongKhamSo: record?.PhongKhamSo || "",
+      TienSuBenhLyBanThan: record?.TienSuBenhLyBanThan || "",
+      TienSuBenhLyGiaDinh: record?.TienSuBenhLyGiaDinh || "",
+      ThuocDangSuDung: record?.ThuocDangSuDung || "",
+      KhamBHYT: record?.KhamBHYT || false,
+      idKhoa: record?.idKhoa || ""
+    });
+  }, [record]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -473,38 +491,24 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
       toast.error("Vui lòng chọn bệnh nhân");
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       await onSubmit({
         ...formData,
-        patientId: selectedPatient._id,
-        recordNumber: record?.recordNumber || `DK${Date.now().toString().slice(-6)}`,
-        registrationTime: new Date().toLocaleString('vi-VN'),
-        createdBy: "current-user"
+        idBenhNhan: selectedPatient.idBenhNhan,
+        ThoiGianBatDauTrieuChung: toSQLDateTime(formData.ThoiGianBatDauTrieuChung),
+        TrangThai: "Đang chờ"
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const examTypes = [
-    { value: "Khám tổng quát", label: "Khám tổng quát" },
-    { value: "Khám chuyên khoa", label: "Khám chuyên khoa" },
-    { value: "Cấp cứu", label: "Cấp cứu" },
-    { value: "Khám định kỳ", label: "Khám định kỳ" }
-  ];
-
   const departments = [
-    "Nội tổng hợp", "Ngoại tổng hợp", "Tim mạch", "Tiêu hóa", 
+    "Nội tổng hợp", "Ngoại tổng hợp", "Tim mạch", "Tiêu hóa",
     "Hô hấp", "Thần kinh", "Cơ xương khớp", "Da liễu",
     "Mắt", "Tai mũi họng", "Sản phụ khoa", "Nhi khoa"
-  ];
-
-  const priorities = [
-    { value: "Bình thường", label: "Bình thường", color: "text-green-600" },
-    { value: "Ưu tiên", label: "Ưu tiên", color: "text-orange-600" },
-    { value: "Khẩn cấp", label: "Khẩn cấp", color: "text-red-600" }
   ];
 
   return (
@@ -513,9 +517,6 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mr-3">
-                <ClipboardList className="w-6 h-6 text-green-600" />
-              </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
                   {record ? "Sửa Phiếu Đăng Ký" : "Đăng Ký Khám Bệnh Mới"}
@@ -533,15 +534,15 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
             </button>
           </div>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6 space-y-8">
           {/* A. Thông tin phiếu */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <FileText className="w-5 h-5 mr-2 text-green-600" />
+              <FileText className="w-5 h-5 mr-2 " />
               A. Thông tin phiếu
             </h4>
-            
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -551,7 +552,7 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
                   <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    value={record?.recordNumber || "Tự động tạo"}
+                    value={record?.idDKKhambenh || "Tự động tạo"}
                     readOnly
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                   />
@@ -579,7 +580,7 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    value="Lê Thị Thủy Nga"
+                    value="Người dùng hiện tại"
                     readOnly
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                   />
@@ -590,42 +591,18 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Chọn loại hình đăng ký khám bệnh *
-                </label>
-                <div className="relative">
-                  <Stethoscope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <select
-                    required
-                    value={formData.examType}
-                    onChange={(e) => setFormData({ ...formData, examType: e.target.value })}
-                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors appearance-none"
-                  >
-                    {examTypes.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Thời gian bắt đầu triệu chứng
                 </label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="datetime-local"
-                    value={formData.symptomStartTime}
-                    onChange={(e) => setFormData({ ...formData, symptomStartTime: e.target.value })}
+                    value={formData.ThoiGianBatDauTrieuChung}
+                    onChange={(e) => setFormData({ ...formData, ThoiGianBatDauTrieuChung: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                   />
                 </div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Chỉ định khoa khám *
@@ -634,8 +611,8 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
                   <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <select
                     required
-                    value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    value={formData.idKhoa}
+                    onChange={(e) => setFormData({ ...formData, idKhoa: e.target.value })}
                     className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors appearance-none"
                   >
                     <option value="">Chọn khoa khám</option>
@@ -648,45 +625,46 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
                   <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 </div>
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phòng khám số *
+                  Phòng khám số
                 </label>
                 <input
                   type="text"
-                  required
-                  value={formData.roomNumber}
-                  onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value })}
+                  value={formData.PhongKhamSo}
+                  onChange={(e) => setFormData({ ...formData, PhongKhamSo: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                   placeholder="VD: 101, 205"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Mức độ ưu tiên *
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Khám BHYT
                 </label>
-                <div className="space-y-2">
-                  {priorities.map((priority) => (
-                    <label
-                      key={priority.value}
-                      className={`flex items-center p-3 border rounded-xl cursor-pointer transition-all ${
-                        formData.priority === priority.value
-                          ? "border-green-500 bg-green-50"
-                          : "border-gray-300 hover:bg-gray-50"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="priority"
-                        value={priority.value}
-                        checked={formData.priority === priority.value}
-                        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                        className="sr-only"
-                      />
-                      <AlertTriangle className={`w-5 h-5 mr-3 ${priority.color}`} />
-                      <span className="font-medium text-gray-900">{priority.label}</span>
-                    </label>
-                  ))}
+                <div className="flex items-center space-x-4 mt-3">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="KhamBHYT"
+                      checked={formData.KhamBHYT === true}
+                      onChange={() => setFormData({ ...formData, KhamBHYT: true })}
+                      className="text-green-600 focus:ring-green-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Có</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="KhamBHYT"
+                      checked={formData.KhamBHYT === false}
+                      onChange={() => setFormData({ ...formData, KhamBHYT: false })}
+                      className="text-green-600 focus:ring-green-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Không</span>
+                  </label>
                 </div>
               </div>
             </div>
@@ -697,11 +675,51 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
               </label>
               <textarea
                 required
-                value={formData.reason}
-                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                value={formData.LyDoKham}
+                onChange={(e) => setFormData({ ...formData, LyDoKham: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 rows={3}
                 placeholder="Mô tả triệu chứng, lý do khám bệnh..."
+              />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tiền sử bệnh lý bản thân
+                </label>
+                <textarea
+                  value={formData.TienSuBenhLyBanThan}
+                  onChange={(e) => setFormData({ ...formData, TienSuBenhLyBanThan: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  rows={3}
+                  placeholder="Mô tả tiền sử bệnh lý..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tiền sử bệnh lý gia đình
+                </label>
+                <textarea
+                  value={formData.TienSuBenhLyGiaDinh}
+                  onChange={(e) => setFormData({ ...formData, TienSuBenhLyGiaDinh: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  rows={3}
+                  placeholder="Mô tả tiền sử gia đình..."
+                />
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Thuốc đang sử dụng
+              </label>
+              <textarea
+                value={formData.ThuocDangSuDung}
+                onChange={(e) => setFormData({ ...formData, ThuocDangSuDung: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                rows={3}
+                placeholder="Liệt kê các loại thuốc đang sử dụng..."
               />
             </div>
           </div>
@@ -710,7 +728,7 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
           <div>
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-lg font-medium text-gray-900 flex items-center">
-                <User className="w-5 h-5 mr-2 text-green-600" />
+                <User className="w-5 h-5 mr-2 " />
                 B. Thông tin bệnh nhân
               </h4>
               {selectedPatient ? (
@@ -757,7 +775,7 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
             <button
               type="submit"
               disabled={isSubmitting || !selectedPatient}
-              className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-medium hover:from-green-700 hover:to-green-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              className="px-6 py-3  text-white rounded-xl font-medium btn-primary transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
               {isSubmitting ? (
                 <>
@@ -789,46 +807,46 @@ function PatientInfoDisplay({ patient }: { patient: Patient }) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Mã bệnh nhân</label>
-                <div className="text-sm font-medium text-gray-900">{patient.patientCode}</div>
+                <div className="text-sm font-medium text-gray-900">{patient.idBenhNhan}</div>
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Họ tên</label>
-                <div className="text-sm font-medium text-gray-900">{patient.fullName}</div>
+                <div className="text-sm font-medium text-gray-900">{patient.HoTen}</div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Số CCCD/CMND</label>
-                <div className="text-sm font-medium text-gray-900">{patient.idNumber}</div>
+                <div className="text-sm font-medium text-gray-900">{patient.CCCD}</div>
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Ngày sinh</label>
-                <div className="text-sm font-medium text-gray-900">{patient.dateOfBirth}</div>
+                <div className="text-sm font-medium text-gray-900">{patient.NgaySinh ? new Date(patient.NgaySinh).toLocaleDateString('vi-VN') : 'N/A'}</div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Giới tính</label>
-                <div className="text-sm font-medium text-gray-900">{patient.gender}</div>
+                <div className="text-sm font-medium text-gray-900">{patient.GioiTinh}</div>
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Nghề nghiệp</label>
-                <div className="text-sm font-medium text-gray-900">{patient.occupation}</div>
+                <div className="text-sm font-medium text-gray-900">{patient.NgheNghiep}</div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Dân tộc</label>
-                <div className="text-sm font-medium text-gray-900">{patient.ethnicity}</div>
+                <div className="text-sm font-medium text-gray-900">{patient.DanToc}</div>
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Điện thoại</label>
-                <div className="text-sm font-medium text-gray-900">{patient.phone}</div>
+                <div className="text-sm font-medium text-gray-900">{patient.SDT}</div>
               </div>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Địa chỉ</label>
-              <div className="text-sm font-medium text-gray-900">{patient.address}</div>
+              <div className="text-sm font-medium text-gray-900">{patient.DiaChi}</div>
             </div>
           </div>
         </div>
@@ -841,16 +859,16 @@ function PatientInfoDisplay({ patient }: { patient: Patient }) {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Họ tên</label>
-                <div className="text-sm font-medium text-gray-900">{patient.emergencyContact.name}</div>
+                <div className="text-sm font-medium text-gray-900">{patient.HoTenThanNhan}</div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">Mối quan hệ</label>
-                  <div className="text-sm font-medium text-gray-900">{patient.emergencyContact.relationship}</div>
+                  <div className="text-sm font-medium text-gray-900">{patient.MoiQuanHe}</div>
                 </div>
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">Số điện thoại</label>
-                  <div className="text-sm font-medium text-gray-900">{patient.emergencyContact.phone}</div>
+                  <div className="text-sm font-medium text-gray-900">{patient.SDTThanNhan}</div>
                 </div>
               </div>
             </div>
@@ -862,26 +880,16 @@ function PatientInfoDisplay({ patient }: { patient: Patient }) {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Số thẻ BHYT/BHXH</label>
-                <div className="text-sm font-medium text-gray-900">{patient.insurance.number}</div>
+                <div className="text-sm font-medium text-gray-900">{patient.BHYT}</div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Loại BHYT/BHXH</label>
-                  <div className="text-sm font-medium text-gray-900">{patient.insurance.type}</div>
-                </div>
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">Thời hạn thẻ</label>
-                  <div className="text-sm font-medium text-gray-900">{patient.insurance.validUntil}</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Mức hưởng</label>
-                  <div className="text-sm font-medium text-gray-900">{patient.insurance.coverage}</div>
+                  <div className="text-sm font-medium text-gray-900">{patient.ThoiHanBHYT ? new Date(patient.ThoiHanBHYT).toLocaleDateString('vi-VN') : 'N/A'}</div>
                 </div>
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">Đối tượng ưu tiên</label>
-                  <div className="text-sm font-medium text-gray-900">{patient.insurance.priority}</div>
+                  <div className="text-sm font-medium text-gray-900">{patient.DoiTuongUuTien}</div>
                 </div>
               </div>
             </div>
@@ -896,11 +904,12 @@ function PatientListModal({ patients, onSelectPatient, onAddNewPatient, onCancel
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredPatients = patients.filter((patient: Patient) =>
-    patient.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.patientCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.phone.includes(searchTerm)
+    patient.HoTen?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    patient.idBenhNhan?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    patient.SDT?.includes(searchTerm)
   );
 
+  console.log(patients)
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
@@ -908,7 +917,7 @@ function PatientListModal({ patients, onSelectPatient, onAddNewPatient, onCancel
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                <Users className="w-5 h-5 text-blue-600" />
+                <Users className="w-5 h-5 " />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Danh sách bệnh nhân</h3>
@@ -918,7 +927,7 @@ function PatientListModal({ patients, onSelectPatient, onAddNewPatient, onCancel
             <div className="flex items-center space-x-3">
               <button
                 onClick={onAddNewPatient}
-                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                className="inline-flex items-center px-4 py-2 text-white rounded-lg btn-primary transition-colors"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
                 Thêm bệnh nhân mới
@@ -963,18 +972,17 @@ function PatientListModal({ patients, onSelectPatient, onAddNewPatient, onCancel
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredPatients.map((patient: Patient) => (
-                  <tr key={patient._id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{patient.patientCode}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{patient.fullName}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{patient.dateOfBirth}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{patient.gender}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{patient.insurance.number}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{patient.phone}</td>
+                  <tr key={patient.idBenhNhan} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{patient.idBenhNhan}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{patient.HoTen}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{patient.NgaySinh ? new Date(patient.NgaySinh).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{patient.GioiTinh}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{patient.BHYT}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{patient.SDT}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                        patient.insurance.priority === "Ưu tiên" ? "bg-orange-100 text-orange-800" : "bg-green-100 text-green-800"
-                      }`}>
-                        {patient.insurance.priority}
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${patient.DoiTuongUuTien === "Ưu tiên" ? "bg-orange-100 text-orange-800" : "bg-green-100 text-green-800"
+                        }`}>
+                        {patient.DoiTuongUuTien}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -998,27 +1006,20 @@ function PatientListModal({ patients, onSelectPatient, onAddNewPatient, onCancel
 
 function NewPatientForm({ onSubmit, onCancel }: any) {
   const [formData, setFormData] = useState({
-    patientCode: `BN${Date.now().toString().slice(-6)}`,
-    fullName: "",
-    idNumber: "",
-    dateOfBirth: "",
-    gender: "Nam",
-    occupation: "",
-    ethnicity: "Kinh",
-    phone: "",
-    address: "",
-    emergencyContact: {
-      name: "",
-      relationship: "",
-      phone: ""
-    },
-    insurance: {
-      number: "",
-      type: "BHYT",
-      validUntil: "",
-      coverage: "80%",
-      priority: "Bình thường"
-    }
+    HoTen: "",
+    CCCD: "",
+    NgaySinh: "",
+    GioiTinh: "Nam",
+    NgheNghiep: "",
+    DanToc: "Kinh",
+    SDT: "",
+    DiaChi: "",
+    HoTenThanNhan: "",
+    MoiQuanHe: "",
+    SDTThanNhan: "",
+    BHYT: "",
+    ThoiHanBHYT: "",
+    DoiTuongUuTien: "Bình thường"
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1027,11 +1028,7 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const newPatient = { _id: `p${Date.now()}`, ...formData };
-      await onSubmit(newPatient);
-      toast.success("Thêm bệnh nhân mới thành công");
-    } catch (error) {
-      toast.error("Thêm bệnh nhân thất bại");
+      await onSubmit(formData);
     } finally {
       setIsSubmitting(false);
     }
@@ -1059,31 +1056,22 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
             </button>
           </div>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6 space-y-8">
-          {/* 1. Thông tin hành chính */}
+          {/* Thông tin cơ bản */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <User className="w-5 h-5 mr-2 text-green-600" />
-              1. Thông tin hành chính
+              Thông tin cơ bản
             </h4>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Mã bệnh nhân</label>
-                <input
-                  type="text"
-                  value={formData.patientCode}
-                  readOnly
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
-                />
-              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Họ tên *</label>
                 <input
                   type="text"
                   required
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  value={formData.HoTen}
+                  onChange={(e) => setFormData({ ...formData, HoTen: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 />
               </div>
@@ -1092,8 +1080,8 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
                 <input
                   type="text"
                   required
-                  value={formData.idNumber}
-                  onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
+                  value={formData.CCCD}
+                  onChange={(e) => setFormData({ ...formData, CCCD: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 />
               </div>
@@ -1102,16 +1090,16 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
                 <input
                   type="date"
                   required
-                  value={formData.dateOfBirth}
-                  onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                  value={formData.NgaySinh}
+                  onChange={(e) => setFormData({ ...formData, NgaySinh: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Giới tính *</label>
                 <select
-                  value={formData.gender}
-                  onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                  value={formData.GioiTinh}
+                  onChange={(e) => setFormData({ ...formData, GioiTinh: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 >
                   <option value="Nam">Nam</option>
@@ -1123,8 +1111,8 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Nghề nghiệp</label>
                 <input
                   type="text"
-                  value={formData.occupation}
-                  onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                  value={formData.NgheNghiep}
+                  onChange={(e) => setFormData({ ...formData, NgheNghiep: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 />
               </div>
@@ -1132,8 +1120,8 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Dân tộc</label>
                 <input
                   type="text"
-                  value={formData.ethnicity}
-                  onChange={(e) => setFormData({ ...formData, ethnicity: e.target.value })}
+                  value={formData.DanToc}
+                  onChange={(e) => setFormData({ ...formData, DanToc: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 />
               </div>
@@ -1142,8 +1130,8 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
                 <input
                   type="tel"
                   required
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  value={formData.SDT}
+                  onChange={(e) => setFormData({ ...formData, SDT: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 />
               </div>
@@ -1152,30 +1140,27 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
               <label className="block text-sm font-medium text-gray-700 mb-2">Địa chỉ *</label>
               <textarea
                 required
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                value={formData.DiaChi}
+                onChange={(e) => setFormData({ ...formData, DiaChi: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 rows={3}
               />
             </div>
           </div>
 
-          {/* 2. Người liên hệ khẩn cấp */}
+          {/* Người liên hệ khẩn cấp */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <Phone className="w-5 h-5 mr-2 text-green-600" />
-              2. Người liên hệ khẩn cấp
+              Người liên hệ khẩn cấp
             </h4>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Họ tên</label>
                 <input
                   type="text"
-                  value={formData.emergencyContact.name}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    emergencyContact: { ...formData.emergencyContact, name: e.target.value }
-                  })}
+                  value={formData.HoTenThanNhan}
+                  onChange={(e) => setFormData({ ...formData, HoTenThanNhan: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 />
               </div>
@@ -1183,99 +1168,53 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Mối quan hệ</label>
                 <input
                   type="text"
-                  value={formData.emergencyContact.relationship}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    emergencyContact: { ...formData.emergencyContact, relationship: e.target.value }
-                  })}
+                  value={formData.MoiQuanHe}
+                  onChange={(e) => setFormData({ ...formData, MoiQuanHe: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Số điện thoại người thân</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
                 <input
                   type="tel"
-                  value={formData.emergencyContact.phone}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    emergencyContact: { ...formData.emergencyContact, phone: e.target.value }
-                  })}
+                  value={formData.SDTThanNhan}
+                  onChange={(e) => setFormData({ ...formData, SDTThanNhan: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 />
               </div>
             </div>
           </div>
 
-          {/* 3. Thông tin bảo hiểm y tế và ưu tiên */}
+          {/* Thông tin bảo hiểm */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <ShieldCheck className="w-5 h-5 mr-2 text-green-600" />
-              3. Thông tin bảo hiểm y tế và ưu tiên
+              Thông tin bảo hiểm y tế
             </h4>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Số thẻ BHYT/BHXH</label>
                 <input
                   type="text"
-                  value={formData.insurance.number}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    insurance: { ...formData.insurance, number: e.target.value }
-                  })}
+                  value={formData.BHYT}
+                  onChange={(e) => setFormData({ ...formData, BHYT: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Loại BHYT/BHXH</label>
-                <select
-                  value={formData.insurance.type}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    insurance: { ...formData.insurance, type: e.target.value }
-                  })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                >
-                  <option value="BHYT">BHYT</option>
-                  <option value="BHXH">BHXH</option>
-                  <option value="Không có">Không có</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Thời hạn thẻ BHYT/BHXH</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Thời hạn thẻ</label>
                 <input
                   type="date"
-                  value={formData.insurance.validUntil}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    insurance: { ...formData.insurance, validUntil: e.target.value }
-                  })}
+                  value={formData.ThoiHanBHYT}
+                  onChange={(e) => setFormData({ ...formData, ThoiHanBHYT: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Mức hưởng</label>
-                <select
-                  value={formData.insurance.coverage}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    insurance: { ...formData.insurance, coverage: e.target.value }
-                  })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                >
-                  <option value="100%">100%</option>
-                  <option value="80%">80%</option>
-                  <option value="60%">60%</option>
-                  <option value="40%">40%</option>
-                </select>
               </div>
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Đối tượng ưu tiên</label>
                 <select
-                  value={formData.insurance.priority}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    insurance: { ...formData.insurance, priority: e.target.value }
-                  })}
+                  value={formData.DoiTuongUuTien}
+                  onChange={(e) => setFormData({ ...formData, DoiTuongUuTien: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 >
                   <option value="Bình thường">Bình thường</option>
@@ -1299,7 +1238,7 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-medium hover:from-green-700 hover:to-green-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              className="px-6 py-3 btn-primary text-white rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
               {isSubmitting ? (
                 <>

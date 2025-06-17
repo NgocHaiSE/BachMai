@@ -5,31 +5,25 @@
 :root {
   --color-light: #ffffff;
   --color-dark: #171717;
+  --color-primary: #280559;
+  --color-primary-hover: #1f0442;
+  --color-primary-light: #f3f0ff;
+}
+
+/* Set Inter as the default font for entire application */
+* {
+  font-family: 'Inter', sans-serif;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  color: var(--color-dark);
+  background: var(--color-light);
+  font-feature-settings: 'cv03', 'cv04', 'cv11';
 }
 
 .accent-text {
   @apply text-slate-600;
-}
-
-body {
-  font-family:
-    "Inter Variable",
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    Arial,
-    "Noto Sans",
-    sans-serif,
-    "Apple Color Emoji",
-    "Segoe UI Emoji",
-    "Segoe UI Symbol",
-    "Noto Color Emoji";
-  color: var(--color-dark);
-  background: var(--color-light);
 }
 
 /* only use this to update the style of the auth input fields. use a different class for all other input fields */
@@ -40,4 +34,57 @@ body {
 /* only use this to update the style of the auth buttons. use the button class for all other buttons */
 .auth-button {
   @apply w-full px-4 py-3 rounded bg-primary text-white font-semibold hover:bg-primary-hover transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+/* Primary button styles */
+.btn-primary {
+  @apply bg-[#280559] text-white hover:bg-[#1f0442] transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+}
+
+.btn-primary-outline {
+  @apply border-2 border-[#280559] text-[#280559] hover:bg-[#280559] hover:text-white transition-all duration-200;
+}
+
+/* Auth input and button styles */
+.auth-input-field {
+  @apply w-full px-4 py-3 rounded-container bg-white border border-gray-200 focus:border-[#280559] focus:ring-1 focus:ring-[#280559] outline-none transition-shadow shadow-sm hover:shadow;
+}
+
+.auth-button {
+  @apply w-full px-4 py-3 rounded bg-[#280559] text-white font-semibold hover:bg-[#1f0442] transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+/* Focus states */
+.focus-primary {
+  @apply focus:ring-2 focus:ring-[#280559] focus:border-[#280559];
+}
+
+/* Background variations */
+.bg-primary-50 {
+  background-color: #f3f0ff;
+}
+
+.bg-primary-100 {
+  background-color: #e6dcff;
+}
+
+.bg-primary-500 {
+  background-color: #280559;
+}
+
+.bg-primary-600 {
+  background-color: #1f0442;
+}
+
+.bg-primary-700 {
+  background-color: #16032f;
+}
+
+/* Text variations */
+.text-primary {
+  color: #280559;
+}
+
+.text-primary-light {
+  color: #8b7ec8;
 }

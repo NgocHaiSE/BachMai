@@ -210,9 +210,165 @@ const applicationTables = {
     .index("by_staff", ["staffId"])
     .index("by_prescription_code", ["prescriptionCode"])
     .index("by_date", ["prescriptionDate"]),
+
 };
+
+const workManagementTables = {
+  // Bảng lịch làm việc
+  workSchedules: defineTable({
+    staffId: v.id("staff"),
+    date: v.string(), // YYYY-MM-DD
+    shiftType: v.union(
+      v.literal("morning"), // Ca sáng (6:00-14:00)
+      v.literal("afternoon"), // Ca chiều (14:00-22:00) 
+      v.literal("night"), // Ca đêm (22:00-6:00)
+      v.literal("full-day"), // Ca ngày (8:00-17:00)
+      v.literal("on-call") // Ca trực
+    ),
+    startTime: v.string(), // HH:mm
+    endTime: v.string(), // HH:mm
+    department: v.string(), // Khoa phòng
+    ward: v.optional(v.string()), // Phòng/khu vực cụ thể
+    status: v.union(
+      v.literal("scheduled"), // Đã xếp lịch
+      v.literal("confirmed"), // Đã xác nhận
+      v.literal("completed"), // Đã hoàn thành
+      v.literal("cancelled"), // Đã hủy
+      v.literal("transferred") // Đã chuyển ca
+    ),
+    workType: v.union(
+      v.literal("regular"), // Làm việc thường
+      v.literal("overtime"), // Tăng ca
+      v.literal("holiday"), // Làm ngày lễ
+      v.literal("emergency") // Trực cấp cứu
+    ),
+    notes: v.optional(v.string()),
+    createdBy: v.id("users"),
+    confirmedBy: v.optional(v.id("staff")), // Người xác nhận ca làm
+    confirmedAt: v.optional(v.string()),
+  })
+    .index("by_staff", ["staffId"])
+    .index("by_date", ["date"])
+    .index("by_staff_date", ["staffId", "date"])
+    .index("by_department", ["department", "date"])
+    .index("by_status", ["status"])
+    .index("by_shift_type", ["shiftType", "date"]),
+
+  // Bảng chuyển ca làm việc
+  shiftTransfers: defineTable({
+    transferCode: v.string(), // Mã chuyển ca
+    fromStaffId: v.id("staff"), // Nhân viên chuyển ca
+    toStaffId: v.id("staff"), // Nhân viên nhận ca
+    originalScheduleId: v.id("workSchedules"), // Lịch làm gốc
+    transferDate: v.string(), // Ngày chuyển ca
+    reason: v.string(), // Lý do chuyển ca
+    status: v.union(
+      v.literal("pending"), // Chờ xử lý
+      v.literal("approved"), // Đã duyệt
+      v.literal("rejected"), // Từ chối
+      v.literal("completed") // Đã hoàn thành
+    ),
+    requestDate: v.string(), // Ngày yêu cầu
+    approvedBy: v.optional(v.id("staff")), // Người phê duyệt
+    approvalDate: v.optional(v.string()), // Ngày phê duyệt
+    approvalNotes: v.optional(v.string()), // Ghi chú phê duyệt
+    newScheduleId: v.optional(v.id("workSchedules")), // Lịch làm mới sau khi chuyển
+    compensationRequired: v.boolean(), // Có cần bù ca không
+    compensationScheduleId: v.optional(v.id("workSchedules")), // Lịch bù ca
+    notes: v.optional(v.string()),
+    createdBy: v.id("users"),
+  })
+    .index("by_from_staff", ["fromStaffId"])
+    .index("by_to_staff", ["toStaffId"])
+    .index("by_status", ["status"])
+    .index("by_transfer_date", ["transferDate"])
+    .index("by_transfer_code", ["transferCode"]),
+
+  // Bảng đơn xin nghỉ ca làm
+  leaveRequests: defineTable({
+    requestCode: v.string(), // Mã đơn xin nghỉ
+    staffId: v.id("staff"), // Nhân viên xin nghỉ
+    leaveType: v.union(
+      v.literal("sick"), // Nghỉ ốm
+      v.literal("vacation"), // Nghỉ phép
+      v.literal("personal"), // Nghỉ việc riêng
+      v.literal("emergency"), // Nghỉ khẩn cấp
+      v.literal("maternity"), // Nghỉ thai sản
+      v.literal("bereavement"), // Nghỉ tang
+      v.literal("annual"), // Nghỉ phép năm
+      v.literal("unpaid") // Nghỉ không lương
+    ),
+    startDate: v.string(), // Ngày bắt đầu nghỉ
+    endDate: v.string(), // Ngày kết thúc nghỉ
+    startTime: v.optional(v.string()), // Giờ bắt đầu (nếu nghỉ theo giờ)
+    endTime: v.optional(v.string()), // Giờ kết thúc (nếu nghỉ theo giờ)
+    isFullDay: v.boolean(), // Nghỉ cả ngày hay theo giờ
+    totalDays: v.number(), // Tổng số ngày nghỉ
+    reason: v.string(), // Lý do nghỉ
+    status: v.union(
+      v.literal("pending"), // Chờ xử lý
+      v.literal("approved"), // Đã duyệt
+      v.literal("rejected"), // Từ chối
+      v.literal("cancelled") // Đã hủy
+    ),
+    requestDate: v.string(), // Ngày yêu cầu
+    approvedBy: v.optional(v.id("staff")), // Người phê duyệt
+    approvalDate: v.optional(v.string()), // Ngày phê duyệt
+    approvalNotes: v.optional(v.string()), // Ghi chú phê duyệt
+    affectedScheduleIds: v.array(v.id("workSchedules")), // Danh sách lịch làm bị ảnh hưởng
+    replacementStaffId: v.optional(v.id("staff")), // Nhân viên thay thế
+    attachmentFileId: v.optional(v.string()), // File đính kèm (giấy bác sĩ, etc.)
+    emergencyContact: v.optional(v.object({
+      name: v.string(),
+      phone: v.string(),
+      relationship: v.string()
+    })),
+    notes: v.optional(v.string()),
+    createdBy: v.id("users"),
+  })
+    .index("by_staff", ["staffId"])
+    .index("by_status", ["status"])
+    .index("by_leave_type", ["leaveType"])
+    .index("by_date_range", ["startDate", "endDate"])
+    .index("by_request_code", ["requestCode"]),
+
+  // Bảng mẫu lịch làm việc (template)
+  scheduleTemplates: defineTable({
+    name: v.string(), // Tên mẫu
+    department: v.string(), // Khoa phòng áp dụng
+    description: v.optional(v.string()),
+    isActive: v.boolean(),
+    schedulePattern: v.array(v.object({
+      dayOfWeek: v.number(), // 0-6 (Chủ nhật - Thứ 7)
+      shifts: v.array(v.object({
+        shiftType: v.union(
+          v.literal("morning"),
+          v.literal("afternoon"), 
+          v.literal("night"),
+          v.literal("full-day"),
+          v.literal("on-call")
+        ),
+        startTime: v.string(),
+        endTime: v.string(),
+        requiredStaffCount: v.number(), // Số nhân viên cần thiết
+        requiredRoles: v.array(v.string()) // Vai trò cần thiết
+      }))
+    })),
+    validFrom: v.string(), // Hiệu lực từ ngày
+    validTo: v.optional(v.string()), // Hiệu lực đến ngày
+    createdBy: v.id("users"),
+  })
+    .index("by_department", ["department"])
+    .index("by_active", ["isActive"]),
+
+  // Bảng theo dõi giờ làm việc
+};
+
+
+
 
 export default defineSchema({
   ...authTables,
   ...applicationTables,
+  ...workManagementTables,
 });

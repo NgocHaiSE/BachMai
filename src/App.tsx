@@ -11,6 +11,7 @@ import StaffManagement from "./components/StaffManagement";
 import MedicalRecords from "./components/MedicalRecords";
 import TransferManagement from "./components/TransferManagement";
 import PrescriptionManagement from "./components/PrescriptionManagement";
+import VaccinationManagement from "./components/VaccinationManagement";
 import { 
   BarChart3, 
   Users, 
@@ -39,9 +40,11 @@ import {
   ChevronDown,
   ChevronRight,
   LogOut,
+  Syringe,
 } from "lucide-react";
 import ExaminationRegistration from "./components/ExaminationRegistration";
 import PatientMedicalRecords from "./components/PatientMedicalRecords";
+import WorkScheduleManagement from "./components/WorkScheduleManagement";
 
 interface MenuItem {
   id: string;
@@ -62,6 +65,15 @@ const menuItems: MenuItem[] = [
     name: "Trang chủ",
     icon: Home,
     color: "text-blue-600"
+  },
+  {
+    id: "work-schedule",
+    name: "Lịch làm việc",
+    icon: CalendarDays,
+    color: "text-green-600",
+    children: [
+      { id: "work", name: "Lịch làm việc" },
+    ]
   },
   {
     id: "schedule",
@@ -105,6 +117,12 @@ const menuItems: MenuItem[] = [
       { id: "test-orders", name: "Danh sách chỉ định" },
       { id: "test-results", name: "Kết quả chỉ định" }
     ]
+  },
+  {
+    id: "vaccination",
+    name: "Tiêm chủng",
+    icon: Syringe,
+    color: "text-green-600"
   },
   {
     id: "pharmacy",
@@ -383,17 +401,19 @@ function HospitalApp() {
                 onBack={handleBackToPatients}
               />
             )}
+            {activeTab === "work" && <WorkScheduleManagement />}
             {activeTab === "appointments" && <AppointmentManagement />}
             {activeTab === "staff" && <StaffManagement />}
             {activeTab === "records" && <MedicalRecords />}
             {activeTab === "prescriptions" && <PrescriptionManagement />}
             {activeTab === "transfers" && <TransferManagement />}
-            {activeTab == "register-exam" &&  <ExaminationRegistration />}
+            {activeTab === "register-exam" && <ExaminationRegistration />}
+            {activeTab === "vaccination" && <VaccinationManagement />}
             
             {/* Placeholder for other pages */}
             {![
               "dashboard", "patients", "appointments", "staff", 
-              "records", "prescriptions", "transfers", "register-exam", "patient-medical-records"
+              "records", "prescriptions", "transfers", "register-exam", "patient-medical-records", "vaccination"
             ].includes(activeTab) && (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">

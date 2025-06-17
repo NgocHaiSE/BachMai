@@ -1,8 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
-import type { Id } from "../../convex/_generated/dataModel";
 import { 
   Calendar, 
   Plus, 
@@ -21,26 +18,42 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  Timer
+  Timer,
+  AlertTriangle
 } from "lucide-react";
+import { 
+  useAppointments, 
+  useCreateAppointment, 
+  useUpdateAppointment, 
+  useUpdateAppointmentStatus,
+  useDeleteAppointment,
+  usePatients,
+  useStaff
+} from "../hooks/api";
 
 export default function AppointmentManagement() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showForm, setShowForm] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<any>(null);
 
-  const appointments = useQuery(api.appointments.listByDate, { date: selectedDate });
-  const patients = useQuery(api.patients.list);
-  const staff = useQuery(api.staff.listByRole, { role: "doctor" });
-  const createAppointment = useMutation(api.appointments.create);
-  const updateAppointment = useMutation(api.appointments.update);
-  const updateStatus = useMutation(api.appointments.updateStatus);
-  const deleteAppointment = useMutation(api.appointments.remove);
+  // Get appointments for selected date
+  const { data: appointments, loading, error, refetch } = useAppointments({
+    TuNgay: selectedDate,
+    DenNgay: selectedDate
+  });
+
+  const { data: patients } = usePatients('');
+  const { data: staff } = useStaff('doctor');
+  
+  const { mutate: createAppointment } = useCreateAppointment();
+  const { mutate: updateAppointment } = useUpdateAppointment();
+  const { mutate: updateStatus } = useUpdateAppointmentStatus();
+  const { mutate: deleteAppointment } = useDeleteAppointment();
 
   const handleSubmit = async (formData: any) => {
     try {
       if (editingAppointment) {
-        await updateAppointment({ id: editingAppointment._id, ...formData });
+        await updateAppointment({ id: editingAppointment.idDKKhambenh, ...formData });
         toast.success("Cập nhật lịch khám thành công");
       } else {
         await createAppointment(formData);
@@ -48,27 +61,30 @@ export default function AppointmentManagement() {
       }
       setShowForm(false);
       setEditingAppointment(null);
-    } catch (error) {
-      toast.error("Lưu lịch khám thất bại");
+      refetch();
+    } catch (error: any) {
+      toast.error(error.message || "Lưu lịch khám thất bại");
     }
   };
 
-  const handleStatusUpdate = async (id: Id<"appointments">, status: string) => {
+  const handleStatusUpdate = async (id: string, status: string) => {
     try {
-      await updateStatus({ id, status: status as any });
+      await updateStatus({ id, TrangThaiMoi: status });
       toast.success("Cập nhật trạng thái thành công");
-    } catch (error) {
-      toast.error("Cập nhật trạng thái thất bại");
+      refetch();
+    } catch (error: any) {
+      toast.error(error.message || "Cập nhật trạng thái thất bại");
     }
   };
 
-  const handleDelete = async (id: Id<"appointments">) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Bạn có chắc chắn muốn xóa lịch khám này?")) {
       try {
-        await deleteAppointment({ id });
+        await deleteAppointment(id);
         toast.success("Xóa lịch khám thành công");
-      } catch (error) {
-        toast.error("Xóa lịch khám thất bại");
+        refetch();
+      } catch (error: any) {
+        toast.error(error.message || "Xóa lịch khám thất bại");
       }
     }
   };
@@ -79,37 +95,56 @@ export default function AppointmentManagement() {
   };
 
   const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "completed": return <CheckCircle className="w-4 h-4" />;
-      case "confirmed": return <CheckCircle className="w-4 h-4" />;
-      case "scheduled": return <Clock className="w-4 h-4" />;
-      case "cancelled": return <XCircle className="w-4 h-4" />;
-      case "no-show": return <AlertCircle className="w-4 h-4" />;
+    switch (status?.toLowerCase()) {
+      case "đã hoàn thành": return <CheckCircle className="w-4 h-4" />;
+      case "đã xác nhận": return <CheckCircle className="w-4 h-4" />;
+      case "đang chờ": return <Clock className="w-4 h-4" />;
+      case "đã hủy": return <XCircle className="w-4 h-4" />;
+      case "vắng mặt": return <AlertCircle className="w-4 h-4" />;
       default: return <Clock className="w-4 h-4" />;
     }
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed": return "bg-green-100 text-green-800 border-green-200";
-      case "confirmed": return "bg-blue-100 text-blue-800 border-blue-200";
-      case "scheduled": return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "cancelled": return "bg-red-100 text-red-800 border-red-200";
-      case "no-show": return "bg-gray-100 text-gray-800 border-gray-200";
+    switch (status?.toLowerCase()) {
+      case "đã hoàn thành": return "bg-green-100 text-green-800 border-green-200";
+      case "đã xác nhận": return "bg-blue-100 text-blue-800 border-blue-200";
+      case "đang chờ": return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "đã hủy": return "bg-red-100 text-red-800 border-red-200";
+      case "vắng mặt": return "bg-gray-100 text-gray-800 border-gray-200";
       default: return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
   const getTypeColor = (type: string) => {
-    switch (type) {
-      case "consultation": return "bg-blue-100 text-blue-800";
-      case "follow-up": return "bg-green-100 text-green-800";
-      case "emergency": return "bg-red-100 text-red-800";
-      case "surgery": return "bg-purple-100 text-purple-800";
-      case "checkup": return "bg-orange-100 text-orange-800";
+    switch (type?.toLowerCase()) {
+      case "khám tổng quát": return "bg-blue-100 text-blue-800";
+      case "tái khám": return "bg-green-100 text-green-800";
+      case "cấp cứu": return "bg-red-100 text-red-800";
+      case "phẫu thuật": return "bg-purple-100 text-purple-800";
+      case "kiểm tra": return "bg-orange-100 text-orange-800";
       default: return "bg-gray-100 text-gray-800";
     }
   };
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div className="text-center py-12">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Lỗi tải dữ liệu</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={refetch}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -167,11 +202,11 @@ export default function AppointmentManagement() {
 
       {/* Appointments List */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        {appointments === undefined ? (
+        {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
           </div>
-        ) : appointments.length === 0 ? (
+        ) : !appointments || appointments.length === 0 ? (
           <div className="text-center py-12">
             <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Không có lịch khám</h3>
@@ -199,10 +234,10 @@ export default function AppointmentManagement() {
                     Bệnh Nhân
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Bác Sĩ
+                    Khoa/Phòng
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Loại Khám
+                    Lý Do Khám
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Trạng Thái
@@ -213,8 +248,8 @@ export default function AppointmentManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {appointments.map((appointment) => (
-                  <tr key={appointment._id} className="hover:bg-gray-50 transition-colors">
+                {appointments.map((appointment: any) => (
+                  <tr key={appointment.idDKKhambenh} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
@@ -222,11 +257,14 @@ export default function AppointmentManagement() {
                         </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900">
-                            {appointment.appointmentTime}
+                            {appointment.NgayLap ? new Date(appointment.NgayLap).toLocaleTimeString('vi-VN', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            }) : 'N/A'}
                           </div>
                           <div className="text-sm text-gray-500 flex items-center">
                             <Timer className="w-4 h-4 mr-1" />
-                            {appointment.duration} phút
+                            30 phút
                           </div>
                         </div>
                       </div>
@@ -238,11 +276,11 @@ export default function AppointmentManagement() {
                         </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900">
-                            {appointment.patient?.firstName} {appointment.patient?.lastName}
+                            {appointment.BenhNhan?.HoTen || 'N/A'}
                           </div>
                           <div className="text-sm text-gray-500 flex items-center">
                             <Phone className="w-4 h-4 mr-1" />
-                            {appointment.patient?.phone}
+                            {appointment.BenhNhan?.SDT || 'N/A'}
                           </div>
                         </div>
                       </div>
@@ -250,40 +288,35 @@ export default function AppointmentManagement() {
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                          <Stethoscope className="w-5 h-5 text-green-600" />
+                          <Building2 className="w-5 h-5 text-green-600" />
                         </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900">
-                            BS. {appointment.staff?.firstName} {appointment.staff?.lastName}
+                            {appointment.TenKhoa || 'N/A'}
                           </div>
-                          <div className="text-sm text-gray-500 flex items-center">
-                            <Building2 className="w-4 h-4 mr-1" />
-                            {appointment.staff?.department}
+                          <div className="text-sm text-gray-500">
+                            Phòng: {appointment.PhongKhamSo || 'N/A'}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getTypeColor(appointment.type)}`}>
-                        {appointment.type === "consultation" ? "Tư vấn" :
-                         appointment.type === "follow-up" ? "Tái khám" :
-                         appointment.type === "emergency" ? "Cấp cứu" :
-                         appointment.type === "surgery" ? "Phẫu thuật" :
-                         "Kiểm tra"}
-                      </span>
+                      <div className="text-sm text-gray-900 max-w-xs">
+                        {appointment.LyDoKham || 'N/A'}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="relative">
                         <select
-                          value={appointment.status}
-                          onChange={(e) => handleStatusUpdate(appointment._id, e.target.value)}
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border appearance-none pr-8 ${getStatusColor(appointment.status)} focus:outline-none focus:ring-2 focus:ring-purple-500`}
+                          value={appointment.TrangThai || 'Đang chờ'}
+                          onChange={(e) => handleStatusUpdate(appointment.idDKKhambenh, e.target.value)}
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border appearance-none pr-8 ${getStatusColor(appointment.TrangThai || 'Đang chờ')} focus:outline-none focus:ring-2 focus:ring-purple-500`}
                         >
-                          <option value="scheduled">Đã lên lịch</option>
-                          <option value="confirmed">Đã xác nhận</option>
-                          <option value="completed">Hoàn thành</option>
-                          <option value="cancelled">Đã hủy</option>
-                          <option value="no-show">Vắng mặt</option>
+                          <option value="Đang chờ">Đang chờ</option>
+                          <option value="Đã xác nhận">Đã xác nhận</option>
+                          <option value="Đã hoàn thành">Đã hoàn thành</option>
+                          <option value="Đã hủy">Đã hủy</option>
+                          <option value="Vắng mặt">Vắng mặt</option>
                         </select>
                         <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-3 h-3 pointer-events-none" />
                       </div>
@@ -298,7 +331,7 @@ export default function AppointmentManagement() {
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(appointment._id)}
+                          onClick={() => handleDelete(appointment.idDKKhambenh)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Xóa"
                         >
@@ -333,13 +366,16 @@ export default function AppointmentManagement() {
 
 function AppointmentForm({ appointment, patients, staff, onSubmit, onCancel }: any) {
   const [formData, setFormData] = useState({
-    patientId: appointment?.patientId || "",
-    staffId: appointment?.staffId || "",
-    appointmentDate: appointment?.appointmentDate || new Date().toISOString().split('T')[0],
-    appointmentTime: appointment?.appointmentTime || "",
-    duration: appointment?.duration || 30,
-    type: appointment?.type || "consultation",
-    notes: appointment?.notes || "",
+    idBenhNhan: appointment?.idBenhNhan || "",
+    idKhoa: appointment?.idKhoa || "",
+    NgayLap: appointment?.NgayLap ? new Date(appointment.NgayLap).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    LyDoKham: appointment?.LyDoKham || "",
+    PhongKhamSo: appointment?.PhongKhamSo || "",
+    ThoiGianBatDauTrieuChung: appointment?.ThoiGianBatDauTrieuChung || "",
+    TienSuBenhLyBanThan: appointment?.TienSuBenhLyBanThan || "",
+    TienSuBenhLyGiaDinh: appointment?.TienSuBenhLyGiaDinh || "",
+    ThuocDangSuDung: appointment?.ThuocDangSuDung || "",
+    KhamBHYT: appointment?.KhamBHYT || false,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -354,12 +390,10 @@ function AppointmentForm({ appointment, patients, staff, onSubmit, onCancel }: a
     }
   };
 
-  const appointmentTypes = [
-    { value: "consultation", label: "Tư vấn", icon: Stethoscope, color: "text-blue-600" },
-    { value: "follow-up", label: "Tái khám", icon: Clock, color: "text-green-600" },
-    { value: "emergency", label: "Cấp cứu", icon: AlertCircle, color: "text-red-600" },
-    { value: "surgery", label: "Phẫu thuật", icon: Timer, color: "text-purple-600" },
-    { value: "checkup", label: "Kiểm tra", icon: CheckCircle, color: "text-orange-600" },
+  const departments = [
+    "Nội tổng hợp", "Ngoại tổng hợp", "Tim mạch", "Tiêu hóa", 
+    "Hô hấp", "Thần kinh", "Cơ xương khớp", "Da liễu",
+    "Mắt", "Tai mũi họng", "Sản phụ khoa", "Nhi khoa"
   ];
 
   return (
@@ -391,7 +425,7 @@ function AppointmentForm({ appointment, patients, staff, onSubmit, onCancel }: a
         
         <form onSubmit={handleSubmit} className="p-6">
           <div className="space-y-6">
-            {/* Bệnh nhân và Bác sĩ */}
+            {/* Bệnh nhân và Khoa */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -401,14 +435,14 @@ function AppointmentForm({ appointment, patients, staff, onSubmit, onCancel }: a
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <select
                     required
-                    value={formData.patientId}
-                    onChange={(e) => setFormData({ ...formData, patientId: e.target.value })}
+                    value={formData.idBenhNhan}
+                    onChange={(e) => setFormData({ ...formData, idBenhNhan: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors appearance-none"
                   >
                     <option value="">Chọn bệnh nhân</option>
                     {patients.map((patient: any) => (
-                      <option key={patient._id} value={patient._id}>
-                        {patient.firstName} {patient.lastName} - {patient.phone}
+                      <option key={patient.idBenhNhan} value={patient.idBenhNhan}>
+                        {patient.HoTen} - {patient.SDT}
                       </option>
                     ))}
                   </select>
@@ -418,20 +452,20 @@ function AppointmentForm({ appointment, patients, staff, onSubmit, onCancel }: a
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bác Sĩ *
+                  Khoa Khám *
                 </label>
                 <div className="relative">
-                  <Stethoscope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <select
                     required
-                    value={formData.staffId}
-                    onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
+                    value={formData.idKhoa}
+                    onChange={(e) => setFormData({ ...formData, idKhoa: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors appearance-none"
                   >
-                    <option value="">Chọn bác sĩ</option>
-                    {staff.map((doctor: any) => (
-                      <option key={doctor._id} value={doctor._id}>
-                        BS. {doctor.firstName} {doctor.lastName} - {doctor.department}
+                    <option value="">Chọn khoa khám</option>
+                    {departments.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
                       </option>
                     ))}
                   </select>
@@ -440,7 +474,7 @@ function AppointmentForm({ appointment, patients, staff, onSubmit, onCancel }: a
               </div>
             </div>
 
-            {/* Ngày và Thời gian */}
+            {/* Ngày khám và Phòng */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -451,8 +485,8 @@ function AppointmentForm({ appointment, patients, staff, onSubmit, onCancel }: a
                   <input
                     type="date"
                     required
-                    value={formData.appointmentDate}
-                    onChange={(e) => setFormData({ ...formData, appointmentDate: e.target.value })}
+                    value={formData.NgayLap}
+                    onChange={(e) => setFormData({ ...formData, NgayLap: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
                   />
                 </div>
@@ -460,88 +494,118 @@ function AppointmentForm({ appointment, patients, staff, onSubmit, onCancel }: a
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Giờ Khám *
+                  Phòng Khám
                 </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="time"
-                    required
-                    value={formData.appointmentTime}
-                    onChange={(e) => setFormData({ ...formData, appointmentTime: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={formData.PhongKhamSo}
+                  onChange={(e) => setFormData({ ...formData, PhongKhamSo: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                  placeholder="VD: 101, 205"
+                />
               </div>
             </div>
 
-            {/* Thời gian và Loại khám */}
+            {/* Thời gian triệu chứng */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Thời Gian Bắt Đầu Triệu Chứng
+              </label>
+              <div className="relative">
+                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="datetime-local"
+                  value={formData.ThoiGianBatDauTrieuChung}
+                  onChange={(e) => setFormData({ ...formData, ThoiGianBatDauTrieuChung: e.target.value })}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Lý do khám */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Lý Do Khám *
+              </label>
+              <textarea
+                required
+                value={formData.LyDoKham}
+                onChange={(e) => setFormData({ ...formData, LyDoKham: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                rows={3}
+                placeholder="Mô tả triệu chứng, lý do khám bệnh..."
+              />
+            </div>
+
+            {/* Tiền sử bệnh lý */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Thời Gian (phút) *
+                  Tiền Sử Bệnh Lý Bản Thân
                 </label>
-                <div className="relative">
-                  <Timer className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="number"
-                    required
-                    min="15"
-                    max="240"
-                    step="15"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                    placeholder="30"
-                  />
-                </div>
+                <textarea
+                  value={formData.TienSuBenhLyBanThan}
+                  onChange={(e) => setFormData({ ...formData, TienSuBenhLyBanThan: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                  rows={3}
+                  placeholder="Mô tả tiền sử bệnh lý..."
+                />
               </div>
-              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Loại Khám *
+                  Tiền Sử Bệnh Lý Gia Đình
                 </label>
-                <div className="grid grid-cols-1 gap-2">
-                  {appointmentTypes.map((type) => {
-                    const IconComponent = type.icon;
-                    return (
-                      <label
-                        key={type.value}
-                        className={`flex items-center p-3 border rounded-xl cursor-pointer transition-all ${
-                          formData.type === type.value
-                            ? "border-purple-500 bg-purple-50"
-                            : "border-gray-300 hover:bg-gray-50"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="type"
-                          value={type.value}
-                          checked={formData.type === type.value}
-                          onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                          className="sr-only"
-                        />
-                        <IconComponent className={`w-5 h-5 mr-3 ${type.color}`} />
-                        <span className="font-medium text-gray-900">{type.label}</span>
-                      </label>
-                    );
-                  })}
-                </div>
+                <textarea
+                  value={formData.TienSuBenhLyGiaDinh}
+                  onChange={(e) => setFormData({ ...formData, TienSuBenhLyGiaDinh: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                  rows={3}
+                  placeholder="Mô tả tiền sử gia đình..."
+                />
               </div>
             </div>
 
-            {/* Ghi chú */}
+            {/* Thuốc đang sử dụng */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ghi Chú
+                Thuốc Đang Sử Dụng
               </label>
               <textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                value={formData.ThuocDangSuDung}
+                onChange={(e) => setFormData({ ...formData, ThuocDangSuDung: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                rows={4}
-                placeholder="Ghi chú thêm về lịch hẹn..."
+                rows={2}
+                placeholder="Liệt kê các loại thuốc đang sử dụng..."
               />
+            </div>
+
+            {/* Khám BHYT */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Khám BHYT
+              </label>
+              <div className="flex items-center space-x-6">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="KhamBHYT"
+                    checked={formData.KhamBHYT === true}
+                    onChange={() => setFormData({ ...formData, KhamBHYT: true })}
+                    className="text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Có</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="KhamBHYT"
+                    checked={formData.KhamBHYT === false}
+                    onChange={() => setFormData({ ...formData, KhamBHYT: false })}
+                    className="text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Không</span>
+                </label>
+              </div>
             </div>
           </div>
 
