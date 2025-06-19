@@ -209,6 +209,10 @@ class ApiClient {
     // Shift change requests
     shiftChanges: {
       getById: (id: string) => this.get<any>(`/lich-lam-viec/chuyen-ca/${id}`),
+      list: (params: any = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return this.get<any>(`/lich-lam-viec/chuyen-ca${query ? `?${query}` : ''}`);
+      },
       create: (data: any) => this.post<any>('/lich-lam-viec/chuyen-ca', data),
       update: (id: string, data: any) => this.put<any>(`/lich-lam-viec/chuyen-ca/${id}`, data),
       approve: (id: string, data: any) => this.patch<any>(`/lich-lam-viec/chuyen-ca/${id}/xu-ly`, data),
@@ -218,6 +222,10 @@ class ApiClient {
     // Leave requests
     leaves: {
       getById: (id: string) => this.get<any>(`/lich-lam-viec/nghi-phep/${id}`),
+      list: (params: any = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return this.get<any>(`/lich-lam-viec/nghi-phep${query ? `?${query}` : ''}`);
+      },
       create: (data: any) => this.post<any>('/lich-lam-viec/nghi-phep', data),
       update: (id: string, data: any) => this.put<any>(`/lich-lam-viec/nghi-phep/${id}`, data),
       approve: (id: string, data: any) => this.patch<any>(`/lich-lam-viec/nghi-phep/${id}/xu-ly`, data),

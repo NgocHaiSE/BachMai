@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../convex/_generated/api';
+import {
+  useWeeklySchedule,
+  useScheduleStats,
+  useStaff,
+  useDepartments,
+  useCreateShift,
+  useConfirmShift,
+  useDeleteShift,
+  useCreateShiftChangeRequest,
+  useShiftChangeRequests,
+  useLeaveRequests,
+  useApproveShiftChangeRequest,
+  useCreateLeaveRequest,
+  useApproveLeaveRequest
+} from '../hooks/api';
 import {
   Calendar,
   Clock,
-  Users,
   Plus,
-  Search,
-  Filter,
-  Edit,
-  Trash2,
   Check,
   X,
   ArrowRightLeft,
@@ -43,36 +51,33 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
   const [filterDepartment, setFilterDepartment] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
-  // Queries - sử dụng optional chaining để tránh lỗi
-  const workSchedules = useQuery(api.workSchedules?.list, {
-    startDate: selectedWeek.start,
-    endDate: selectedWeek.end,
-    department: filterDepartment || undefined
+// Queries
+  const { data: workSchedules } = useWeeklySchedule({
+    TuNgay: selectedWeek.start,
+    DenNgay: selectedWeek.end,
+    // idKhoa: filterDepartment || null
   });
 
-  const shiftTransfers = useQuery(api.shiftTransfers?.list, {
-    status: filterStatus ? filterStatus as "pending" | "approved" | "rejected" | "completed" : undefined
+  const { data: shiftTransfers } = useShiftChangeRequests({
+    TrangThai: filterStatus || undefined
   });
 
-  const leaveRequests = useQuery(api.leaveRequests?.list, {
-    status: filterStatus ? filterStatus as "pending" | "approved" | "rejected" | "cancelled" : undefined
+  const { data: leaveRequests } = useLeaveRequests({
+    TrangThai: filterStatus || undefined
   });
 
-  const staff = useQuery(api.staff?.list);
-  const scheduleStats = useQuery(api.workSchedules?.getStats, {
-    month: new Date().toISOString().slice(0, 7)
-  });
+  const { data: staff } = useStaff('');
+  const { data: scheduleStats } = useScheduleStats(new Date().toISOString().slice(0, 7));
+  const { data: departments } = useDepartments();
 
   // Mutations
-  const createSchedule = useMutation(api.workSchedules?.create);
-  const updateScheduleStatus = useMutation(api.workSchedules?.confirm);
-  const deleteSchedule = useMutation(api.workSchedules?.remove);
-  const createTransfer = useMutation(api.shiftTransfers?.create);
-  const approveTransfer = useMutation(api.shiftTransfers?.approve);
-  const rejectTransfer = useMutation(api.shiftTransfers?.reject);
-  const createLeave = useMutation(api.leaveRequests?.create);
-  const approveLeave = useMutation(api.leaveRequests?.approve);
-  const rejectLeave = useMutation(api.leaveRequests?.reject);
+  const { mutate: createSchedule } = useCreateShift();
+  const { mutate: updateScheduleStatus } = useConfirmShift();
+  const { mutate: deleteSchedule } = useDeleteShift();
+  const { mutate: createTransfer } = useCreateShiftChangeRequest();
+  const { mutate: approveTransfer } = useApproveShiftChangeRequest();
+  const { mutate: createLeave } = useCreateLeaveRequest();
+  const { mutate: approveLeave } = useApproveLeaveRequest();
 
   function getCurrentWeek() {
     const today = new Date();
@@ -135,6 +140,9 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
           onCreateSchedule={() => setShowCreateScheduleModal(true)}
           selectedWeek={selectedWeek}
           setSelectedWeek={setSelectedWeek}
+          departments={departments || []}
+          filterDepartment={filterDepartment}
+          setFilterDepartment={setFilterDepartment}
         />;
       case 'transfers':
         return <TransfersTab
@@ -303,7 +311,18 @@ const SchedulesTab: React.FC<{
   onCreateSchedule: () => void;
   selectedWeek: { start: string; end: string };
   setSelectedWeek: (week: { start: string; end: string }) => void;
-}> = ({ schedules, onCreateSchedule, selectedWeek, setSelectedWeek }) => {
+departments: any[];
+  filterDepartment: string;
+  setFilterDepartment: (id: string) => void;
+}> = ({
+  schedules,
+  onCreateSchedule,
+  selectedWeek,
+  setSelectedWeek,
+  departments,
+  filterDepartment,
+  setFilterDepartment
+}) => {
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
 
   const getWeekDays = () => {
@@ -319,7 +338,10 @@ const SchedulesTab: React.FC<{
 
   const getSchedulesForDate = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
-    return schedules.filter(s => s.date === dateStr);
+    return schedules.filter(s => {
+      const schedDate = new Date(s.date).toISOString().split('T')[0];
+      return schedDate === dateStr;
+    });
   };
 
   if (viewMode === 'calendar') {
@@ -362,6 +384,16 @@ const SchedulesTab: React.FC<{
             >
               →
             </button>
+            <select
+              value={filterDepartment}
+              onChange={(e) => setFilterDepartment(e.target.value)}
+              className="border border-gray-300 rounded px-2 py-1 text-sm"
+            >
+              <option value="">Tất cả khoa</option>
+              {departments.map((d: any) => (
+                <option key={d.idKhoa || d._id} value={d.idKhoa || d._id}>{d.TenKhoa || d.name}</option>
+              ))}
+            </select>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -404,7 +436,7 @@ const SchedulesTab: React.FC<{
                   >
                     <div className="flex items-center space-x-1 mb-1">
                       {schedule.shiftType && getShiftIcon(schedule.shiftType)}
-                      <span className="font-medium">{schedule.staff?.firstName} {schedule.staff?.lastName}</span>
+                      <span className="font-medium">{schedule.staffFullName}</span>
                     </div>
                     <div className="text-gray-600">
                       {schedule.startTime} - {schedule.endTime}
@@ -442,16 +474,20 @@ const SchedulesTab: React.FC<{
               <div className="flex items-center space-x-3">
                 {schedule.shiftType && getShiftIcon(schedule.shiftType)}
                 <div>
-                  <div className="font-medium">{schedule.staff?.firstName} {schedule.staff?.lastName}</div>
+                  <div className="font-medium">{schedule.staffFullName}</div>
                   <div className="text-sm text-gray-600">{schedule.department}</div>
+                  <div className="text-sm text-gray-600">{schedule.shiftType} - {schedule.workType}</div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="font-medium">{schedule.date}</div>
+                 <div className="font-medium">{new Date(schedule.date).toLocaleDateString('vi-VN')}</div>
                 <div className="text-sm text-gray-600">{schedule.startTime} - {schedule.endTime}</div>
                 <div className={`inline-block px-2 py-1 rounded text-xs ${getStatusColor(schedule.status)}`}>
                   {schedule.status}
                 </div>
+                {schedule.notes && (
+                  <div className="text-xs text-gray-500 mt-1">{schedule.notes}</div>
+                )}
               </div>
             </div>
           </div>
@@ -499,11 +535,11 @@ const TransfersTab: React.FC<{
             <div className="grid grid-cols-2 gap-4 mb-3">
               <div>
                 <div className="text-sm text-gray-600">Từ:</div>
-                <div className="font-medium">{transfer.fromStaff?.firstName} {transfer.fromStaff?.lastName}</div>
+                <div className="font-medium">{transfer.fromStaffFullName}</div>
               </div>
               <div>
                 <div className="text-sm text-gray-600">Đến:</div>
-                <div className="font-medium">{transfer.toStaff?.firstName} {transfer.toStaff?.lastName}</div>
+                <div className="font-medium">{transfer.toStaffFullName}</div>
               </div>
             </div>
 
@@ -559,7 +595,7 @@ const LeavesTab: React.FC<{
                 <FileText className="w-5 h-5 text-[#280559]" />
                 <div>
                   <div className="font-medium">{leave.requestCode}</div>
-                  <div className="text-sm text-gray-600">{leave.staff?.firstName} {leave.staff?.lastName}</div>
+                  <div className="text-sm text-gray-600">{leave.staffFullName}</div>
                 </div>
               </div>
               <div className={`px-3 py-1 rounded-full text-sm ${getStatusColor(leave.status)}`}>
@@ -639,7 +675,7 @@ const CreateScheduleModal: React.FC<{
               <option value="">Chọn nhân viên</option>
               {staff.map(s => (
                 <option key={s._id} value={s._id}>
-                  {s.firstName} {s.lastName} - {s.department}
+                  {s.fullName || `${s.firstName} ${s.lastName}`} - {s.department}
                 </option>
               ))}
             </select>

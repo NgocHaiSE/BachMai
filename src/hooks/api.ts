@@ -371,7 +371,12 @@ export function useDeleteShift() {
   return useMutation(apiClient.schedules.shifts.delete);
 }
 
-
+export function useShiftChangeRequests(params: any = {}) {
+  return useApi(
+    () => apiClient.schedules.shiftChanges.list(params),
+    [JSON.stringify(params)]
+  );
+}
 
 // Shift change request hooks
 export function useShiftChangeRequest(id: string) {
@@ -410,6 +415,13 @@ export function useLeaveRequest(id: string) {
     () => apiClient.schedules.leaves.getById(id),
     [id],
     !!id
+  );
+}
+
+export function useLeaveRequests(params: any = {}) {
+  return useApi(
+    () => apiClient.schedules.leaves.list(params),
+    [JSON.stringify(params)]
   );
 }
 
