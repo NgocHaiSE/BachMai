@@ -332,7 +332,14 @@ export function useWeeklySchedule(params: any) {
   return useApi(
     () => apiClient.schedules.getWeekly(params),
     [JSON.stringify(params)],
-    !!params.TuNgay && !!params.DenNgay && !!params.idKhoa
+    !!params.TuNgay && !!params.DenNgay
+  );
+}
+
+export function useScheduleStats(month?: string) {
+  return useApi(
+    () => apiClient.schedules.getStats(month ? { thang: month } : {}),
+    [month]
   );
 }
 
@@ -363,6 +370,8 @@ export function useConfirmShift() {
 export function useDeleteShift() {
   return useMutation(apiClient.schedules.shifts.delete);
 }
+
+
 
 // Shift change request hooks
 export function useShiftChangeRequest(id: string) {

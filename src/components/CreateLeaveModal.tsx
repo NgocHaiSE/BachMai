@@ -227,7 +227,7 @@ const CreateLeaveModal: React.FC<{
           <div className="flex space-x-3 pt-4">
             <button
               onClick={handleSubmit}
-              className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors"
+              className="flex-1 btn-primary text-white py-2 px-4 rounded-lg  transition-colors"
             >
               Tạo Đơn
             </button>

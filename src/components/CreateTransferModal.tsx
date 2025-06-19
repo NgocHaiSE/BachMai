@@ -152,7 +152,7 @@ const CreateTransferModal: React.FC<{
           <div className="flex space-x-3 pt-4">
             <button
               onClick={handleSubmit}
-              className="flex-1 bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors"
+              className="flex-1 btn-primary text-white py-2 px-4 rounded-lg  transition-colors"
             >
               Tạo Yêu Cầu
             </button>

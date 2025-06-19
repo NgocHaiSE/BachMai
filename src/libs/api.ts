@@ -11,7 +11,7 @@ class ApiClient {
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -191,7 +191,12 @@ class ApiClient {
       const query = new URLSearchParams(params).toString();
       return this.get<any>(`/lich-lam-viec/lich-tuan?${query}`);
     },
-    
+
+    getStats: (params: any = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return this.get<any>(`/lich-lam-viec/thong-ke?${query}`);
+    },
+
     // Shift management
     shifts: {
       getById: (id: string) => this.get<any>(`/lich-lam-viec/ca/${id}`),

@@ -172,10 +172,33 @@ export default function ExaminationRegistration() {
     }
   };
 
+  
   const handleEdit = (record: any) => {
     setEditingRecord(record);
-    // Find patient from record's patientId
-    const patient = patients?.find((p: any) => p.idBenhNhan === record.idBenhNhan);
+    // Find patient from record's patientId or create from record data
+    let patient = patients?.find((p: any) => p.idBenhNhan === record.MaBenhNhan);
+    
+    // If patient not found in patients list, create from record data
+    if (!patient && record.MaBenhNhan) {
+      patient = {
+        idBenhNhan: record.MaBenhNhan,
+        HoTen: record.TenBenhNhan || record.BenhNhan?.HoTen || '',
+        CCCD: record.BenhNhan?.CCCD || '',
+        NgaySinh: record.BenhNhan?.NgaySinh || '',
+        GioiTinh: record.BenhNhan?.GioiTinh || '',
+        NgheNghiep: record.BenhNhan?.NgheNghiep || '',
+        DanToc: record.BenhNhan?.DanToc || '',
+        SDT: record.BenhNhan?.SDT || '',
+        DiaChi: record.BenhNhan?.DiaChi || '',
+        HoTenThanNhan: record.BenhNhan?.HoTenThanNhan || '',
+        MoiQuanHe: record.BenhNhan?.MoiQuanHe || '',
+        SDTThanNhan: record.BenhNhan?.SDTThanNhan || '',
+        BHYT: record.BenhNhan?.BHYT || '',
+        ThoiHanBHYT: record.BenhNhan?.ThoiHanBHYT || '',
+        DoiTuongUuTien: record.BenhNhan?.DoiTuongUuTien || 'Bình thường'
+      };
+    }
+    
     setSelectedPatient(patient || null);
     setShowForm(true);
   };
@@ -498,7 +521,7 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
       TienSuBenhLyGiaDinh: record?.TienSuBenhLyGiaDinh || "",
       ThuocDangSuDung: record?.ThuocDangSuDung || "",
       KhamBHYT: record?.KhamBHYT || false,
-      idKhoa: record?.idKhoa || ""
+      idKhoa: record?.idKhoa.trim() || ""
     });
   }, [record]);
 
@@ -557,7 +580,7 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
               A. Thông tin phiếu
             </h4>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Số phiếu
@@ -586,7 +609,7 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
                   />
                 </div>
               </div>
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Người lập
                 </label>
@@ -599,7 +622,7 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                   />
                 </div>
-              </div>
+              </div> */}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
