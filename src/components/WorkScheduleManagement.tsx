@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   useWeeklySchedule,
+  useSchedules,
   useScheduleStats,
   useStaff,
   useDepartments,
@@ -12,7 +13,8 @@ import {
   useLeaveRequests,
   useApproveShiftChangeRequest,
   useCreateLeaveRequest,
-  useApproveLeaveRequest
+  useApproveLeaveRequest,
+  useNhanVien
 } from '../hooks/api';
 import {
   Calendar,
@@ -69,6 +71,7 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
   const { data: staff } = useStaff('');
   const { data: scheduleStats } = useScheduleStats(new Date().toISOString().slice(0, 7));
   const { data: departments } = useDepartments();
+  const {data : nhanvien} = useNhanVien()
 
   // Mutations
   const { mutate: createSchedule } = useCreateShift();
@@ -263,7 +266,9 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
       {/* Modals */}
       {showCreateScheduleModal && (
         <CreateScheduleModal
+          nhanvien= {nhanvien || []}
           staff={staff || []}
+          departments={departments || []}
           onSubmit={handleCreateSchedule}
           onClose={() => setShowCreateScheduleModal(false)}
         />
@@ -311,7 +316,7 @@ const SchedulesTab: React.FC<{
   onCreateSchedule: () => void;
   selectedWeek: { start: string; end: string };
   setSelectedWeek: (week: { start: string; end: string }) => void;
-departments: any[];
+  departments: any[];
   filterDepartment: string;
   setFilterDepartment: (id: string) => void;
 }> = ({
@@ -323,7 +328,28 @@ departments: any[];
   filterDepartment,
   setFilterDepartment
 }) => {
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'month'>('calendar');
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  const getMonthRange = (month: string) => {
+    const [y, m] = month.split('-').map(Number);
+    const start = new Date(y, m - 1, 1);
+    const end = new Date(y, m, 0);
+    return {
+      start: start.toISOString().split('T')[0],
+      end: end.toISOString().split('T')[0],
+    };
+  };
+
+  const monthRange = getMonthRange(selectedMonth);
+  const { data: monthlySchedules } = useSchedules({
+    TuNgay: monthRange.start,
+    DenNgay: monthRange.end,
+    idKhoa: filterDepartment || undefined,
+  });
 
   const getWeekDays = () => {
     const days = [];
@@ -339,6 +365,14 @@ departments: any[];
   const getSchedulesForDate = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
     return schedules.filter(s => {
+      const schedDate = new Date(s.date).toISOString().split('T')[0];
+      return schedDate === dateStr;
+    });
+  };
+
+  const getMonthSchedulesForDate = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return (monthlySchedules || []).filter(s => {
       const schedDate = new Date(s.date).toISOString().split('T')[0];
       return schedDate === dateStr;
     });
@@ -454,13 +488,112 @@ departments: any[];
     );
   }
 
+  if (viewMode === 'month') {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const firstDay = new Date(year, month - 1, 1);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const startOffset = (firstDay.getDay() + 6) % 7;
+    const days: (Date | null)[] = [];
+    for (let i = 0; i < startOffset; i++) days.push(null);
+    for (let d = 1; d <= daysInMonth; d++) {
+      days.push(new Date(year, month - 1, d));
+    }
+
+    return (
+      <div>
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => {
+                const dt = new Date(year, month - 2, 1);
+                setSelectedMonth(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`);
+              }}
+              className="p-2 text-gray-400 hover:text-gray-600"
+            >
+              ←
+            </button>
+            <h3 className="text-lg font-semibold">
+              {`Tháng ${month}/${year}`}
+            </h3>
+            <button
+              onClick={() => {
+                const dt = new Date(year, month, 1);
+                setSelectedMonth(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`);
+              }}
+              className="p-2 text-gray-400 hover:text-gray-600"
+            >
+              →
+            </button>
+            <select
+              value={filterDepartment}
+              onChange={(e) => setFilterDepartment(e.target.value)}
+              className="border border-gray-300 rounded px-2 py-1 text-sm"
+            >
+              <option value="">Tất cả khoa</option>
+              {departments.map((d: any) => (
+                <option key={d.idKhoa || d._id} value={d.idKhoa || d._id}>{d.TenKhoa || d.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-1 text-sm rounded ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
+            >
+              Danh sách
+            </button>
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={`px-3 py-1 text-sm rounded ${viewMode === 'calendar' ? 'bg-blue-100 text-[#280559]' : 'text-gray-600'}`}
+            >
+              Tuần
+            </button>
+            <button
+              onClick={() => setViewMode('month')}
+              className={`px-3 py-1 text-sm rounded ${viewMode === 'month' ? 'bg-blue-100 text-[#280559]' : 'text-gray-600'}`}
+            >
+              Tháng
+            </button>
+            <button
+              onClick={onCreateSchedule}
+              className="btn-primary px-4 py-2 rounded-lg flex items-center space-x-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Thêm Ca Làm</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-7 gap-2">
+          {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => (
+            <div key={d} className="text-center font-medium text-gray-600">{d}</div>
+          ))}
+          {days.map((day, idx) => (
+            <div key={idx} className="min-h-[120px] border border-gray-200 rounded p-1 text-sm">
+              {day && (
+                <div className="font-medium mb-1">{day.getDate()}</div>
+              )}
+              {day && getMonthSchedulesForDate(day).map((schedule) => (
+                <div key={schedule._id} className="mb-1 p-1 rounded bg-blue-50 border border-blue-200">
+                  <div className="text-xs font-medium">{schedule.staffFullName}</div>
+                  <div className="text-xs text-gray-600">{schedule.startTime}-{schedule.endTime}</div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-semibold">Danh Sách Lịch Làm Việc</h3>
         <button
           onClick={onCreateSchedule}
-          className="btn-primary px-4 py-2  flex items-center space-x-2"
+          className="btn-primary px-4 py-2 rounded-lg flex items-center space-x-2"
         >
           <Plus className="w-4 h-4" />
           <span>Thêm Ca Làm</span>
@@ -634,25 +767,26 @@ const LeavesTab: React.FC<{
 
 // Create Schedule Modal
 const CreateScheduleModal: React.FC<{
+  nhanvien: any[];
   staff: any[];
+  departments: any[];
   onSubmit: (data: any) => void;
   onClose: () => void;
-}> = ({ staff, onSubmit, onClose }) => {
+}> = ({nhanvien, staff, departments, onSubmit, onClose }) => {
   const [formData, setFormData] = useState({
-    staffId: '',
-    date: '',
-    shiftType: 'morning',
-    startTime: '06:00',
-    endTime: '14:00',
-    department: '',
-    workType: 'regular',
-    notes: ''
+    idNhanVien: '',
+    NgayLamViec: '',
+    LoaiCa: 'morning',
+    GioBD: '06:00',
+    GioKT: '14:00',
+    LoaiCongViec: 'regular',
+    GhiChu: '',
+    idKhoa: '',
+    idLichTongThe: 'LTT0001',
   });
 
-  const departments = ['Khoa Nội', 'Khoa Ngoại', 'Khoa Sản', 'Khoa Nhi', 'Cấp Cứu'];
-
   const handleSubmit = () => {
-    if (!formData.staffId || !formData.date || !formData.department) {
+    if (!formData.idNhanVien || !formData.NgayLamViec || !formData.idKhoa) {
       toast.error('Vui lòng điền đầy đủ thông tin bắt buộc');
       return;
     }
@@ -668,14 +802,14 @@ const CreateScheduleModal: React.FC<{
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nhân viên *</label>
             <select
-              value={formData.staffId}
-              onChange={(e) => setFormData(prev => ({ ...prev, staffId: e.target.value }))}
+              value={formData.idNhanVien}
+              onChange={(e) => setFormData(prev => ({ ...prev, idNhanVien: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
             >
               <option value="">Chọn nhân viên</option>
-              {staff.map(s => (
+              {nhanvien.map(s => (
                 <option key={s._id} value={s._id}>
-                  {s.fullName || `${s.firstName} ${s.lastName}`} - {s.department}
+                  {s.HoTen}
                 </option>
               ))}
             </select>
@@ -685,7 +819,7 @@ const CreateScheduleModal: React.FC<{
             <label className="block text-sm font-medium text-gray-700 mb-1">Ngày làm việc *</label>
             <input
               type="date"
-              value={formData.date}
+              value={formData.NgayLamViec}
               onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
             />
@@ -694,26 +828,26 @@ const CreateScheduleModal: React.FC<{
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Ca làm việc</label>
             <select
-              value={formData.shiftType}
+              value={formData.LoaiCa}
               onChange={(e) => {
                 const shiftType = e.target.value;
                 let startTime = '06:00', endTime = '14:00';
 
                 switch (shiftType) {
-                  case 'morning':
+                  case 'Ca sáng':
                     startTime = '06:00'; endTime = '14:00';
                     break;
-                  case 'afternoon':
+                  case 'Ca chiều':
                     startTime = '14:00'; endTime = '22:00';
                     break;
-                  case 'night':
+                  case 'Ca đêm':
                     startTime = '22:00'; endTime = '06:00';
                     break;
-                  case 'full-day':
+                  case 'Ca hành chính':
                     startTime = '08:00'; endTime = '17:00';
                     break;
-                  case 'on-call':
-                    startTime = '18:00'; endTime = '08:00';
+                  case 'Ca tối':
+                    startTime = '18:00'; endTime = '22:00';
                     break;
                 }
 
@@ -721,11 +855,11 @@ const CreateScheduleModal: React.FC<{
               }}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
             >
-              <option value="morning">Ca sáng (6:00-14:00)</option>
-              <option value="afternoon">Ca chiều (14:00-22:00)</option>
-              <option value="night">Ca đêm (22:00-6:00)</option>
-              <option value="full-day">Ca ngày (8:00-17:00)</option>
-              <option value="on-call">Ca trực</option>
+              <option value="Ca sáng">Ca sáng (6:00-14:00)</option>
+              <option value="Ca chiều">Ca chiều (14:00-22:00)</option>
+              <option value="Ca đêm">Ca đêm (22:00-6:00)</option>
+              <option value="Ca hành chính">Ca hành chính (8:00-17:00)</option>
+              <option value="Ca tối">Ca tối (18:00-22:00)</option>
             </select>
           </div>
 
@@ -734,7 +868,7 @@ const CreateScheduleModal: React.FC<{
               <label className="block text-sm font-medium text-gray-700 mb-1">Giờ bắt đầu</label>
               <input
                 type="time"
-                value={formData.startTime}
+                value={formData.GioBD}
                 onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2"
               />
@@ -743,7 +877,7 @@ const CreateScheduleModal: React.FC<{
               <label className="block text-sm font-medium text-gray-700 mb-1">Giờ kết thúc</label>
               <input
                 type="time"
-                value={formData.endTime}
+                value={formData.GioKT}
                 onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2"
               />
@@ -753,13 +887,15 @@ const CreateScheduleModal: React.FC<{
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Khoa phòng *</label>
             <select
-              value={formData.department}
-              onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
+              value={formData.idKhoa}
+              onChange={(e) => setFormData(prev => ({ ...prev, idKhoa: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
             >
               <option value="">Chọn khoa phòng</option>
-              {departments.map(dept => (
-                <option key={dept} value={dept}>{dept}</option>
+              {departments.map((dept: any) => (
+                <option key={dept.idKhoa || dept._id} value={dept.idKhoa || dept._id}>
+                  {dept.TenKhoa || dept.name}
+                </option>
               ))}
             </select>
           </div>
@@ -767,7 +903,7 @@ const CreateScheduleModal: React.FC<{
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Loại công việc</label>
             <select
-              value={formData.workType}
+              value={formData.LoaiCongViec}
               onChange={(e) => setFormData(prev => ({ ...prev, workType: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
             >
@@ -781,7 +917,7 @@ const CreateScheduleModal: React.FC<{
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú</label>
             <textarea
-              value={formData.notes}
+              value={formData.GhiChu}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
               rows={3}

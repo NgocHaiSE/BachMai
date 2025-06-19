@@ -125,6 +125,12 @@ export function useDeleteAppointment() {
   return useMutation(apiClient.appointments.delete);
 }
 
+export function useNhanVien() {
+  return useApi(
+    () => apiClient.nhanvien.getAll(),
+  );
+}
+
 // Staff hooks
 export function useStaff(role?: string) {
   return useApi(
@@ -333,6 +339,13 @@ export function useWeeklySchedule(params: any) {
     () => apiClient.schedules.getWeekly(params),
     [JSON.stringify(params)],
     !!params.TuNgay && !!params.DenNgay
+  );
+}
+
+export function useSchedules(params: any = {}) {
+  return useApi(
+    () => apiClient.schedules.list(params),
+    [JSON.stringify(params)]
   );
 }
 

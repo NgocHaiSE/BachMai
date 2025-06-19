@@ -105,6 +105,10 @@ class ApiClient {
     getById: (id: string) => this.get<any>(`/kham-benh/${id}`),
   };
 
+  nhanvien = {
+    getAll: () => this.get<any>('/nhan-vien'),
+  }
+
   // Staff/User APIs
   staff = {
     getAll: () => this.get<any>('/users'),
@@ -190,6 +194,11 @@ class ApiClient {
     getWeekly: (params: any) => {
       const query = new URLSearchParams(params).toString();
       return this.get<any>(`/lich-lam-viec/lich-tuan?${query}`);
+    },
+
+    list: (params: any = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return this.get<any>(`/lich-lam-viec/ca${query ? `?${query}` : ''}`);
     },
 
     getStats: (params: any = {}) => {
