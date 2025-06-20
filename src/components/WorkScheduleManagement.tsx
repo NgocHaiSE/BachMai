@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   useWeeklySchedule,
   useSchedules,
@@ -6,6 +6,7 @@ import {
   useStaff,
   useDepartments,
   useCreateShift,
+  useUpdateShift,
   useConfirmShift,
   useDeleteShift,
   useCreateShiftChangeRequest,
@@ -20,6 +21,8 @@ import {
   Calendar,
   Clock,
   Plus,
+  Edit3,
+  Trash2,
   Check,
   X,
   ArrowRightLeft,
@@ -47,6 +50,7 @@ type TabType = 'schedules' | 'transfers' | 'leaves';
 const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
   const [activeTab, setActiveTab] = useState<TabType>('schedules');
   const [showCreateScheduleModal, setShowCreateScheduleModal] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<any | null>(null);
   const [showCreateTransferModal, setShowCreateTransferModal] = useState(false);
   const [showCreateLeaveModal, setShowCreateLeaveModal] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState(getCurrentWeek());
@@ -54,7 +58,7 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
   const [filterStatus, setFilterStatus] = useState('');
 
 // Queries
-  const { data: workSchedules } = useWeeklySchedule({
+  const { data: workSchedules, refetch: refetchSchedules } = useWeeklySchedule({
     TuNgay: selectedWeek.start,
     DenNgay: selectedWeek.end,
     // idKhoa: filterDepartment || null
@@ -75,6 +79,7 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
 
   // Mutations
   const { mutate: createSchedule } = useCreateShift();
+  const { mutate: updateSchedule } = useUpdateShift();
   const { mutate: updateScheduleStatus } = useConfirmShift();
   const { mutate: deleteSchedule } = useDeleteShift();
   const { mutate: createTransfer } = useCreateShiftChangeRequest();
@@ -116,13 +121,33 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
     }
   };
 
-  const handleCreateSchedule = async (formData: any) => {
+  const handleSaveSchedule = async (formData: any) => {
     try {
-      await createSchedule(formData);
-      toast.success('Tạo lịch làm việc thành công');
+      if (editingSchedule) {
+        await updateSchedule({ id: editingSchedule._id, ...formData });
+        toast.success('Cập nhật ca làm việc thành công');
+      } else {
+        await createSchedule(formData);
+        toast.success('Tạo lịch làm việc thành công');
+      }
+      setShowCreateScheduleModal(false);
+      setEditingSchedule(null);
+      refetchSchedules();
       setShowCreateScheduleModal(false);
     } catch (error: any) {
       toast.error(error.message);
+    }
+  };
+
+  const handleDeleteSchedule = async (id: string) => {
+    if (confirm('Bạn có chắc chắn muốn xóa ca làm việc này?')) {
+      try {
+        await deleteSchedule(id);
+        toast.success('Xóa ca làm việc thành công');
+        refetchSchedules();
+      } catch (error: any) {
+        toast.error(error.message);
+      }
     }
   };
 
@@ -140,7 +165,15 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
       case 'schedules':
         return <SchedulesTab
           schedules={workSchedules || []}
-          onCreateSchedule={() => setShowCreateScheduleModal(true)}
+          onCreateSchedule={() => {
+            setEditingSchedule(null);
+            setShowCreateScheduleModal(true);
+          }}
+          onEditSchedule={(s) => {
+            setEditingSchedule(s);
+            setShowCreateScheduleModal(true);
+          }}
+          onDeleteSchedule={handleDeleteSchedule}
           selectedWeek={selectedWeek}
           setSelectedWeek={setSelectedWeek}
           departments={departments || []}
@@ -269,8 +302,12 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
           nhanvien= {nhanvien || []}
           staff={staff || []}
           departments={departments || []}
-          onSubmit={handleCreateSchedule}
-          onClose={() => setShowCreateScheduleModal(false)}
+          schedule={editingSchedule}
+          onSubmit={handleSaveSchedule}
+          onClose={() => {
+            setShowCreateScheduleModal(false);
+            setEditingSchedule(null);
+          }}
         />
       )}
 
@@ -314,6 +351,8 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
 const SchedulesTab: React.FC<{
   schedules: any[];
   onCreateSchedule: () => void;
+  onEditSchedule: (schedule: any) => void;
+  onDeleteSchedule: (id: string) => void;
   selectedWeek: { start: string; end: string };
   setSelectedWeek: (week: { start: string; end: string }) => void;
   departments: any[];
@@ -322,6 +361,8 @@ const SchedulesTab: React.FC<{
 }> = ({
   schedules,
   onCreateSchedule,
+  onEditSchedule,
+  onDeleteSchedule,
   selectedWeek,
   setSelectedWeek,
   departments,
@@ -475,9 +516,18 @@ const SchedulesTab: React.FC<{
                     <div className="text-gray-600">
                       {schedule.startTime} - {schedule.endTime}
                     </div>
-                    <div className={`inline-block px-1 py-0.5 rounded text-xs ${getStatusColor(schedule.status)}`}>
-                      {schedule.status}
-                    </div>
+                    <div className={`inline-block px-2 py-1 rounded text-xs ${getStatusColor(schedule.status)}`}>{schedule.status}</div>
+                    {schedule.notes && (
+                  <div className="text-xs text-gray-500">{schedule.notes}</div>
+                )}
+                <div className="flex justify-end space-x-2 pt-1">
+                  <button onClick={() => onEditSchedule(schedule)} className="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Chỉnh sửa">
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => onDeleteSchedule(schedule._id)} className="p-1 text-red-600 hover:bg-red-50 rounded" title="Xóa">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
                   </div>
                 ))}
               </div>
@@ -770,9 +820,10 @@ const CreateScheduleModal: React.FC<{
   nhanvien: any[];
   staff: any[];
   departments: any[];
+  schedule?: any;
   onSubmit: (data: any) => void;
   onClose: () => void;
-}> = ({nhanvien, staff, departments, onSubmit, onClose }) => {
+}> = ({ nhanvien, staff, departments, schedule, onSubmit, onClose }) => {
   const [formData, setFormData] = useState({
     idNhanVien: '',
     NgayLamViec: '',
@@ -785,6 +836,22 @@ const CreateScheduleModal: React.FC<{
     idLichTongThe: 'LTT0001',
   });
 
+   useEffect(() => {
+    if (schedule) {
+      setFormData({
+        idNhanVien: schedule.idNhanVien || '',
+        NgayLamViec: schedule.date || '',
+        LoaiCa: schedule.shiftType || 'morning',
+        GioBD: schedule.startTime || '06:00',
+        GioKT: schedule.endTime || '14:00',
+        LoaiCongViec: schedule.workType || 'regular',
+        GhiChu: schedule.notes || '',
+        idKhoa: schedule.department || schedule.idKhoa || '',
+        idLichTongThe: schedule.idLichTongThe || 'LTT0001',
+      });
+    }
+  }, [schedule]);
+
   const handleSubmit = () => {
     if (!formData.idNhanVien || !formData.NgayLamViec || !formData.idKhoa) {
       toast.error('Vui lòng điền đầy đủ thông tin bắt buộc');
@@ -796,7 +863,7 @@ const CreateScheduleModal: React.FC<{
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-semibold mb-4">Tạo Ca Làm Việc Mới</h3>
+        <h3 className="text-lg font-semibold mb-4">{schedule ? 'Chỉnh Sửa Ca Làm' : 'Tạo Ca Làm Việc Mới'}</h3>
 
         <div className="space-y-4">
           <div>
@@ -808,7 +875,7 @@ const CreateScheduleModal: React.FC<{
             >
               <option value="">Chọn nhân viên</option>
               {nhanvien.map(s => (
-                <option key={s._id} value={s._id}>
+                <option key={s._id} value={s.idNhanVien}>
                   {s.HoTen}
                 </option>
               ))}
@@ -820,7 +887,7 @@ const CreateScheduleModal: React.FC<{
             <input
               type="date"
               value={formData.NgayLamViec}
-              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, NgayLamViec: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
             />
           </div>
@@ -851,7 +918,7 @@ const CreateScheduleModal: React.FC<{
                     break;
                 }
 
-                setFormData(prev => ({ ...prev, shiftType, startTime, endTime }));
+                setFormData(prev => ({ ...prev, LoaiCa: shiftType, GioBD: startTime, GioKT: endTime }));
               }}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
             >
@@ -869,7 +936,7 @@ const CreateScheduleModal: React.FC<{
               <input
                 type="time"
                 value={formData.GioBD}
-                onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, GioBD: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2"
               />
             </div>
@@ -878,7 +945,7 @@ const CreateScheduleModal: React.FC<{
               <input
                 type="time"
                 value={formData.GioKT}
-                onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, GioKT: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2"
               />
             </div>
@@ -904,7 +971,7 @@ const CreateScheduleModal: React.FC<{
             <label className="block text-sm font-medium text-gray-700 mb-1">Loại công việc</label>
             <select
               value={formData.LoaiCongViec}
-              onChange={(e) => setFormData(prev => ({ ...prev, workType: e.target.value }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, LoaiCongViec: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
             >
               <option value="regular">Thường</option>
@@ -918,7 +985,7 @@ const CreateScheduleModal: React.FC<{
             <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú</label>
             <textarea
               value={formData.GhiChu}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, GhiChu: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
               rows={3}
               placeholder="Ghi chú thêm về ca làm việc..."
@@ -930,7 +997,7 @@ const CreateScheduleModal: React.FC<{
               onClick={handleSubmit}
               className="flex-1 btn-primary text-white py-2 px-4 rounded-lg  transition-colors"
             >
-              Tạo Ca Làm
+              {schedule ? 'Cập Nhật' : 'Tạo Ca Làm'}
             </button>
             <button
               onClick={onClose}
