@@ -126,8 +126,9 @@ function TransferRequests() {
   const [showForm, setShowForm] = useState(false);
   const [editingRequest, setEditingRequest] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const {user} = useAuth();
 
-const { data: requests, refetch } = useTransferRequests({});
+  const { data: requests, refetch } = useTransferRequests({});
   const { data: patients } = usePatients("");
   const { data: staff } = useStaff("doctor");
   const { mutate: createRequest } = useCreateTransferRequest();
@@ -148,16 +149,28 @@ const { data: requests, refetch } = useTransferRequests({});
   });
 
   const handleSubmit = async (formData: any) => {
+    const payload = {
+      idBenhNhan: formData.patientId,
+      idBacSiPhuTrach: formData.staffId,
+      NgayChuyen: formData.requestDate,
+      LyDo: formData.reason,
+      DiaChi: formData.destinationAddress,
+      CoSoChuyenDen: formData.destinationFacility,
+      MucDo: formData.priority,
+      GhiChu: formData.notes,
+      idNguoiDung: user?.idNguoiDung,
+    };
     try {
       if (editingRequest) {
-        await updateRequest({ id: editingRequest._id, ...formData });
+        await updateRequest({ id: editingRequest.idYeuCauChuyenVien || editingRequest._id, ...payload });
         toast.success("Cập nhật yêu cầu chuyển viện thành công");
       } else {
-        await createRequest(formData);
+        await createRequest(payload);
         toast.success("Tạo yêu cầu chuyển viện thành công");
       }
       setShowForm(false);
       setEditingRequest(null);
+      refetch();
     } catch (error) {
       toast.error("Lưu yêu cầu chuyển viện thất bại");
     }
@@ -335,8 +348,8 @@ const { data: requests, refetch } = useTransferRequests({});
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredRequests.map((request) => (
-                  <tr key={request._id} className="hover:bg-gray-50 transition-colors">
+                {filteredRequests.map((request: any) => (
+                  <tr key={request.requestCode} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div>
@@ -380,13 +393,13 @@ const { data: requests, refetch } = useTransferRequests({});
                         <div className="relative">
                           <select
                             value={request.status}
-                            onChange={(e) => handleStatusUpdate(request.status, e.target.value)}
+                            onChange={(e) => handleStatusUpdate(request.requestCode, e.target.value)}
                             className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border appearance-none pr-8 ${getStatusColor(request.status)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                           >
-                            <option value="pending">Chờ xử lý</option>
-                            <option value="approved">Đã duyệt</option>
-                            <option value="rejected">Từ chối</option>
-                            <option value="completed">Hoàn thành</option>
+                            <option value="Chờ xử lý">Chờ xử lý</option>
+                            <option value="Đã duyệt">Đã duyệt</option>
+                            <option value="Từ chối">Từ chối</option>
+                            <option value="Hoàn thành">Hoàn thành</option>
                           </select>
                           <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-3 h-3 pointer-events-none" />
                         </div>
@@ -457,12 +470,33 @@ function TransferRecords() {
   });
 
   const handleSubmit = async (formData: any) => {
+    const payload = {
+      idYeuCauChuyenVien: formData.requestId,
+      idBenhNhan: formData.patientId,
+      idBacSiPhuTrach: formData.staffId,
+      NgayChuyen: formData.transferDate,
+      ThoiGianDuKien: formData.estimatedTime,
+      SDT_CoSoYTe: formData.destinationPhone,
+      DiaChi: formData.destinationAddress,
+      CoSoChuyenDen: formData.destinationFacility,
+      ChanDoan: formData.diagnosis,
+      MaICD10: formData.icd10Code,
+      Mach: formData.pulse,
+      HuyetAp: formData.bloodPressure,
+      NhipTho: formData.respiratoryRate,
+      NhietDo: formData.temperature,
+      YThuc: formData.consciousness,
+      TienTrienLamSang: formData.clinicalProgress,
+      DieuTriDaThucHien: formData.treatmentPerformed,
+      idNguoiDiKem: formData.accompaniedPersonId,
+      GhiChu: formData.notes,
+    };
     try {
       if (editingRecord) {
-        await updateRecord({ id: editingRecord._id, ...formData });
+        await updateRecord({ id: editingRecord.idChuyenVien || editingRecord._id, ...payload });
         toast.success("Cập nhật hồ sơ chuyển viện thành công");
       } else {
-        await createRecord(formData);
+        await createRecord(payload);
         toast.success("Tạo hồ sơ chuyển viện thành công");
       }
       setShowForm(false);
@@ -615,66 +649,44 @@ function TransferRecords() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredRecords.map((record) => (
-                  <tr key={record._id} className="hover:bg-gray-50 transition-colors">
+                {filteredRecords.map((record: any) => (
+                  <tr key={record.idChuyenVien} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
-                          <Truck className="w-5 h-5 text-red-600" />
-                        </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900">
                             {record.transferCode}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {record.transferDate}
-                          </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">
-                        {record.patient?._id || "N/A"}
+                        {record.patientId || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">
-                        {record.patient?.firstName} {record.patient?.lastName}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {record.patient?.phone}
+                        {record.patientName} 
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900">
-                        {record.treatmentDate}
+                        {new Date(record.treatmentDate).toLocaleDateString('vi-VN')}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900">
-                        {record.patient?.idNumber || "N/A"}
+                        {record.idNumber || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900">
-                        {record.patient?.insuranceNumber || "N/A"}
+                        {record.insuranceNumber || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end space-x-2">
-                        <div className="relative">
-                          <select
-                            value={record.status}
-                            onChange={(e) => handleStatusUpdate(record._id, e.target.value)}
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border appearance-none pr-8 ${getStatusColor(record.status)} focus:outline-none focus:ring-2 focus:ring-red-500`}
-                          >
-                            <option value="pending">Chờ xử lý</option>
-                            <option value="approved">Đã duyệt</option>
-                            <option value="rejected">Từ chối</option>
-                            <option value="completed">Hoàn thành</option>
-                          </select>
-                          <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-3 h-3 pointer-events-none" />
-                        </div>
                         <button
                           onClick={() => handleEdit(record)}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -683,7 +695,7 @@ function TransferRecords() {
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(record._id)}
+                          onClick={() => handleDelete(record.transferCode)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Xóa"
                         >
@@ -1240,7 +1252,7 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
                     <option value="">Chọn bệnh nhân</option>
                     {patients.map((patient: any) => (
                       <option key={patient._id} value={patient._id}>
-                        {patient._id.slice(-8)} - {patient.firstName} {patient.lastName}
+                        {patient._id} - {patient.firstName} {patient.lastName}
                       </option>
                     ))}
                   </select>
