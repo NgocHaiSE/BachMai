@@ -135,33 +135,8 @@ class ApiClient {
       return this.get<any>(`/chuyen-vien/yeu-cau/search?${query.toString()}`);
     },
     getById: (id: string) => this.get<any>(`/chuyen-vien/yeu-cau/${id}`),
-    create: (data: any) => {
-      // Transform frontend data to backend format
-      const backendData = {
-        patientId: data.patientId,
-        staffId: data.staffId,
-        treatmentDate: data.treatmentDate,
-        reason: data.reason,
-        requestDate: data.requestDate,
-        destinationAddress: data.destinationAddress,
-        destinationFacility: data.destinationFacility,
-        priority: data.priority,
-        notes: data.notes
-      };
-      return this.post<any>('/chuyen-vien/yeu-cau', backendData);
-    },
-    update: (id: string, data: any) => {
-      const backendData = {
-        reason: data.reason,
-        destinationFacility: data.destinationFacility,
-        destinationAddress: data.destinationAddress,
-        treatmentDate: data.treatmentDate,
-        priority: data.priority,
-        notes: data.notes,
-        staffId: data.staffId
-      };
-      return this.put<any>(`/chuyen-vien/yeu-cau/${id}`, backendData);
-    },
+    create: (data: any) => this.post<any>('/chuyen-vien/yeu-cau', data),
+    update: (id: string, data: any) => this.put<any>(`/chuyen-vien/yeu-cau/${id}`, data),
     updateStatus: (id: string, data: any) => this.patch<any>(`/chuyen-vien/yeu-cau/${id}/trang-thai`, data),
     approve: (id: string, data: any) => this.patch<any>(`/chuyen-vien/yeu-cau/${id}/xu-ly`, data),
     delete: (id: string) => this.delete<any>(`/chuyen-vien/yeu-cau/${id}`),
@@ -180,38 +155,8 @@ class ApiClient {
       return this.get<any>(`/chuyen-vien/phieu/search?${query.toString()}`);
     },
     getById: (id: string) => this.get<any>(`/chuyen-vien/phieu/${id}`),
-    create: (data: any) => {
-      // Transform frontend data to backend format
-      const backendData = {
-        requestId: data.requestId,
-        patientId: data.patientId,
-        staffId: data.staffId,
-        treatmentDate: data.treatmentDate,
-        reason: data.reason,
-        transferDate: data.transferDate,
-        estimatedTime: data.estimatedTime,
-        destinationAddress: data.destinationAddress,
-        destinationFacility: data.destinationFacility,
-        destinationPhone: data.destinationPhone,
-        consciousness: data.consciousness,
-        transportation: data.transportation,
-        accompaniedPersonId: data.accompaniedPersonId,
-        notes: data.notes
-      };
-      return this.post<any>('/chuyen-vien/phieu', backendData);
-    },
-    update: (id: string, data: any) => {
-      const backendData = {
-        transferDate: data.transferDate,
-        estimatedTime: data.estimatedTime,
-        destinationPhone: data.destinationPhone,
-        consciousness: data.consciousness,
-        transportation: data.transportation,
-        notes: data.notes,
-        accompaniedPersonId: data.accompaniedPersonId
-      };
-      return this.put<any>(`/chuyen-vien/phieu/${id}`, backendData);
-    },
+    create: (data: any) => this.post<any>('/chuyen-vien/phieu', data),
+    update: (id: string, data: any) => this.put<any>(`/chuyen-vien/phieu/${id}`, data),
     updateStatus: (id: string, data: any) => this.patch<any>(`/chuyen-vien/phieu/${id}/trang-thai`, data),
     delete: (id: string) => this.delete<any>(`/chuyen-vien/phieu/${id}`),
   };

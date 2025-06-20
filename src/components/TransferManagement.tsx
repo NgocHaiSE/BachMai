@@ -731,19 +731,26 @@ function TransferRecords() {
 function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: any) {
   const {user} = useAuth()
   const [formData, setFormData] = useState({
-    idBenhNhan: request?.idBenhNhan || "",
-    idNguoiDung: user?.idNguoiDung,
-    NgayChuyen: new Date(request?.treatmentDate).toLocaleDateString('vi-VN'),
-    LyDo: request?.reason || "",
-    DiaChi: request?.destinationAddress || "",
-    CoSoChuyenDen: request?.destinationFacility || "",
-    MucDo: request?.priority || "medium",
-    GhiChu: request?.notes || "",
-    // idBacSiPhuTrach: request?.staffId || "",
+    patientId: request?.patientId || "",
+    staffId: request?.doctorId || "",
+    requestDate: request?.requestDate
+      ? new Date(request.requestDate).toISOString().split("T")[0]
+      : new Date().toISOString().split("T")[0],
+    treatmentDate: request?.treatmentDate
+      ? new Date(request.treatmentDate).toISOString().split("T")[0]
+      : new Date().toISOString().split("T")[0],
+    reason: request?.reason || "",
+    destinationAddress: request?.destinationAddress || "",
+    destinationFacility: request?.destinationFacility || "",
+    priority: request?.priority || "medium",
+    notes: request?.notes || "",
   });
 
+
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const selectedPatient = patients.find((p: any) => p._id === formData.idBenhNhan);
+  const selectedPatient = patients.find(
+    (p: any) => p.idBenhNhan === formData.patientId || p._id === formData.patientId
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -806,14 +813,17 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <select
                     required
-                    value={formData.idBenhNhan}
-                    onChange={(e) => setFormData({ ...formData, idBenhNhan: e.target.value })}
+                    value={formData.patientId}
+                    onChange={(e) => setFormData({ ...formData, patientId: e.target.value })}
                     className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none"
                   >
                     <option value="">Chọn bệnh nhân</option>
                     {patients.map((patient: any) => (
-                      <option key={patient._id} value={patient.HoTen}>
-                        {patient.idBenhNhan} - {patient.HoTen}
+                      <option
+                        key={patient.idBenhNhan || patient._id}
+                        value={patient.idBenhNhan || patient._id}
+                      >
+                        {(patient.idBenhNhan || patient._id)} - {patient.HoTen || `${patient.firstName} ${patient.lastName}`}
                       </option>
                     ))}
                   </select>
@@ -828,7 +838,7 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                   <IdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    value={selectedPatient?.CCCD || ""}
+                    value={selectedPatient?.CCCD || selectedPatient?.idNumber || ""}
                     readOnly
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                     placeholder="Sẽ hiển thị khi chọn bệnh nhân"
@@ -846,7 +856,9 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                     </label>
                     <input
                       type="text"
-                      value={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
+                      value={
+                        selectedPatient.HoTen 
+                      }
                       readOnly
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                     />
@@ -857,7 +869,7 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                     </label>
                     <input
                       type="text"
-                      value={selectedPatient.dateOfBirth}
+                      value={selectedPatient.dateOfBirth || selectedPatient.NgaySinh}
                       readOnly
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                     />
@@ -868,7 +880,13 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                     </label>
                     <input
                       type="text"
-                      value={selectedPatient.gender === "male" ? "Nam" : selectedPatient.gender === "female" ? "Nữ" : "Khác"}
+                      value={
+                        selectedPatient.gender === "male" || selectedPatient.GioiTinh === "Nam"
+                          ? "Nam"
+                          : selectedPatient.gender === "female" || selectedPatient.GioiTinh === "Nữ"
+                            ? "Nữ"
+                            : "Khác"
+                      }
                       readOnly
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                     />
@@ -879,7 +897,7 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                     </label>
                     <input
                       type="text"
-                      value={selectedPatient.phone}
+                      value={selectedPatient.phone || selectedPatient.SDT}
                       readOnly
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                     />
@@ -890,7 +908,7 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                     </label>
                     <input
                       type="text"
-                      value={selectedPatient.department || "Chưa phân khoa"}
+                      value={selectedPatient.department || selectedPatient.Khoa || "Chưa phân khoa"}
                       readOnly
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                     />
@@ -901,7 +919,7 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                     </label>
                     <input
                       type="text"
-                      value={selectedPatient.insuranceType || "Không có"}
+                      value={selectedPatient.insuranceType || selectedPatient.DoiTuongUuTien || "Không có"}
                       readOnly
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                     />
@@ -913,7 +931,7 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                       Địa chỉ
                     </label>
                     <textarea
-                      value={selectedPatient.address}
+                      value={selectedPatient.address || selectedPatient.DiaChi}
                       readOnly
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                       rows={2}
@@ -927,7 +945,7 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                       <ShieldCheck className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
                         type="text"
-                        value={selectedPatient.insuranceNumber || "Không có"}
+                        value={selectedPatient.insuranceNumber || selectedPatient.BHYT || "Không có"}
                         readOnly
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                       />
@@ -1004,8 +1022,8 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                     >
                       <option value="">Chọn bác sĩ</option>
                       {staff.map((doctor: any) => (
-                        <option key={doctor._id} value={doctor._id}>
-                          BS. {doctor.firstName} {doctor.lastName}
+                        <option key={doctor.idNguoiDung} value={doctor.idNguoiDung}>
+                          BS. {doctor.HoTen} 
                         </option>
                       ))}
                     </select>
@@ -1164,35 +1182,27 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
 }
 
 function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCancel }: any) {
+  const {user} = useAuth();
   const [formData, setFormData] = useState({
-    requestId: record?.requestId || "",
-    patientId: record?.patientId || "",
-    staffId: record?.staffId || "",
-    treatmentDate: record?.treatmentDate || new Date().toISOString().split('T')[0],
-    reason: record?.reason || "",
-    transferDate: record?.transferDate || new Date().toISOString().split('T')[0],
-    estimatedTime: record?.estimatedTime || "",
-    destinationAddress: record?.destinationAddress || "",
-    destinationFacility: record?.destinationFacility || "",
-    destinationPhone: record?.destinationPhone || "",
-    diagnosis: record?.diagnosis || "",
-    icd10Code: record?.icd10Code || "",
-    pulse: record?.pulse || "",
-    bloodPressure: record?.bloodPressure || "",
-    respiratoryRate: record?.respiratoryRate || "",
-    temperature: record?.temperature || "",
-    consciousness: record?.consciousness || "",
-    clinicalProgress: record?.clinicalProgress || "",
-    treatmentPerformed: record?.treatmentPerformed || "",
-    accompaniedPersonId: record?.accompaniedPersonId || "",
-    notes: record?.notes || "",
+    idYeuCauChuyenVien: record?.idYeuCauChuyenVien || "",
+    NgayChuyen: record?.NgayChuyen || new Date().toISOString().split('T')[0],
+    ThoiGianDuKien: record?.ThoiGianDuKien || "",
+    SDT_CoSoYTe: record?.SDT_CoSoYTe || "",
+    YThuc: record?.YThuc || "",
+    GhiChu: record?.GhiChu || "",
+    idNguoiDung: user?.idNguoiDung || "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const selectedPatient = patients.find((p: any) => p._id === formData.patientId);
+  
+  // Tìm yêu cầu chuyển viện được chọn để hiển thị thông tin bệnh nhân
+  const selectedRequest = requests?.find(
+    (req: any) => req.idYeuCauChuyenVien === formData.idYeuCauChuyenVien
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form data being submitted:', formData);
     setIsSubmitting(true);
     try {
       await onSubmit(formData);
@@ -1203,7 +1213,7 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -1212,10 +1222,10 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {record ? "Sửa Hồ Sơ Chuyển Viện" : "Tạo Hồ Sơ Chuyển Viện"}
+                  {record ? "Sửa Phiếu Chuyển Viện" : "Tạo Phiếu Chuyển Viện"}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  {record ? "Cập nhật thông tin hồ sơ chuyển viện" : "Tạo hồ sơ chuyển viện chi tiết"}
+                  {record ? "Cập nhật thông tin phiếu chuyển viện" : "Tạo phiếu chuyển viện từ yêu cầu"}
                 </p>
               </div>
             </div>
@@ -1229,30 +1239,33 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-8">
-          {/* Thông tin bệnh nhân */}
+          {/* Chọn yêu cầu chuyển viện */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <User className="w-5 h-5 mr-2 text-red-600" />
-              Thông tin bệnh nhân
+              <FileText className="w-5 h-5 mr-2 text-red-600" />
+              Thông tin yêu cầu chuyển viện
             </h4>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mã bệnh nhân *
+                  Yêu cầu chuyển viện *
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <select
                     required
-                    value={formData.patientId}
-                    onChange={(e) => setFormData({ ...formData, patientId: e.target.value })}
+                    value={formData.idYeuCauChuyenVien}
+                    onChange={(e) => setFormData({ ...formData, idYeuCauChuyenVien: e.target.value })}
                     className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors appearance-none"
                   >
-                    <option value="">Chọn bệnh nhân</option>
-                    {patients.map((patient: any) => (
-                      <option key={patient._id} value={patient._id}>
-                        {patient._id} - {patient.firstName} {patient.lastName}
+                    <option value="">Chọn yêu cầu chuyển viện</option>
+                    {requests?.map((request: any) => (
+                      <option
+                        key={request.idYeuCauChuyenVien}
+                        value={request.idYeuCauChuyenVien}
+                      >
+                        {request.idYeuCauChuyenVien} - {request.LyDoChuyenVien || 'Yêu cầu chuyển viện'}
                       </option>
                     ))}
                   </select>
@@ -1261,413 +1274,143 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Số CCCD/CMND
+                  Nhân viên xử lý *
                 </label>
                 <div className="relative">
-                  <IdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    value={selectedPatient?.idNumber || ""}
-                    readOnly
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
-                    placeholder="Sẽ hiển thị khi chọn bệnh nhân"
-                  />
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <select
+                    required
+                    value={formData.idNguoiDung}
+                    onChange={(e) => setFormData({ ...formData, idNguoiDung: e.target.value })}
+                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors appearance-none"
+                  >
+                    <option value="">Chọn nhân viên</option>
+                    {staff?.map((member: any) => (
+                      <option
+                        key={member.idNguoiDung || member._id}
+                        value={member.idNguoiDung || member._id}
+                      >
+                        {member.HoTen || `${member.firstName || ''} ${member.lastName || ''}`}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 </div>
               </div>
             </div>
 
-            {selectedPatient && (
-              <div className="bg-red-50 rounded-xl p-6 mb-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Hiển thị thông tin yêu cầu chuyển viện được chọn */}
+            {selectedRequest && (
+              <div className="bg-blue-50 rounded-xl p-6 mt-6">
+                <h5 className="text-md font-medium text-gray-900 mb-4">Thông tin yêu cầu</h5>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Họ tên bệnh nhân
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Bệnh nhân
                     </label>
-                    <input
-                      type="text"
-                      value={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
-                      readOnly
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
-                    />
+                    <p className="text-sm text-gray-900">{selectedRequest.patientName || 'Không có thông tin'}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Ngày sinh
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Lý do chuyển viện
                     </label>
-                    <input
-                      type="text"
-                      value={selectedPatient.dateOfBirth}
-                      readOnly
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
-                    />
+                    <p className="text-sm text-gray-900">{selectedRequest.reason || 'Không có thông tin'}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Giới tính
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Cơ sở chuyển đến
                     </label>
-                    <input
-                      type="text"
-                      value={selectedPatient.gender === "male" ? "Nam" : selectedPatient.gender === "female" ? "Nữ" : "Khác"}
-                      readOnly
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Điện thoại
-                    </label>
-                    <input
-                      type="text"
-                      value={selectedPatient.phone}
-                      readOnly
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Khoa
-                    </label>
-                    <input
-                      type="text"
-                      value={selectedPatient.department || "Chưa phân khoa"}
-                      readOnly
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Loại BHYT/BHXH
-                    </label>
-                    <input
-                      type="text"
-                      value={selectedPatient.insuranceType || "Không có"}
-                      readOnly
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Địa chỉ
-                    </label>
-                    <textarea
-                      value={selectedPatient.address}
-                      readOnly
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
-                      rows={2}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Số thẻ BHYT/BHXH
-                    </label>
-                    <div className="relative">
-                      <ShieldCheck className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
-                        type="text"
-                        value={selectedPatient.insuranceNumber || "Không có"}
-                        readOnly
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ngày điều trị
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="date"
-                      value={formData.treatmentDate}
-                      readOnly
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
-                    />
+                    <p className="text-sm text-gray-900">{selectedRequest.destinationFacility || 'Không có thông tin'}</p>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Thông tin yêu cầu */}
+          {/* Thông tin chuyển viện */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <FileText className="w-5 h-5 mr-2 text-red-600" />
-              Thông tin yêu cầu
+              <Calendar className="w-5 h-5 mr-2 text-red-600" />
+              Thông tin chuyển viện
             </h4>
             
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Lý do chuyển viện *
-                </label>
-                <textarea
-                  required
-                  value={formData.reason}
-                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                  rows={3}
-                  placeholder="Mô tả lý do cần chuyển viện"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ngày chuyển viện *
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="date"
-                      required
-                      value={formData.transferDate}
-                      onChange={(e) => setFormData({ ...formData, transferDate: e.target.value })}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Thời gian dự kiến
-                  </label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="time"
-                      value={formData.estimatedTime}
-                      onChange={(e) => setFormData({ ...formData, estimatedTime: e.target.value })}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Số điện thoại cơ sở chuyển đến
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="tel"
-                      value={formData.destinationPhone}
-                      onChange={(e) => setFormData({ ...formData, destinationPhone: e.target.value })}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                      placeholder="Số điện thoại liên hệ"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Địa chỉ cơ sở chuyển đến *
+                  Ngày chuyển viện *
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
-                  <textarea
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="date"
                     required
-                    value={formData.destinationAddress}
-                    onChange={(e) => setFormData({ ...formData, destinationAddress: e.target.value })}
+                    value={formData.NgayChuyen}
+                    onChange={(e) => setFormData({ ...formData, NgayChuyen: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                    rows={2}
-                    placeholder="Địa chỉ đầy đủ của cơ sở y tế"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cơ sở y tế chuyển đến *
-                </label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    required
-                    value={formData.destinationFacility}
-                    onChange={(e) => setFormData({ ...formData, destinationFacility: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                    placeholder="Tên bệnh viện/cơ sở y tế"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Chẩn đoán *
-                  </label>
-                  <textarea
-                    required
-                    value={formData.diagnosis}
-                    onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                    rows={3}
-                    placeholder="Chẩn đoán chi tiết"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mã ICD10
-                  </label>
-                  <div className="relative">
-                    <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="text"
-                      value={formData.icd10Code}
-                      onChange={(e) => setFormData({ ...formData, icd10Code: e.target.value })}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                      placeholder="VD: I21.9"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Dấu hiệu sinh tồn */}
-          <div>
-            <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <Heart className="w-5 h-5 mr-2 text-red-600" />
-              Dấu hiệu sinh tồn
-            </h4>
-            
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mạch (lần/phút)
-                </label>
-                <div className="relative">
-                  <Heart className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    value={formData.pulse}
-                    onChange={(e) => setFormData({ ...formData, pulse: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                    placeholder="VD: 80"
                   />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Huyết áp (mmHg)
+                  Thời gian dự kiến
                 </label>
                 <div className="relative">
-                  <Monitor className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
-                    type="text"
-                    value={formData.bloodPressure}
-                    onChange={(e) => setFormData({ ...formData, bloodPressure: e.target.value })}
+                    type="time"
+                    value={formData.ThoiGianDuKien}
+                    onChange={(e) => setFormData({ ...formData, ThoiGianDuKien: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                    placeholder="VD: 120/80"
                   />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nhịp thở (lần/phút)
+                  SĐT cơ sở y tế
                 </label>
                 <div className="relative">
-                  <Activity className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
-                    type="text"
-                    value={formData.respiratoryRate}
-                    onChange={(e) => setFormData({ ...formData, respiratoryRate: e.target.value })}
+                    type="tel"
+                    value={formData.SDT_CoSoYTe}
+                    onChange={(e) => setFormData({ ...formData, SDT_CoSoYTe: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                    placeholder="VD: 20"
+                    placeholder="Số điện thoại liên hệ"
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nhiệt độ (°C)
-                </label>
-                <div className="relative">
-                  <Thermometer className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    value={formData.temperature}
-                    onChange={(e) => setFormData({ ...formData, temperature: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                    placeholder="VD: 36.5"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ý thức
-              </label>
-              <input
-                type="text"
-                value={formData.consciousness}
-                onChange={(e) => setFormData({ ...formData, consciousness: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                placeholder="VD: Tỉnh táo, Lơ mơ, Hôn mê"
-              />
             </div>
           </div>
 
           {/* Thông tin lâm sàng */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <Clipboard className="w-5 h-5 mr-2 text-red-600" />
+              <Heart className="w-5 h-5 mr-2 text-red-600" />
               Thông tin lâm sàng
             </h4>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Diễn biến lâm sàng
-                </label>
-                <textarea
-                  value={formData.clinicalProgress}
-                  onChange={(e) => setFormData({ ...formData, clinicalProgress: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                  rows={3}
-                  placeholder="Mô tả diễn biến tình trạng bệnh nhân"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Điều trị đã thực hiện
-                </label>
-                <textarea
-                  value={formData.treatmentPerformed}
-                  onChange={(e) => setFormData({ ...formData, treatmentPerformed: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                  rows={3}
-                  placeholder="Các biện pháp điều trị đã áp dụng"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mã người đi cùng
+                  Ý thức bệnh nhân
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    value={formData.accompaniedPersonId}
-                    onChange={(e) => setFormData({ ...formData, accompaniedPersonId: e.target.value })}
+                    value={formData.YThuc}
+                    onChange={(e) => setFormData({ ...formData, YThuc: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                    placeholder="Mã định danh người đi cùng"
+                    placeholder="VD: Tỉnh táo, Lơ mơ, Hôn mê"
                   />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ghi chú (nếu có)
+                  Ghi chú
                 </label>
                 <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  value={formData.GhiChu}
+                  onChange={(e) => setFormData({ ...formData, GhiChu: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
                   rows={3}
                   placeholder="Thông tin bổ sung khác"
@@ -1676,33 +1419,33 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
             </div>
           </div>
 
-          {/* Chi tiết phê duyệt */}
+          {/* Trạng thái */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <CheckCircle className="w-5 h-5 mr-2 text-red-600" />
-              Chi tiết phê duyệt
+              Trạng thái phiếu
             </h4>
             
             <div className="bg-gray-50 rounded-xl p-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Trạng thái
+                    Trạng thái hiện tại
                   </label>
                   <input
                     type="text"
-                    value="Chờ xử lý"
+                    value={record?.TrangThai || "Mới tạo"}
                     readOnly
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ngày phê duyệt
+                    Ngày tạo
                   </label>
                   <input
                     type="text"
-                    value="Chưa phê duyệt"
+                    value={record?.NgayTao || new Date().toLocaleDateString('vi-VN')}
                     readOnly
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                   />
@@ -1734,7 +1477,7 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
               ) : (
                 <>
                   <Save className="w-5 h-5 mr-2" />
-                  {record ? "Cập nhật" : "Tạo"} Hồ Sơ
+                  {record ? "Cập nhật" : "Tạo"} Phiếu
                 </>
               )}
             </button>
