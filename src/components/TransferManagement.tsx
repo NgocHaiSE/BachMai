@@ -1,8 +1,20 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
-import type { Id } from "../../convex/_generated/dataModel";
+import { useAuth } from '../contexts/AuthContext';
+import {
+  useTransferRequests,
+  useCreateTransferRequest,
+  useUpdateTransferRequest,
+  useApproveTransferRequest,
+  useDeleteTransferRequest,
+  useTransferRecords,
+  useCreateTransferRecord,
+  useUpdateTransferRecord,
+  useUpdateTransferRecordStatus,
+  useDeleteTransferRecord,
+  usePatients,
+  useStaff,
+} from "../hooks/api";
 import { 
   Truck, 
   Plus, 
@@ -40,6 +52,7 @@ import {
 
 export default function TransferManagement() {
   const [activeTab, setActiveTab] = useState("requests");
+  const {user} = useAuth();
 
   const tabs = [
     { 
@@ -114,22 +127,25 @@ function TransferRequests() {
   const [editingRequest, setEditingRequest] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const requests = useQuery(api.transferRequests.list);
-  const patients = useQuery(api.patients.list);
-  const staff = useQuery(api.staff.listByRole, { role: "doctor" });
-  const createRequest = useMutation(api.transferRequests.create);
-  const updateRequest = useMutation(api.transferRequests.update);
-  const updateStatus = useMutation(api.transferRequests.updateStatus);
-  const deleteRequest = useMutation(api.transferRequests.remove);
+const { data: requests, refetch } = useTransferRequests({});
+  const { data: patients } = usePatients("");
+  const { data: staff } = useStaff("doctor");
+  const { mutate: createRequest } = useCreateTransferRequest();
+  const { mutate: updateRequest } = useUpdateTransferRequest();
+  const { mutate: updateStatus } = useApproveTransferRequest();
+  const { mutate: deleteRequest } = useDeleteTransferRequest();
 
-  const filteredRequests = requests?.filter(request =>
-    !searchTerm || 
-    request.requestCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    `${request.patient?.firstName} ${request.patient?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    request.patient?.phone?.includes(searchTerm) ||
-    request.patient?.idNumber?.includes(searchTerm) ||
-    request.patient?.insuranceNumber?.includes(searchTerm)
-  );
+  const filteredRequests = requests?.filter((req: any) => {
+    const patient = req.BenhNhan;
+    return (
+      !searchTerm ||
+      req.MaYeuCau?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (patient?.HoTen || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient?.SDT?.includes(searchTerm) ||
+      patient?.CCCD?.includes(searchTerm) ||
+      patient?.BHYT?.includes(searchTerm)
+    );
+  });
 
   const handleSubmit = async (formData: any) => {
     try {
@@ -147,20 +163,22 @@ function TransferRequests() {
     }
   };
 
-  const handleStatusUpdate = async (id: Id<"transferRequests">, status: string) => {
+  const handleStatusUpdate = async (id: string, status: string) => {
     try {
-      await updateStatus({ id, status: status as any });
+      await updateStatus({ id, idNguoiPheDuyet: user?.idNguoiDung, TrangThaiMoi: status });
       toast.success("Cập nhật trạng thái thành công");
+      refetch();
     } catch (error) {
       toast.error("Cập nhật trạng thái thất bại");
     }
   };
 
-  const handleDelete = async (id: Id<"transferRequests">) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Bạn có chắc chắn muốn xóa yêu cầu chuyển viện này?")) {
       try {
         await deleteRequest({ id });
         toast.success("Xóa yêu cầu chuyển viện thành công");
+        refetch();
       } catch (error) {
         toast.error("Xóa yêu cầu chuyển viện thất bại");
       }
@@ -321,9 +339,6 @@ function TransferRequests() {
                   <tr key={request._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                          <Hash className="w-5 h-5 text-blue-600" />
-                        </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900">
                             {request.requestCode}
@@ -337,30 +352,27 @@ function TransferRequests() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">
-                        {request.patient?._id?.slice(-8) || "N/A"}
+                        {request.patientId || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">
-                        {request.patient?.firstName} {request.patient?.lastName}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {request.patient?.phone}
+                        {request.patientName}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900">
-                        {request.treatmentDate}
+                        {new Date(request.treatmentDate).toLocaleDateString('vi-VN')}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900">
-                        {request.patient?.idNumber || "N/A"}
+                        {request.idNumber || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900">
-                        {request.patient?.insuranceNumber || "N/A"}
+                        {request.insuranceNumber || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -368,7 +380,7 @@ function TransferRequests() {
                         <div className="relative">
                           <select
                             value={request.status}
-                            onChange={(e) => handleStatusUpdate(request._id, e.target.value)}
+                            onChange={(e) => handleStatusUpdate(request.status, e.target.value)}
                             className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border appearance-none pr-8 ${getStatusColor(request.status)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                           >
                             <option value="pending">Chờ xử lý</option>
@@ -386,7 +398,7 @@ function TransferRequests() {
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(request._id)}
+                          onClick={() => handleDelete(request.requestCode)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Xóa"
                         >
@@ -423,23 +435,26 @@ function TransferRecords() {
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const records = useQuery(api.transferRecords.list);
-  const patients = useQuery(api.patients.list);
-  const staff = useQuery(api.staff.listByRole, { role: "doctor" });
-  const requests = useQuery(api.transferRequests.list);
-  const createRecord = useMutation(api.transferRecords.create);
-  const updateRecord = useMutation(api.transferRecords.update);
-  const updateStatus = useMutation(api.transferRecords.updateStatus);
-  const deleteRecord = useMutation(api.transferRecords.remove);
+  const { data: records, refetch } = useTransferRecords({});
+  const { data: patients } = usePatients("");
+  const { data: staff } = useStaff("doctor");
+  const { data: requests } = useTransferRequests({});
+  const { mutate: createRecord } = useCreateTransferRecord();
+  const { mutate: updateRecord } = useUpdateTransferRecord();
+  const { mutate: updateStatus } = useUpdateTransferRecordStatus();
+  const { mutate: deleteRecord } = useDeleteTransferRecord();
 
-  const filteredRecords = records?.filter(record =>
-    !searchTerm || 
-    record.transferCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    `${record.patient?.firstName} ${record.patient?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.patient?.phone?.includes(searchTerm) ||
-    record.patient?.idNumber?.includes(searchTerm) ||
-    record.patient?.insuranceNumber?.includes(searchTerm)
-  );
+  const filteredRecords = records?.filter((rec: any) => {
+    const patient = rec.BenhNhan;
+    return (
+      !searchTerm ||
+      rec.MaChuyenVien?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (patient?.HoTen || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient?.SDT?.includes(searchTerm) ||
+      patient?.CCCD?.includes(searchTerm) ||
+      patient?.BHYT?.includes(searchTerm)
+    );
+  });
 
   const handleSubmit = async (formData: any) => {
     try {
@@ -452,25 +467,28 @@ function TransferRecords() {
       }
       setShowForm(false);
       setEditingRecord(null);
+      refetch();
     } catch (error) {
       toast.error("Lưu hồ sơ chuyển viện thất bại");
     }
   };
 
-  const handleStatusUpdate = async (id: Id<"transferRecords">, status: string) => {
+  const handleStatusUpdate = async (id: string, status: string) => {
     try {
-      await updateStatus({ id, status: status as any });
+      await updateStatus({ id, TrangThaiMoi: status });
       toast.success("Cập nhật trạng thái thành công");
+      refetch();
     } catch (error) {
       toast.error("Cập nhật trạng thái thất bại");
     }
   };
 
-  const handleDelete = async (id: Id<"transferRecords">) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Bạn có chắc chắn muốn xóa hồ sơ chuyển viện này?")) {
       try {
         await deleteRecord({ id });
         toast.success("Xóa hồ sơ chuyển viện thành công");
+        refetch();
       } catch (error) {
         toast.error("Xóa hồ sơ chuyển viện thất bại");
       }
@@ -616,7 +634,7 @@ function TransferRecords() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">
-                        {record.patient?._id?.slice(-8) || "N/A"}
+                        {record.patient?._id || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -699,20 +717,21 @@ function TransferRecords() {
 }
 
 function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: any) {
+  const {user} = useAuth()
   const [formData, setFormData] = useState({
-    patientId: request?.patientId || "",
-    staffId: request?.staffId || "",
-    treatmentDate: request?.treatmentDate || new Date().toISOString().split('T')[0],
-    reason: request?.reason || "",
-    requestDate: request?.requestDate || new Date().toISOString().split('T')[0],
-    destinationAddress: request?.destinationAddress || "",
-    destinationFacility: request?.destinationFacility || "",
-    priority: request?.priority || "medium",
-    notes: request?.notes || "",
+    idBenhNhan: request?.idBenhNhan || "",
+    idNguoiDung: user?.idNguoiDung,
+    NgayChuyen: new Date(request?.treatmentDate).toLocaleDateString('vi-VN'),
+    LyDo: request?.reason || "",
+    DiaChi: request?.destinationAddress || "",
+    CoSoChuyenDen: request?.destinationFacility || "",
+    MucDo: request?.priority || "medium",
+    GhiChu: request?.notes || "",
+    // idBacSiPhuTrach: request?.staffId || "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const selectedPatient = patients.find((p: any) => p._id === formData.patientId);
+  const selectedPatient = patients.find((p: any) => p._id === formData.idBenhNhan);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -775,14 +794,14 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <select
                     required
-                    value={formData.patientId}
-                    onChange={(e) => setFormData({ ...formData, patientId: e.target.value })}
+                    value={formData.idBenhNhan}
+                    onChange={(e) => setFormData({ ...formData, idBenhNhan: e.target.value })}
                     className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none"
                   >
                     <option value="">Chọn bệnh nhân</option>
                     {patients.map((patient: any) => (
-                      <option key={patient._id} value={patient._id}>
-                        {patient._id.slice(-8)} - {patient.firstName} {patient.lastName}
+                      <option key={patient._id} value={patient.HoTen}>
+                        {patient.idBenhNhan} - {patient.HoTen}
                       </option>
                     ))}
                   </select>
@@ -797,7 +816,7 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                   <IdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    value={selectedPatient?.idNumber || ""}
+                    value={selectedPatient?.CCCD || ""}
                     readOnly
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                     placeholder="Sẽ hiển thị khi chọn bệnh nhân"

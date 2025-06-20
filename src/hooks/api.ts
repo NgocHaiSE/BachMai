@@ -165,7 +165,14 @@ export function useDeleteStaff() {
 // Transfer request hooks
 export function useTransferRequests(params: any = {}) {
   return useApi(
-    () => apiClient.transferRequests.search(params),
+    () => {
+      // If no search params, get all
+      if (Object.keys(params).length === 0) {
+        return apiClient.transferRequests.getAll();
+      }
+      // Otherwise search with params
+      return apiClient.transferRequests.search(params);
+    },
     [JSON.stringify(params)]
   );
 }
@@ -189,6 +196,13 @@ export function useUpdateTransferRequest() {
   });
 }
 
+export function useUpdateTransferRequestStatus() {
+  return useMutation((data: { id: string; status: string }) => {
+    const { id, ...updateData } = data;
+    return apiClient.transferRequests.updateStatus(id, updateData);
+  });
+}
+
 export function useApproveTransferRequest() {
   return useMutation((data: { id: string; [key: string]: any }) => {
     const { id, ...updateData } = data;
@@ -197,13 +211,20 @@ export function useApproveTransferRequest() {
 }
 
 export function useDeleteTransferRequest() {
-  return useMutation(apiClient.transferRequests.delete);
+  return useMutation((data: { id: string }) => apiClient.transferRequests.delete(data.id));
 }
 
-// Transfer record hooks
+// Transfer record hooks - Updated
 export function useTransferRecords(params: any = {}) {
   return useApi(
-    () => apiClient.transferRecords.search(params),
+    () => {
+      // If no search params, get all
+      if (Object.keys(params).length === 0) {
+        return apiClient.transferRecords.getAll();
+      }
+      // Otherwise search with params
+      return apiClient.transferRecords.search(params);
+    },
     [JSON.stringify(params)]
   );
 }
@@ -228,14 +249,14 @@ export function useUpdateTransferRecord() {
 }
 
 export function useUpdateTransferRecordStatus() {
-  return useMutation((data: { id: string; [key: string]: any }) => {
+  return useMutation((data: { id: string; status: string }) => {
     const { id, ...updateData } = data;
     return apiClient.transferRecords.updateStatus(id, updateData);
   });
 }
 
 export function useDeleteTransferRecord() {
-  return useMutation(apiClient.transferRecords.delete);
+  return useMutation((data: { id: string }) => apiClient.transferRecords.delete(data.id));
 }
 
 // Prescription hooks
