@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -12,6 +12,7 @@ import {
   useUpdateTransferRecord,
   useUpdateTransferRecordStatus,
   useDeleteTransferRecord,
+  useTransferRecord,
   usePatients,
   useStaff,
 } from "../hooks/api";
@@ -471,25 +472,13 @@ function TransferRecords() {
 
   const handleSubmit = async (formData: any) => {
     const payload = {
-      idYeuCauChuyenVien: formData.requestId,
-      idBenhNhan: formData.patientId,
-      idBacSiPhuTrach: formData.staffId,
-      NgayChuyen: formData.transferDate,
-      ThoiGianDuKien: formData.estimatedTime,
-      SDT_CoSoYTe: formData.destinationPhone,
-      DiaChi: formData.destinationAddress,
-      CoSoChuyenDen: formData.destinationFacility,
-      ChanDoan: formData.diagnosis,
-      MaICD10: formData.icd10Code,
-      Mach: formData.pulse,
-      HuyetAp: formData.bloodPressure,
-      NhipTho: formData.respiratoryRate,
-      NhietDo: formData.temperature,
-      YThuc: formData.consciousness,
-      TienTrienLamSang: formData.clinicalProgress,
-      DieuTriDaThucHien: formData.treatmentPerformed,
-      idNguoiDiKem: formData.accompaniedPersonId,
-      GhiChu: formData.notes,
+      idYeuCauChuyenVien: formData.idYeuCauChuyenVien,
+      NgayChuyen: formData.NgayChuyen,
+      ThoiGianDuKien: formData.ThoiGianDuKien,
+      SDT_CoSoYTe: formData.SDT_CoSoYTe,
+      YThuc: formData.YThuc,
+      GhiChu: formData.GhiChu,
+      idNguoiDung: formData.idNguoiDung,
     };
     try {
       if (editingRecord) {
@@ -1182,16 +1171,34 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
 }
 
 function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCancel }: any) {
-  const {user} = useAuth();
+  const { user } = useAuth();
+  const { data: recordDetails } = useTransferRecord(record?.idChuyenVien || "");
+
   const [formData, setFormData] = useState({
-    idYeuCauChuyenVien: record?.idYeuCauChuyenVien || "",
-    NgayChuyen: record?.NgayChuyen || new Date().toISOString().split('T')[0],
-    ThoiGianDuKien: record?.ThoiGianDuKien || "",
-    SDT_CoSoYTe: record?.SDT_CoSoYTe || "",
-    YThuc: record?.YThuc || "",
-    GhiChu: record?.GhiChu || "",
+    idYeuCauChuyenVien: "",
+    NgayChuyen: new Date().toISOString().split('T')[0],
+    ThoiGianDuKien: "",
+    SDT_CoSoYTe: "",
+    YThuc: "",
+    GhiChu: "",
     idNguoiDung: user?.idNguoiDung || "",
+    TrangThai: " "
   });
+
+  useEffect(() => {
+    const data = recordDetails || record;
+    if (!data) return;
+    setFormData({
+      idYeuCauChuyenVien: data.idYeuCauChuyenVien || data.requestId || "",
+      NgayChuyen: data.transferDate || new Date().toISOString().split('T')[0],
+      ThoiGianDuKien: data.ThoiGianDuKien || data.estimatedTime || "",
+      SDT_CoSoYTe: data.SDT_CoSoYTe || data.destinationPhone || "",
+      YThuc: data.YThuc || data.consciousness || "",
+      GhiChu: data.GhiChu || data.notes || "",
+      idNguoiDung: user?.idNguoiDung || data.idNguoiDung || data.userId || "",
+      TrangThai: data.status || " "
+    });
+  }, [recordDetails, record, user]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -1336,33 +1343,41 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ngày chuyển viện *
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="date"
-                    required
-                    value={formData.NgayChuyen}
-                    onChange={(e) => setFormData({ ...formData, NgayChuyen: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                  />
-                </div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Ngày chuyển viện *
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                type="date"
+                required
+                value={
+                  formData.NgayChuyen
+                  ? new Date(formData.NgayChuyen).toISOString().split("T")[0]
+                  : ""
+                }
+                onChange={(e) => setFormData({ ...formData, NgayChuyen: e.target.value })}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                />
+              </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Thời gian dự kiến
-                </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="time"
-                    value={formData.ThoiGianDuKien}
-                    onChange={(e) => setFormData({ ...formData, ThoiGianDuKien: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                  />
-                </div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Thời gian dự kiến
+              </label>
+              <div className="relative">
+                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="time"
+                  value={
+                    formData.ThoiGianDuKien
+                      ? new Date(formData.ThoiGianDuKien).toISOString().substr(11, 5)
+                      : ""
+                  }
+                  onChange={(e) => setFormData({ ...formData, ThoiGianDuKien: `1970-01-01T${e.target.value}:00.000Z` })}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                />
+              </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1434,7 +1449,7 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
                   </label>
                   <input
                     type="text"
-                    value={record?.TrangThai || "Mới tạo"}
+                    value={formData.TrangThai || "Mới tạo"}
                     readOnly
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                   />
