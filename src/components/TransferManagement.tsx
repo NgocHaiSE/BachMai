@@ -59,16 +59,12 @@ export default function TransferManagement() {
     { 
       id: "requests", 
       name: "Phiếu Yêu Cầu Chuyển Viện", 
-      icon: FileText, 
       color: "text-blue-600",
-      description: "Quản lý yêu cầu chuyển viện từ bác sĩ"
     },
     { 
       id: "records", 
       name: "Hồ Sơ Chuyển Viện", 
-      icon: Truck, 
       color: "text-red-600",
-      description: "Hồ sơ chuyển viện và theo dõi quá trình"
     },
   ];
 
@@ -76,12 +72,8 @@ export default function TransferManagement() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center">
-        <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center mr-3">
-          <Truck className="w-6 h-6 text-red-600" />
-        </div>
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Quản Lý Chuyển Viện</h2>
-          <p className="text-gray-600">Quản lý yêu cầu và hồ sơ chuyển viện</p>
         </div>
       </div>
 
@@ -89,26 +81,21 @@ export default function TransferManagement() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2">
         <div className="grid grid-cols-2 gap-2">
           {tabs.map((tab) => {
-            const IconComponent = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center p-4 rounded-xl transition-all ${
                   activeTab === tab.id
-                    ? "bg-red-50 text-red-700 border-2 border-red-200 shadow-sm"
+                    ? "bg-purple-50 text-[#280559] border-2 border-purple-200 shadow-sm"
                     : "text-gray-600 hover:bg-gray-50 border-2 border-transparent"
                 }`}
               >
-                <IconComponent className={`w-6 h-6 mr-3 ${
-                  activeTab === tab.id ? "text-red-600" : "text-gray-400"
-                }`} />
                 <div className="text-left">
                   <div className="font-medium">{tab.name}</div>
-                  <div className="text-sm text-gray-500">{tab.description}</div>
                 </div>
                 {activeTab === tab.id && (
-                  <ArrowRight className="w-5 h-5 text-red-600 ml-auto" />
+                  <ArrowRight className="w-5 h-5 text-[#280559] ml-auto" />
                 )}
               </button>
             );
@@ -138,10 +125,10 @@ function TransferRequests() {
   const { mutate: deleteRequest } = useDeleteTransferRequest();
 
   const filteredRequests = requests?.filter((req: any) => {
-    const patient = req.BenhNhan;
+    const patient = req.patient;
     return (
       !searchTerm ||
-      req.MaYeuCau?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      req.requestCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (patient?.HoTen || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       patient?.SDT?.includes(searchTerm) ||
       patient?.CCCD?.includes(searchTerm) ||
@@ -262,7 +249,7 @@ function TransferRequests() {
             setEditingRequest(null);
             setShowForm(true);
           }}
-          className="inline-flex items-center px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          className="inline-flex items-center px-4 py-3 btn-primary text-white font-medium rounded-xl  transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
         >
           <Plus className="w-5 h-5 mr-2" />
           Tạo Yêu Cầu
@@ -459,10 +446,10 @@ function TransferRecords() {
   const { mutate: deleteRecord } = useDeleteTransferRecord();
 
   const filteredRecords = records?.filter((rec: any) => {
-    const patient = rec.BenhNhan;
+    const patient = rec.patient;
     return (
       !searchTerm ||
-      rec.MaChuyenVien?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rec.transferCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (patient?.HoTen || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       patient?.SDT?.includes(searchTerm) ||
       patient?.CCCD?.includes(searchTerm) ||
@@ -551,7 +538,7 @@ function TransferRecords() {
             setEditingRecord(null);
             setShowForm(true);
           }}
-          className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          className="inline-flex items-center px-6 py-3 btn-primary text-white font-medium rounded-xl  transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
         >
           <Plus className="w-5 h-5 mr-2" />
           Tạo Hồ Sơ
@@ -764,9 +751,6 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mr-3">
-                <FileText className="w-6 h-6 text-blue-600" />
-              </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
                   {request ? "Sửa Phiếu Yêu Cầu Chuyển Viện" : "Tạo Phiếu Yêu Cầu Chuyển Viện"}
@@ -789,7 +773,6 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
           {/* Thông tin bệnh nhân */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <User className="w-5 h-5 mr-2 text-blue-600" />
               Thông tin bệnh nhân
             </h4>
             
@@ -962,7 +945,6 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
           {/* Thông tin yêu cầu */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <FileText className="w-5 h-5 mr-2 text-blue-600" />
               Thông tin chuyển viện
             </h4>
             
@@ -1149,7 +1131,7 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              className="px-6 py-3 btn-primary text-white rounded-xl font-medium  transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
               {isSubmitting ? (
                 <>
@@ -1224,16 +1206,10 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center mr-3">
-                <Truck className="w-6 h-6 text-red-600" />
-              </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
                   {record ? "Sửa Phiếu Chuyển Viện" : "Tạo Phiếu Chuyển Viện"}
                 </h3>
-                <p className="text-sm text-gray-600">
-                  {record ? "Cập nhật thông tin phiếu chuyển viện" : "Tạo phiếu chuyển viện từ yêu cầu"}
-                </p>
               </div>
             </div>
             <button
@@ -1249,7 +1225,6 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
           {/* Chọn yêu cầu chuyển viện */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <FileText className="w-5 h-5 mr-2 text-red-600" />
               Thông tin yêu cầu chuyển viện
             </h4>
             
@@ -1337,7 +1312,6 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
           {/* Thông tin chuyển viện */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <Calendar className="w-5 h-5 mr-2 text-red-600" />
               Thông tin chuyển viện
             </h4>
             
@@ -1400,7 +1374,6 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
           {/* Thông tin lâm sàng */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <Heart className="w-5 h-5 mr-2 text-red-600" />
               Thông tin lâm sàng
             </h4>
             
@@ -1437,7 +1410,6 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
           {/* Trạng thái */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <CheckCircle className="w-5 h-5 mr-2 text-red-600" />
               Trạng thái phiếu
             </h4>
             
@@ -1482,7 +1454,7 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-medium hover:from-red-700 hover:to-red-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              className="px-6 py-3  text-white rounded-xl font-medium btn-primary transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
               {isSubmitting ? (
                 <>
