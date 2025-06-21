@@ -162,7 +162,8 @@ class ApiClient {
   };
 
   // Prescription APIs
-  prescriptions = {
+    prescriptions = {
+    getAll: () => this.get<any>('/don-thuoc'),
     search: (params: any) => {
       const query = new URLSearchParams(params).toString();
       return this.get<any>(`/don-thuoc/search?${query}`);
@@ -174,6 +175,8 @@ class ApiClient {
     delete: (id: string) => this.delete<any>(`/don-thuoc/${id}`),
     confirmPayment: (id: string) => this.patch<any>(`/don-thuoc/${id}/thanh-toan`, {}),
     addMedicine: (data: any) => this.post<any>('/don-thuoc/chi-tiet', data),
+    getDoctors: () => this.get<any>('/don-thuoc/bac-si'),
+    getPatients: () => this.get<any>('/don-thuoc/benh-nhan'),
   };
 
   // Medicine APIs

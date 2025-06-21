@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Pill, 
   Plus, 
@@ -35,161 +35,89 @@ import {
   MoreVertical
 } from 'lucide-react';
 
-// Mock data cho demo
-const mockPrescriptions = [
-  {
-    _id: "1",
-    prescriptionCode: "DT001",
-    createdDate: "2025-06-07",
-    patient: {
-      firstName: "Nguyễn",
-      lastName: "Văn A",
-      phone: "0123456789",
-      address: "123 Đường ABC, Quận 1, TP.HCM",
-      insuranceNumber: "DN1234567890"
-    },
-    doctor: {
-      firstName: "Trần",
-      lastName: "Thị B",
-      department: "Tim mạch"
-    },
-    diagnosis: "Tăng huyết áp",
-    medications: [
-      {
-        code: "MED001",
-        name: "Amlodipine 5mg",
-        quantity: 30,
-        expiryDate: "2026-12-31",
-        dosage: "1 viên/ngày sau ăn",
-        unitPrice: 15000,
-        totalPrice: 450000
-      }
-    ],
-    totalAmount: 450000,
-    insuranceAmount: 360000,
-    finalAmount: 90000,
-    hasInsurance: true,
-    notes: "Uống đều đặn, tái khám sau 1 tháng"
-  },
-  {
-    _id: "2", 
-    prescriptionCode: "DT002",
-    createdDate: "2025-06-06",
-    patient: {
-      firstName: "Lê",
-      lastName: "Thị C",
-      phone: "0987654321",
-      address: "456 Đường XYZ, Quận 2, TP.HCM",
-      insuranceNumber: "DN0987654321"
-    },
-    doctor: {
-      firstName: "Nguyễn",
-      lastName: "Văn D",
-      department: "Nội tổng hợp"
-    },
-    diagnosis: "Viêm dạ dày",
-    medications: [
-      {
-        code: "MED002",
-        name: "Omeprazole 20mg",
-        quantity: 20,
-        expiryDate: "2026-08-31",
-        dosage: "1 viên/ngày trước ăn",
-        unitPrice: 8000,
-        totalPrice: 160000
-      }
-    ],
-    totalAmount: 160000,
-    insuranceAmount: 128000,
-    finalAmount: 32000,
-    hasInsurance: true,
-    notes: "Uống trước ăn 30 phút"
-  }
-];
-
-const mockMedicines = [
-  { code: "MED001", name: "Amlodipine 5mg", unitPrice: 15000 },
-  { code: "MED002", name: "Omeprazole 20mg", unitPrice: 8000 },
-  { code: "MED003", name: "Metformin 500mg", unitPrice: 12000 },
-  { code: "MED004", name: "Paracetamol 500mg", unitPrice: 5000 },
-  { code: "MED005", name: "Amoxicillin 250mg", unitPrice: 18000 }
-];
-
-const mockPatients = [
-  {
-    _id: "1",
-    firstName: "Nguyễn",
-    lastName: "Văn A", 
-    phone: "0123456789",
-    address: "123 Đường ABC, Quận 1, TP.HCM",
-    insuranceNumber: "DN1234567890"
-  },
-  {
-    _id: "2",
-    firstName: "Lê", 
-    lastName: "Thị C",
-    phone: "0987654321",
-    address: "456 Đường XYZ, Quận 2, TP.HCM", 
-    insuranceNumber: "DN0987654321"
-  }
-];
-
-const mockDoctors = [
-  {
-    _id: "1",
-    firstName: "Trần",
-    lastName: "Thị B",
-    department: "Tim mạch"
-  },
-  {
-    _id: "2", 
-    firstName: "Nguyễn",
-    lastName: "Văn D",
-    department: "Nội tổng hợp"
-  }
-];
+// Import API hooks
+import { 
+  usePrescriptions, 
+  usePrescriptionDoctors, 
+  usePrescriptionPatients,
+  useMedicines,
+  useCreatePrescription,
+  useUpdatePrescription,
+  useDeletePrescription,
+  useAddMedicineToPrescription,
+  useConfirmPrescriptionPayment
+} from '../hooks/api';
 
 export default function PrescriptionManagement() {
-  const [prescriptions, setPrescriptions] = useState(mockPrescriptions);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchParams, setSearchParams] = useState({});
   const [showForm, setShowForm] = useState(false);
   const [editingPrescription, setEditingPrescription] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState(null); // null, 'detail', 'preview', 'invoice'
+
+  // API calls
+  const { data: prescriptions = [], loading: prescriptionsLoading, error: prescriptionsError, refetch: refetchPrescriptions } = usePrescriptions(searchParams);
+  const { data: doctors = [], loading: doctorsLoading } = usePrescriptionDoctors();
+  const { data: patients = [], loading: patientsLoading } = usePrescriptionPatients();
+  const { data: medicines = [], loading: medicinesLoading } = useMedicines();
+
+  // Mutations
+  const createPrescription = useCreatePrescription();
+  const updatePrescription = useUpdatePrescription();
+  const deletePrescription = useDeletePrescription();
+  const confirmPayment = useConfirmPrescriptionPayment();
+
+  // Search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchTerm.trim()) {
+        setSearchParams({ Keyword: searchTerm.trim() });
+      } else {
+        setSearchParams({});
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
 
   const filteredPrescriptions = prescriptions.filter(prescription =>
     !searchTerm || 
-    prescription.prescriptionCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    `${prescription.patient.firstName} ${prescription.patient.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    prescription.patient.phone.includes(searchTerm) ||
-    prescription.diagnosis.toLowerCase().includes(searchTerm.toLowerCase())
+    prescription.prescriptionCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    `${prescription.patient?.firstName} ${prescription.patient?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    prescription.patient?.phone?.includes(searchTerm) ||
+    prescription.diagnosis?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleSubmit = (formData) => {
+  const handleSubmit = async (formData) => {
     try {
       if (editingPrescription) {
-        setPrescriptions(prev => prev.map(p => 
-          p._id === editingPrescription._id ? { ...p, ...formData } : p
-        ));
-      } else {
-        const newPrescription = {
-          _id: Date.now().toString(),
-          prescriptionCode: `DT${Date.now().toString().slice(-6)}`,
-          createdDate: new Date().toISOString().split('T')[0],
+        await updatePrescription.mutate({
+          id: editingPrescription._id,
           ...formData
-        };
-        setPrescriptions(prev => [...prev, newPrescription]);
+        });
+      } else {
+        await createPrescription.mutate(formData);
       }
+      
       setShowForm(false);
       setEditingPrescription(null);
       setViewMode(null);
+      refetchPrescriptions();
     } catch (error) {
       console.error("Error saving prescription:", error);
+      alert("Có lỗi xảy ra khi lưu đơn thuốc: " + error.message);
     }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (confirm("Bạn có chắc chắn muốn xóa đơn thuốc này?")) {
-      setPrescriptions(prev => prev.filter(p => p._id !== id));
+      try {
+        await deletePrescription.mutate(id);
+        refetchPrescriptions();
+      } catch (error) {
+        console.error("Error deleting prescription:", error);
+        alert("Có lỗi xảy ra khi xóa đơn thuốc: " + error.message);
+      }
     }
   };
 
@@ -204,6 +132,39 @@ export default function PrescriptionManagement() {
     setViewMode(mode);
     setShowForm(true);
   };
+
+  const handleConfirmPayment = async (id) => {
+    if (confirm("Xác nhận thanh toán đơn thuốc này?")) {
+      try {
+        await confirmPayment.mutate(id);
+        refetchPrescriptions();
+        alert("Xác nhận thanh toán thành công!");
+      } catch (error) {
+        console.error("Error confirming payment:", error);
+        alert("Có lỗi xảy ra khi xác nhận thanh toán: " + error.message);
+      }
+    }
+  };
+
+  if (prescriptionsError) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Lỗi tải dữ liệu</h3>
+            <p className="text-gray-600 mb-4">{prescriptionsError}</p>
+            <button
+              onClick={() => refetchPrescriptions()}
+              className="inline-flex items-center px-4 py-2 btn-primary rounded-lg transition-colors"
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -249,13 +210,18 @@ export default function PrescriptionManagement() {
           
           <div className="mt-4 flex items-center text-sm text-gray-600">
             <Pill className="w-4 h-4 mr-1" />
-            Tìm thấy {filteredPrescriptions.length} đơn thuốc
+            {prescriptionsLoading ? "Đang tải..." : `Tìm thấy ${filteredPrescriptions.length} đơn thuốc`}
           </div>
         </div>
 
         {/* Prescriptions List */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          {filteredPrescriptions.length === 0 ? (
+          {prescriptionsLoading ? (
+            <div className="text-center py-12">
+              <Loader2 className="w-8 h-8 text-gray-400 mx-auto mb-4 animate-spin" />
+              <p className="text-gray-600">Đang tải danh sách đơn thuốc...</p>
+            </div>
+          ) : filteredPrescriptions.length === 0 ? (
             <div className="text-center py-12">
               <Pill className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy đơn thuốc</h3>
@@ -320,12 +286,12 @@ export default function PrescriptionManagement() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900 whitespace-nowrap">
-                          {prescription.patient.firstName} {prescription.patient.lastName}
+                          {prescription.patient?.firstName} {prescription.patient?.lastName}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900 whitespace-nowrap">
-                          {prescription.patient.phone}
+                          {prescription.patient?.phone}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -342,10 +308,10 @@ export default function PrescriptionManagement() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900 whitespace-nowrap">
-                          BS. {prescription.doctor.firstName} {prescription.doctor.lastName}
+                          BS. {prescription.doctor?.firstName} {prescription.doctor?.lastName}
                         </div>
                         <div className="text-sm text-gray-500 whitespace-nowrap">
-                          {prescription.doctor.department}
+                          {prescription.doctor?.department}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -364,11 +330,11 @@ export default function PrescriptionManagement() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-semibold whitespace-nowrap">
-                          {prescription.finalAmount.toLocaleString('vi-VN')} đ
+                          {prescription.finalAmount?.toLocaleString('vi-VN')} đ
                         </div>
                         {prescription.hasInsurance && (
                           <div className="text-xs text-gray-500 whitespace-nowrap">
-                            Tổng: {prescription.totalAmount.toLocaleString('vi-VN')} đ
+                            Tổng: {prescription.totalAmount?.toLocaleString('vi-VN')} đ
                           </div>
                         )}
                       </td>
@@ -378,6 +344,7 @@ export default function PrescriptionManagement() {
                           onView={handleView}
                           onEdit={handleEdit}
                           onDelete={handleDelete}
+                          onConfirmPayment={handleConfirmPayment}
                         />
                       </td>
                     </tr>
@@ -393,15 +360,16 @@ export default function PrescriptionManagement() {
           <PrescriptionForm
             prescription={editingPrescription}
             viewMode={viewMode}
-            patients={mockPatients}
-            doctors={mockDoctors}
-            medicines={mockMedicines}
+            patients={patients}
+            doctors={doctors}
+            medicines={medicines}
             onSubmit={handleSubmit}
             onCancel={() => {
               setShowForm(false);
               setEditingPrescription(null);
               setViewMode(null);
             }}
+            isLoading={createPrescription.loading || updatePrescription.loading}
           />
         )}
       </div>
@@ -409,7 +377,7 @@ export default function PrescriptionManagement() {
   );
 }
 
-function ActionDropdown({ prescription, onView, onEdit, onDelete }) {
+function ActionDropdown({ prescription, onView, onEdit, onDelete, onConfirmPayment }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = React.useRef(null);
   const buttonRef = React.useRef(null);
@@ -448,20 +416,34 @@ function ActionDropdown({ prescription, onView, onEdit, onDelete }) {
       label: "Xem trước phiếu",
       onClick: () => onView(prescription, 'preview'),
       color: "text-purple-600 hover:bg-purple-50"
-    },
-    {
+    }
+  ];
+
+  // Add conditional actions based on prescription status
+  if (prescription.status !== 'Đã thanh toán') {
+    menuItems.push({
+      icon: CreditCard,
+      label: "Xác nhận thanh toán",
+      onClick: () => onConfirmPayment(prescription._id),
+      color: "text-green-600 hover:bg-green-50"
+    });
+  }
+
+  if (prescription.status !== 'Đã thanh toán') {
+    menuItems.push({
       icon: Edit3,
       label: "Chỉnh sửa",
       onClick: () => onEdit(prescription),
       color: "text-orange-600 hover:bg-orange-50"
-    },
-    {
-      icon: Trash2,
-      label: "Xóa",
-      onClick: () => onDelete(prescription._id),
-      color: "text-red-600 hover:bg-red-50"
-    }
-  ];
+    });
+  }
+
+  menuItems.push({
+    icon: Trash2,
+    label: "Xóa",
+    onClick: () => onDelete(prescription._id),
+    color: "text-red-600 hover:bg-red-50"
+  });
 
   const handleMenuItemClick = (item) => {
     item.onClick();
@@ -540,7 +522,7 @@ function ActionDropdown({ prescription, onView, onEdit, onDelete }) {
   );
 }
 
-function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines, onSubmit, onCancel }) {
+function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
     doctorId: prescription?.doctor?._id || "",
     patientId: prescription?.patient?._id || "",
@@ -550,7 +532,6 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
     hasInsurance: prescription?.hasInsurance || false,
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMedicineSearch, setShowMedicineSearch] = useState(false);
   const [medicineSearchTerm, setMedicineSearchTerm] = useState("");
   const [newMedication, setNewMedication] = useState({
@@ -567,7 +548,7 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
   const selectedDoctor = doctors.find(d => d._id === formData.doctorId);
 
   const calculateTotals = (medications, hasInsurance) => {
-    const totalAmount = medications.reduce((sum, med) => sum + med.totalPrice, 0);
+    const totalAmount = medications.reduce((sum, med) => sum + (med.totalPrice || 0), 0);
     const insuranceAmount = hasInsurance ? totalAmount * 0.8 : 0; // 80% bảo hiểm chi trả
     const finalAmount = totalAmount - insuranceAmount;
     return { totalAmount, insuranceAmount, finalAmount };
@@ -576,8 +557,8 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
   const { totalAmount, insuranceAmount, finalAmount } = calculateTotals(formData.medications, formData.hasInsurance);
 
   const filteredMedicines = medicines.filter(med =>
-    med.name.toLowerCase().includes(medicineSearchTerm.toLowerCase()) ||
-    med.code.toLowerCase().includes(medicineSearchTerm.toLowerCase())
+    med.TenDuocPham?.toLowerCase().includes(medicineSearchTerm.toLowerCase()) ||
+    med.idDuocPham?.toLowerCase().includes(medicineSearchTerm.toLowerCase())
   );
 
   const addMedication = () => {
@@ -615,10 +596,10 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
   const selectMedicine = (medicine) => {
     setNewMedication({
       ...newMedication,
-      code: medicine.code,
-      name: medicine.name,
-      unitPrice: medicine.unitPrice,
-      totalPrice: newMedication.quantity * medicine.unitPrice
+      code: medicine.idDuocPham,
+      name: medicine.TenDuocPham,
+      unitPrice: medicine.DonGiaBan || 0,
+      totalPrice: newMedication.quantity * (medicine.DonGiaBan || 0)
     });
     setMedicineSearchTerm("");
   };
@@ -635,20 +616,15 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const submitData = {
-        ...formData,
-        patient: selectedPatient,
-        doctor: selectedDoctor,
-        totalAmount,
-        insuranceAmount,
-        finalAmount
-      };
-      onSubmit(submitData);
-    } finally {
-      setIsSubmitting(false);
-    }
+    const submitData = {
+      ...formData,
+      patient: selectedPatient,
+      doctor: selectedDoctor,
+      totalAmount,
+      insuranceAmount,
+      finalAmount
+    };
+    onSubmit(submitData);
   };
 
   const isReadOnly = viewMode === 'detail';
@@ -893,10 +869,10 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{medication.expiryDate || "N/A"}</td>
                             <td className="px-4 py-4 text-sm text-gray-900">{medication.dosage}</td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {medication.unitPrice.toLocaleString('vi-VN')} đ
+                              {medication.unitPrice?.toLocaleString('vi-VN')} đ
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {medication.totalPrice.toLocaleString('vi-VN')} đ
+                              {medication.totalPrice?.toLocaleString('vi-VN')} đ
                             </td>
                             {!isReadOnly && (
                               <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -1046,10 +1022,10 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={isSubmitting}
+                disabled={isLoading}
                 className="px-6 py-3 bg-gradient-to-r btn-primary rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                {isSubmitting ? (
+                {isLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                     Đang lưu...
@@ -1130,20 +1106,20 @@ function MedicineSearchModal({ medicines, searchTerm, onSearchChange, newMedicat
                     <div className="divide-y divide-gray-200">
                       {medicines.map((medicine) => (
                         <button
-                          key={medicine.code}
+                          key={medicine.idDuocPham}
                           onClick={() => onSelectMedicine(medicine)}
                           className="w-full p-4 text-left hover:bg-blue-50 transition-colors group"
                         >
                           <div className="flex justify-between items-center">
                             <div className="flex-1">
                               <div className="font-medium text-gray-900 group-hover:text-blue-600">
-                                {medicine.name}
+                                {medicine.TenDuocPham}
                               </div>
-                              <div className="text-sm text-gray-500">Mã: {medicine.code}</div>
+                              <div className="text-sm text-gray-500">Mã: {medicine.idDuocPham}</div>
                             </div>
                             <div className="text-right ml-4">
                               <div className="font-medium text-gray-900">
-                                {medicine.unitPrice.toLocaleString('vi-VN')} đ
+                                {medicine.DonGiaBan?.toLocaleString('vi-VN')} đ
                               </div>
                               <div className="text-sm text-gray-500">Đơn giá</div>
                             </div>
@@ -1390,10 +1366,10 @@ function PrintPreview({ prescription, onCancel }) {
                     <td className="border border-gray-300 px-3 py-2">{med.quantity}</td>
                     <td className="border border-gray-300 px-3 py-2">{med.dosage}</td>
                     <td className="border border-gray-300 px-3 py-2 text-right">
-                      {med.unitPrice.toLocaleString('vi-VN')} đ
+                      {med.unitPrice?.toLocaleString('vi-VN')} đ
                     </td>
                     <td className="border border-gray-300 px-3 py-2 text-right">
-                      {med.totalPrice.toLocaleString('vi-VN')} đ
+                      {med.totalPrice?.toLocaleString('vi-VN')} đ
                     </td>
                   </tr>
                 ))}
@@ -1520,10 +1496,10 @@ function InvoicePreview({ prescription, onCancel }) {
                     </td>
                     <td className="border border-gray-300 px-2 py-2 text-center">{med.quantity}</td>
                     <td className="border border-gray-300 px-2 py-2 text-right">
-                      {med.unitPrice.toLocaleString('vi-VN')}
+                      {med.unitPrice?.toLocaleString('vi-VN')}
                     </td>
                     <td className="border border-gray-300 px-2 py-2 text-right font-medium">
-                      {med.totalPrice.toLocaleString('vi-VN')}
+                      {med.totalPrice?.toLocaleString('vi-VN')}
                     </td>
                   </tr>
                 ))}

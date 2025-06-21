@@ -384,7 +384,7 @@ const AppContent: React.FC = () => {
             {/* Placeholder for other pages */}
             {![
               "dashboard", "patients", "appointments", "staff",
-              "records", "prescriptions", "transfers", "register-exam", "patient-medical-records", "vaccination"
+              "records", "prescriptions", "transfers", "register-exam", "patient-medical-records", "vaccination", "work"
             ].includes(activeTab) && (
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">

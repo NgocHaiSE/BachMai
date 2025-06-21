@@ -262,7 +262,7 @@ export function useDeleteTransferRecord() {
 // Prescription hooks
 export function usePrescriptions(params: any = {}) {
   return useApi(
-    () => apiClient.prescriptions.search(params),
+    () => Object.keys(params).length > 0 ? apiClient.prescriptions.search(params) : apiClient.prescriptions.getAll(),
     [JSON.stringify(params)]
   );
 }
@@ -304,6 +304,14 @@ export function useConfirmPrescriptionPayment() {
 
 export function useAddMedicineToPrescription() {
   return useMutation(apiClient.prescriptions.addMedicine);
+}
+
+export function usePrescriptionDoctors() {
+  return useApi(() => apiClient.prescriptions.getDoctors());
+}
+
+export function usePrescriptionPatients() {
+  return useApi(() => apiClient.prescriptions.getPatients());
 }
 
 // Medicine hooks
