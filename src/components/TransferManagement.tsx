@@ -115,14 +115,17 @@ function TransferRequests() {
   const [editingRequest, setEditingRequest] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const {user} = useAuth();
+  const [startDate, setStartDate] = useState("2020-01-01");
+  const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
 
-  const { data: requests, refetch } = useTransferRequests({});
+  const { data: requests, refetch } = useTransferRequests({ tuNgay: startDate, denNgay: endDate });
   const { data: patients } = usePatients("");
   const { data: staff } = useStaff("doctor");
   const { mutate: createRequest } = useCreateTransferRequest();
   const { mutate: updateRequest } = useUpdateTransferRequest();
   const { mutate: updateStatus } = useApproveTransferRequest();
   const { mutate: deleteRequest } = useDeleteTransferRequest();
+
 
   const filteredRequests = requests?.filter((req: any) => {
     const patient = req.patient;
@@ -269,6 +272,18 @@ function TransferRequests() {
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
           </div>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="border border-gray-300 rounded-xl px-3 py-2"
+          />
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="border border-gray-300 rounded-xl px-3 py-2"
+          />
           <button className="inline-flex items-center px-4 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors">
             <Filter className="w-5 h-5 mr-2" />
             Bộ lọc
@@ -435,8 +450,11 @@ function TransferRecords() {
   const [showForm, setShowForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [startDate, setStartDate] = useState("2020-01-01");
+  const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
 
-  const { data: records, refetch } = useTransferRecords({});
+  const { data: records, refetch } = useTransferRecords({ tuNgay: startDate, denNgay: endDate });
+
   const { data: patients } = usePatients("");
   const { data: staff } = useStaff("doctor");
   const { data: requests } = useTransferRequests({});
@@ -558,6 +576,18 @@ function TransferRecords() {
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
             />
           </div>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="border border-gray-300 rounded-xl px-3 py-2"
+          />
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="border border-gray-300 rounded-xl px-3 py-2"
+          />
           <button className="inline-flex items-center px-4 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors">
             <Filter className="w-5 h-5 mr-2" />
             Bộ lọc

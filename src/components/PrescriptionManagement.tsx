@@ -54,6 +54,9 @@ export default function PrescriptionManagement() {
   const [showForm, setShowForm] = useState(false);
   const [editingPrescription, setEditingPrescription] = useState(null);
   const [viewMode, setViewMode] = useState(null); // null, 'detail', 'preview', 'invoice'
+  const [startDate, setStartDate] = useState("2020-01-01");
+  const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
+  
 
   // API calls
   const { data: prescriptions = [], loading: prescriptionsLoading, error: prescriptionsError, refetch: refetchPrescriptions } = usePrescriptions(searchParams);
@@ -70,15 +73,15 @@ export default function PrescriptionManagement() {
   // Search effect
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (searchTerm.trim()) {
-        setSearchParams({ Keyword: searchTerm.trim() });
-      } else {
-        setSearchParams({});
-      }
-    }, 500);
+      const params: any = {};
+      if (searchTerm.trim()) params.Keyword = searchTerm.trim();
+      if (startDate) params.TuNgay = startDate;
+      if (endDate) params.DenNgay = endDate;
+      setSearchParams(params);
+    }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+  }, [searchTerm, startDate, endDate]);
 
   const filteredPrescriptions = prescriptions.filter(prescription =>
     !searchTerm || 
@@ -202,6 +205,18 @@ export default function PrescriptionManagement() {
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 transition-colors"
               />
             </div>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="border border-gray-300 rounded-xl px-3 py-2"
+            />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="border border-gray-300 rounded-xl px-3 py-2"
+            />
             <button className="inline-flex items-center px-4 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors">
               <Filter className="w-5 h-5 mr-2" />
               Bộ lọc
