@@ -482,15 +482,25 @@ function TransferRecords() {
   const { mutate: updateStatus } = useUpdateTransferRecordStatus();
   const { mutate: deleteRecord } = useDeleteTransferRecord();
 
+  const normalizedSearchRec = removeVietnameseTones(searchTerm);
   const filteredRecords = records?.filter((rec: any) => {
-    const patient = rec.patient;
+    const patient = rec.patient || {};
+    const fields = [
+      rec.transferCode,
+      rec.patientId,
+      rec.patientName || patient.HoTen,
+      rec.treatmentDate
+        ? new Date(rec.treatmentDate).toLocaleDateString("vi-VN")
+        : "",
+      rec.idNumber || patient.CCCD,
+      rec.insuranceNumber || patient.BHYT,
+      patient.SDT,
+    ];
     return (
-      !searchTerm ||
-      rec.transferCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (patient?.HoTen || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient?.SDT?.includes(searchTerm) ||
-      patient?.CCCD?.includes(searchTerm) ||
-      patient?.BHYT?.includes(searchTerm)
+      !normalizedSearchRec ||
+      fields.some((f) =>
+        removeVietnameseTones(String(f ?? "")).includes(normalizedSearchRec)
+      )
     );
   });
 
@@ -757,7 +767,7 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
   const {user} = useAuth()
   const [formData, setFormData] = useState({
     patientId: request?.patientId || "",
-    staffId: request?.doctorId || "",
+    staffId: request?.doctorId ? request.doctorId.trim() : "",
     requestDate: request?.requestDate
       ? new Date(request.requestDate).toISOString().split("T")[0]
       : new Date().toISOString().split("T")[0],
@@ -890,7 +900,13 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                     </label>
                     <input
                       type="text"
-                      value={selectedPatient.dateOfBirth || selectedPatient.NgaySinh}
+                      value={
+                        selectedPatient.dateOfBirth
+                          ? new Date(selectedPatient.dateOfBirth).toLocaleDateString('vi-VN')
+                          : selectedPatient.NgaySinh
+                          ? new Date(selectedPatient.NgaySinh).toLocaleDateString('vi-VN')
+                          : ''
+                      }
                       readOnly
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                     />

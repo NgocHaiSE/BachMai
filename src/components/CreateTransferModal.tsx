@@ -1,158 +1,190 @@
-import React from "react";
-import { useState } from "react";
-import { toast } from "sonner";
+import React, { useState } from 'react';
+import { X, ArrowRightLeft } from 'lucide-react';
+import { toast } from 'sonner';
 
-const CreateTransferModal: React.FC<{
+interface CreateTransferModalProps {
   staff: any[];
   workSchedules: any[];
   onSubmit: (data: any) => void;
   onClose: () => void;
-}> = ({ staff, workSchedules, onSubmit, onClose }) => {
+}
+
+const CreateTransferModal: React.FC<CreateTransferModalProps> = ({
+  staff,
+  workSchedules,
+  onSubmit,
+  onClose
+}) => {
   const [formData, setFormData] = useState({
-    fromStaffId: '',
-    toStaffId: '',
-    originalScheduleId: '',
-    transferDate: '',
-    reason: '',
-    compensationRequired: false,
-    notes: ''
+    idCaLamViecGoc: '',
+    idNhanVienMoi: '',
+    NgayChuyen: '',
+    LyDo: '',
+    CanBuCa: false,
+    GhiChu: ''
   });
 
-  const [selectedFromStaff, setSelectedFromStaff] = useState('');
-  const [availableSchedules, setAvailableSchedules] = useState<any[]>([]);
+  const [selectedShift, setSelectedShift] = useState<any>(null);
 
-  // Lọc lịch làm việc khi chọn nhân viên
-  React.useEffect(() => {
-    if (selectedFromStaff) {
-      const staffSchedules = workSchedules.filter(s => 
-        s.staffId === selectedFromStaff && 
-        (s.status === 'scheduled' || s.status === 'confirmed') &&
-        new Date(s.date) >= new Date()
-      );
-      setAvailableSchedules(staffSchedules);
-    } else {
-      setAvailableSchedules([]);
-    }
-  }, [selectedFromStaff, workSchedules]);
+  const handleShiftSelect = (shiftId: string) => {
+    const shift = workSchedules.find(s => s._id === shiftId);
+    setSelectedShift(shift);
+    setFormData(prev => ({ 
+      ...prev, 
+      idCaLamViecGoc: shiftId,
+      NgayChuyen: shift?.date || ''
+    }));
+  };
 
   const handleSubmit = () => {
-    if (!formData.fromStaffId || !formData.toStaffId || !formData.originalScheduleId || !formData.reason) {
+    if (!formData.idCaLamViecGoc || !formData.idNhanVienMoi || !formData.LyDo) {
       toast.error('Vui lòng điền đầy đủ thông tin bắt buộc');
       return;
     }
 
-    if (formData.fromStaffId === formData.toStaffId) {
-      toast.error('Không thể chuyển ca cho chính mình');
-      return;
-    }
-
-    const selectedSchedule = availableSchedules.find(s => s._id === formData.originalScheduleId);
-    if (selectedSchedule) {
-      onSubmit({
-        ...formData,
-        transferDate: selectedSchedule.date,
-      });
-    }
+    onSubmit(formData);
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-semibold mb-4">Tạo Yêu Cầu Chuyển Ca</h3>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nhân viên chuyển ca *</label>
-            <select
-              value={formData.fromStaffId}
-              onChange={(e) => {
-                const staffId = e.target.value;
-                setFormData(prev => ({...prev, fromStaffId: staffId, originalScheduleId: ''}));
-                setSelectedFromStaff(staffId);
-              }}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
-            >
-              <option value="">Chọn nhân viên</option>
-              {staff.map(s => (
-                <option key={s._id} value={s._id}>
-                  {s.firstName} {s.lastName} - {s.department}
-                </option>
-              ))}
-            </select>
-          </div>
+      <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold flex items-center space-x-2">
+            <ArrowRightLeft className="w-5 h-5 text-[#280559]" />
+            <span>Tạo Yêu Cầu Chuyển Ca</span>
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
+        <div className="space-y-4">
+          {/* Chọn ca làm việc gốc */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Ca làm việc cần chuyển *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Chọn ca làm việc cần chuyển *
+            </label>
             <select
-              value={formData.originalScheduleId}
-              onChange={(e) => setFormData(prev => ({...prev, originalScheduleId: e.target.value}))}
+              value={formData.idCaLamViecGoc}
+              onChange={(e) => handleShiftSelect(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
-              disabled={!selectedFromStaff}
             >
               <option value="">Chọn ca làm việc</option>
-              {availableSchedules.map(schedule => (
-                <option key={schedule._id} value={schedule._id}>
-                  {schedule.date} - {schedule.startTime}-{schedule.endTime} ({schedule.shiftType})
+              {workSchedules.map(shift => (
+                <option key={shift._id} value={shift._id}>
+                  {new Date(shift.date).toLocaleDateString('vi-VN')} - {shift.shiftType} ({shift.startTime}-{shift.endTime}) - {shift.staffFullName}
                 </option>
               ))}
             </select>
           </div>
 
+          {/* Hiển thị thông tin ca được chọn */}
+          {selectedShift && (
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <h4 className="font-medium text-blue-900 mb-2">Thông tin ca làm việc:</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Ngày:</span>
+                  <span className="ml-2 font-medium">{new Date(selectedShift.date).toLocaleDateString('vi-VN')}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Ca:</span>
+                  <span className="ml-2 font-medium">{selectedShift.shiftType}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Thời gian:</span>
+                  <span className="ml-2 font-medium">{selectedShift.startTime} - {selectedShift.endTime}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Nhân viên hiện tại:</span>
+                  <span className="ml-2 font-medium">{selectedShift.staffFullName}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Chọn nhân viên mới */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nhân viên nhận ca *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Nhân viên thay thế *
+            </label>
             <select
-              value={formData.toStaffId}
-              onChange={(e) => setFormData(prev => ({...prev, toStaffId: e.target.value}))}
+              value={formData.idNhanVienMoi}
+              onChange={(e) => setFormData(prev => ({ ...prev, idNhanVienMoi: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
             >
-              <option value="">Chọn nhân viên</option>
-              {staff.filter(s => s._id !== formData.fromStaffId).map(s => (
-                <option key={s._id} value={s._id}>
-                  {s.firstName} {s.lastName} - {s.department}
+              <option value="">Chọn nhân viên thay thế</option>
+              {staff.map(member => (
+                <option key={member._id || member.idNhanVien} value={member._id || member.idNhanVien}>
+                  {member.firstName ? `${member.firstName} ${member.lastName}` : member.HoTen} - {member.department}
                 </option>
               ))}
             </select>
           </div>
 
+          {/* Ngày chuyển */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Lý do chuyển ca *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Ngày chuyển
+            </label>
+            <input
+              type="date"
+              value={formData.NgayChuyen}
+              onChange={(e) => setFormData(prev => ({ ...prev, NgayChuyen: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+          </div>
+
+          {/* Lý do */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Lý do chuyển ca *
+            </label>
             <textarea
-              value={formData.reason}
-              onChange={(e) => setFormData(prev => ({...prev, reason: e.target.value}))}
+              value={formData.LyDo}
+              onChange={(e) => setFormData(prev => ({ ...prev, LyDo: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
               rows={3}
               placeholder="Nhập lý do cần chuyển ca..."
             />
           </div>
 
-          <div className="flex items-center">
+          {/* Cần bù ca */}
+          <div className="flex items-center space-x-3">
             <input
               type="checkbox"
-              id="compensationRequired"
-              checked={formData.compensationRequired}
-              onChange={(e) => setFormData(prev => ({...prev, compensationRequired: e.target.checked}))}
-              className="mr-2"
+              id="canBuCa"
+              checked={formData.CanBuCa}
+              onChange={(e) => setFormData(prev => ({ ...prev, CanBuCa: e.target.checked }))}
+              className="w-4 h-4 text-[#280559] border-gray-300 rounded focus:ring-[#280559]"
             />
-            <label htmlFor="compensationRequired" className="text-sm text-gray-700">
-              Yêu cầu ca bù
+            <label htmlFor="canBuCa" className="text-sm font-medium text-gray-700">
+              Cần bù ca
             </label>
           </div>
 
+          {/* Ghi chú */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Ghi chú
+            </label>
             <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({...prev, notes: e.target.value}))}
+              value={formData.GhiChu}
+              onChange={(e) => setFormData(prev => ({ ...prev, GhiChu: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
               rows={2}
               placeholder="Ghi chú thêm..."
             />
           </div>
 
+          {/* Buttons */}
           <div className="flex space-x-3 pt-4">
             <button
               onClick={handleSubmit}
-              className="flex-1 btn-primary text-white py-2 px-4 rounded-lg  transition-colors"
+              className="flex-1 bg-[#280559] text-white py-2 px-4 rounded-lg hover:bg-[#1a0340] transition-colors"
             >
               Tạo Yêu Cầu
             </button>

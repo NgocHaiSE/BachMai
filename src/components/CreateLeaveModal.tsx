@@ -1,235 +1,300 @@
-import { useState } from "react";
-import { toast } from "sonner";
+import React, { useState, useEffect } from 'react';
+import { X, FileText, Calendar } from 'lucide-react';
+import { toast } from 'sonner';
 
-// Create Leave Modal
-const CreateLeaveModal: React.FC<{
+interface CreateLeaveModalProps {
   staff: any[];
   onSubmit: (data: any) => void;
   onClose: () => void;
-}> = ({ staff, onSubmit, onClose }) => {
+}
+
+const CreateLeaveModal: React.FC<CreateLeaveModalProps> = ({
+  staff,
+  onSubmit,
+  onClose
+}) => {
   const [formData, setFormData] = useState({
-    staffId: '',
-    leaveType: 'vacation',
-    startDate: '',
-    endDate: '',
-    startTime: '',
-    endTime: '',
-    isFullDay: true,
-    reason: '',
-    replacementStaffId: '',
-    emergencyContact: {
-      name: '',
-      phone: '',
-      relationship: ''
-    },
-    notes: ''
+    LoaiPhep: 'Phép năm',
+    NgayBD: '',
+    NgayKT: '',
+    GioBD: '',
+    GioKT: '',
+    NghiCaNgay: true,
+    TongNgayNghi: 1,
+    LyDo: '',
+    HoTenNguoiLienHe: '',
+    SDTNguoiLienHe: '',
+    MoiQuanHe: '',
+    GhiChu: '',
+    idNhanVienThayThe: ''
   });
 
-  const leaveTypes = [
-    { value: 'sick', label: 'Nghỉ ốm' },
-    { value: 'vacation', label: 'Nghỉ phép' },
-    { value: 'personal', label: 'Nghỉ việc riêng' },
-    { value: 'emergency', label: 'Nghỉ khẩn cấp' },
-    { value: 'maternity', label: 'Nghỉ thai sản' },
-    { value: 'bereavement', label: 'Nghỉ tang' },
-    { value: 'annual', label: 'Nghỉ phép năm' },
-    { value: 'unpaid', label: 'Nghỉ không lương' }
-  ];
+  // Tính toán số ngày nghỉ khi thay đổi ngày bắt đầu hoặc kết thúc
+  useEffect(() => {
+    if (formData.NgayBD && formData.NgayKT) {
+      const startDate = new Date(formData.NgayBD);
+      const endDate = new Date(formData.NgayKT);
+      
+      if (endDate >= startDate) {
+        const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        
+        setFormData(prev => ({ ...prev, TongNgayNghi: diffDays }));
+      }
+    }
+  }, [formData.NgayBD, formData.NgayKT]);
 
   const handleSubmit = () => {
-    if (!formData.staffId || !formData.startDate || !formData.endDate || !formData.reason) {
+    if (!formData.LoaiPhep || !formData.NgayBD || !formData.NgayKT || !formData.LyDo) {
       toast.error('Vui lòng điền đầy đủ thông tin bắt buộc');
       return;
     }
 
-    if (new Date(formData.startDate) > new Date(formData.endDate)) {
-      toast.error('Ngày bắt đầu không thể sau ngày kết thúc');
+    if (new Date(formData.NgayKT) < new Date(formData.NgayBD)) {
+      toast.error('Ngày kết thúc phải sau ngày bắt đầu');
       return;
     }
 
     onSubmit(formData);
   };
 
+  const leaveTypes = [
+    'Phép năm',
+    'Phép ốm',
+    'Phép thai sản',
+    'Phép việc riêng',
+    'Phép không lương',
+    'Phép khác'
+  ];
+
+  const relationshipTypes = [
+    'Vợ/Chồng',
+    'Con',
+    'Cha/Mẹ',
+    'Anh/Chị/Em',
+    'Họ hàng',
+    'Bạn bè',
+    'Khác'
+  ];
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-semibold mb-4">Tạo Đơn Xin Nghỉ</h3>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nhân viên *</label>
-            <select
-              value={formData.staffId}
-              onChange={(e) => setFormData(prev => ({...prev, staffId: e.target.value}))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
-            >
-              <option value="">Chọn nhân viên</option>
-              {staff.map(s => (
-                <option key={s._id} value={s._id}>
-                  {s.firstName} {s.lastName} - {s.department}
-                </option>
-              ))}
-            </select>
-          </div>
+      <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold flex items-center space-x-2">
+            <FileText className="w-5 h-5 text-[#280559]" />
+            <span>Tạo Đơn Xin Nghỉ</span>
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
+        <div className="space-y-4">
+          {/* Loại phép */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Loại nghỉ *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Loại phép *
+            </label>
             <select
-              value={formData.leaveType}
-              onChange={(e) => setFormData(prev => ({...prev, leaveType: e.target.value}))}
+              value={formData.LoaiPhep}
+              onChange={(e) => setFormData(prev => ({ ...prev, LoaiPhep: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
             >
               {leaveTypes.map(type => (
-                <option key={type.value} value={type.value}>{type.label}</option>
+                <option key={type} value={type}>{type}</option>
               ))}
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* Thời gian nghỉ */}
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Từ ngày *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Từ ngày *
+              </label>
               <input
                 type="date"
-                value={formData.startDate}
-                onChange={(e) => {
-                  const startDate = e.target.value;
-                  setFormData(prev => ({
-                    ...prev, 
-                    startDate,
-                    endDate: prev.endDate || startDate
-                  }));
-                }}
+                value={formData.NgayBD}
+                onChange={(e) => setFormData(prev => ({ ...prev, NgayBD: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Đến ngày *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Đến ngày *
+              </label>
               <input
                 type="date"
-                value={formData.endDate}
-                onChange={(e) => setFormData(prev => ({...prev, endDate: e.target.value}))}
+                value={formData.NgayKT}
+                onChange={(e) => setFormData(prev => ({ ...prev, NgayKT: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                min={formData.startDate}
               />
             </div>
           </div>
 
-          <div className="flex items-center">
+          {/* Nghỉ cả ngày */}
+          <div className="flex items-center space-x-3">
             <input
               type="checkbox"
-              id="isFullDay"
-              checked={formData.isFullDay}
-              onChange={(e) => setFormData(prev => ({...prev, isFullDay: e.target.checked}))}
-              className="mr-2"
+              id="nghiCaNgay"
+              checked={formData.NghiCaNgay}
+              onChange={(e) => setFormData(prev => ({ ...prev, NghiCaNgay: e.target.checked }))}
+              className="w-4 h-4 text-[#280559] border-gray-300 rounded focus:ring-[#280559]"
             />
-            <label htmlFor="isFullDay" className="text-sm text-gray-700">
+            <label htmlFor="nghiCaNgay" className="text-sm font-medium text-gray-700">
               Nghỉ cả ngày
             </label>
           </div>
 
-          {!formData.isFullDay && (
-            <div className="grid grid-cols-2 gap-3">
+          {/* Thời gian cụ thể nếu không nghỉ cả ngày */}
+          {!formData.NghiCaNgay && (
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Từ giờ</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Từ giờ
+                </label>
                 <input
                   type="time"
-                  value={formData.startTime}
-                  onChange={(e) => setFormData(prev => ({...prev, startTime: e.target.value}))}
+                  value={formData.GioBD}
+                  onChange={(e) => setFormData(prev => ({ ...prev, GioBD: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Đến giờ</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Đến giờ
+                </label>
                 <input
                   type="time"
-                  value={formData.endTime}
-                  onChange={(e) => setFormData(prev => ({...prev, endTime: e.target.value}))}
+                  value={formData.GioKT}
+                  onChange={(e) => setFormData(prev => ({ ...prev, GioKT: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2"
                 />
               </div>
             </div>
           )}
 
+          {/* Tổng số ngày */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Lý do nghỉ *</label>
-            <textarea
-              value={formData.reason}
-              onChange={(e) => setFormData(prev => ({...prev, reason: e.target.value}))}
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tổng số ngày nghỉ
+            </label>
+            <input
+              type="number"
+              value={formData.TongNgayNghi}
+              onChange={(e) => setFormData(prev => ({ ...prev, TongNgayNghi: parseInt(e.target.value) || 1 }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
-              rows={3}
-              placeholder="Nhập lý do xin nghỉ..."
+              min="1"
+              readOnly={formData.NgayBD && formData.NgayKT}
             />
           </div>
 
+          {/* Lý do */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nhân viên thay thế</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Lý do nghỉ *
+            </label>
+            <textarea
+              value={formData.LyDo}
+              onChange={(e) => setFormData(prev => ({ ...prev, LyDo: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              rows={3}
+              placeholder="Nhập lý do nghỉ phép..."
+            />
+          </div>
+
+          {/* Thông tin người liên hệ */}
+          <div className="border-t pt-4">
+            <h4 className="font-medium text-gray-900 mb-3">Thông tin người liên hệ khi cần thiết</h4>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Họ tên người liên hệ
+                </label>
+                <input
+                  type="text"
+                  value={formData.HoTenNguoiLienHe}
+                  onChange={(e) => setFormData(prev => ({ ...prev, HoTenNguoiLienHe: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder="Nhập họ tên..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Số điện thoại
+                </label>
+                <input
+                  type="tel"
+                  value={formData.SDTNguoiLienHe}
+                  onChange={(e) => setFormData(prev => ({ ...prev, SDTNguoiLienHe: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder="Nhập số điện thoại..."
+                />
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Mối quan hệ
+              </label>
+              <select
+                value={formData.MoiQuanHe}
+                onChange={(e) => setFormData(prev => ({ ...prev, MoiQuanHe: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              >
+                <option value="">Chọn mối quan hệ</option>
+                {relationshipTypes.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Nhân viên thay thế */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Nhân viên thay thế (nếu có)
+            </label>
             <select
-              value={formData.replacementStaffId}
-              onChange={(e) => setFormData(prev => ({...prev, replacementStaffId: e.target.value}))}
+              value={formData.idNhanVienThayThe}
+              onChange={(e) => setFormData(prev => ({ ...prev, idNhanVienThayThe: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
             >
-              <option value="">Chọn nhân viên thay thế (không bắt buộc)</option>
-              {staff.filter(s => s._id !== formData.staffId).map(s => (
-                <option key={s._id} value={s._id}>
-                  {s.firstName} {s.lastName} - {s.department}
+              <option value="">Chọn nhân viên thay thế</option>
+              {staff.map(member => (
+                <option key={member._id || member.idNhanVien} value={member._id || member.idNhanVien}>
+                  {member.firstName ? `${member.firstName} ${member.lastName}` : member.HoTen} - {member.department}
                 </option>
               ))}
             </select>
           </div>
 
+          {/* Ghi chú */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Liên hệ khẩn cấp</label>
-            <div className="space-y-2">
-              <input
-                type="text"
-                placeholder="Họ tên"
-                value={formData.emergencyContact.name}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev, 
-                  emergencyContact: {...prev.emergencyContact, name: e.target.value}
-                }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              />
-              <input
-                type="tel"
-                placeholder="Số điện thoại"
-                value={formData.emergencyContact.phone}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev, 
-                  emergencyContact: {...prev.emergencyContact, phone: e.target.value}
-                }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              />
-              <input
-                type="text"
-                placeholder="Mối quan hệ"
-                value={formData.emergencyContact.relationship}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev, 
-                  emergencyContact: {...prev.emergencyContact, relationship: e.target.value}
-                }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Ghi chú
+            </label>
             <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({...prev, notes: e.target.value}))}
+              value={formData.GhiChu}
+              onChange={(e) => setFormData(prev => ({ ...prev, GhiChu: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
               rows={2}
               placeholder="Ghi chú thêm..."
             />
           </div>
 
+          {/* Buttons */}
           <div className="flex space-x-3 pt-4">
             <button
               onClick={handleSubmit}
-              className="flex-1 btn-primary text-white py-2 px-4 rounded-lg  transition-colors"
+              className="flex-1 bg-[#280559] text-white py-2 px-4 rounded-lg hover:bg-[#1a0340] transition-colors"
             >
-              Tạo Đơn
+              Tạo Đơn Nghỉ
             </button>
             <button
               onClick={onClose}
@@ -245,4 +310,3 @@ const CreateLeaveModal: React.FC<{
 };
 
 export default CreateLeaveModal;
-  
