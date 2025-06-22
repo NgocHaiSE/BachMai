@@ -51,6 +51,15 @@ import {
   ShieldCheck
 } from "lucide-react";
 
+function removeVietnameseTones(str: string = "") {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase();
+}
+
 export default function TransferManagement() {
   const [activeTab, setActiveTab] = useState("requests");
   const {user} = useAuth();
@@ -127,15 +136,25 @@ function TransferRequests() {
   const { mutate: deleteRequest } = useDeleteTransferRequest();
 
 
+   const normalizedSearch = removeVietnameseTones(searchTerm);
   const filteredRequests = requests?.filter((req: any) => {
-    const patient = req.patient;
+    const patient = req.patient || {};
+    const fields = [
+      req.requestCode,
+      req.patientId,
+      req.patientName || patient.HoTen,
+      req.treatmentDate
+        ? new Date(req.treatmentDate).toLocaleDateString("vi-VN")
+        : "",
+      req.idNumber || patient.CCCD,
+      req.insuranceNumber || patient.BHYT,
+      patient.SDT,
+    ];
     return (
-      !searchTerm ||
-      req.requestCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (patient?.HoTen || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient?.SDT?.includes(searchTerm) ||
-      patient?.CCCD?.includes(searchTerm) ||
-      patient?.BHYT?.includes(searchTerm)
+      !normalizedSearch ||
+      fields.some((f) =>
+        removeVietnameseTones(String(f ?? "")).includes(normalizedSearch)
+      )
     );
   });
 

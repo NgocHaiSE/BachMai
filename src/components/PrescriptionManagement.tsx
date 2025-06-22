@@ -565,22 +565,25 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
   }, [prescription]);
 
   useEffect(() => {
-    // Once full details are loaded, update medications and other fields without clearing existing values
+    // Once full details are loaded, update the medications list
     if (!prescriptionDetails) return;
-    
-    // Handle the new API response format with success wrapper
-    const details = prescriptionDetails.success ? prescriptionDetails : prescriptionDetails;
-    const medications = details.data || details.medications || [];
-    
-    setFormData(prev => ({
-      ...prev,
-      doctorId: details.doctor?._id ?? prev.doctorId,
-      patientId: details.patient?._id ?? prev.patientId,
-      diagnosis: details.diagnosis ?? prev.diagnosis,
-      notes: details.notes ?? prev.notes,
-      medications: medications,
-      hasInsurance: details.hasInsurance ?? prev.hasInsurance,
-    }));
+
+    // The details API may return either an object with `.data` or the array directly
+    let medications: any[] = [];
+    if (Array.isArray(prescriptionDetails)) {
+      medications = prescriptionDetails;
+    } else if (Array.isArray((prescriptionDetails as any).data)) {
+      medications = (prescriptionDetails as any).data;
+    } else if (Array.isArray((prescriptionDetails as any).medications)) {
+      medications = (prescriptionDetails as any).medications;
+    }
+
+    if (medications.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        medications,
+      }));
+    }
   }, [prescriptionDetails]);
   
 
