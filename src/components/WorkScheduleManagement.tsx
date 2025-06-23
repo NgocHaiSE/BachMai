@@ -37,13 +37,99 @@ import {
   Briefcase,
   Moon,
   Sun,
-  Sunset
+  Sunset,
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface WorkScheduleManagementProps { }
 
 type TabType = 'schedules' | 'transfers' | 'leaves';
+
+// Delete Confirmation Modal Component
+const DeleteConfirmationModal: React.FC<{
+  isOpen: boolean;
+  title: string;
+  message: string;
+  itemInfo?: React.ReactNode;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isLoading?: boolean;
+  confirmText?: string;
+  cancelText?: string;
+}> = ({ 
+  isOpen, 
+  title, 
+  message, 
+  itemInfo, 
+  onConfirm, 
+  onCancel, 
+  isLoading = false,
+  confirmText = "Xóa",
+  cancelText = "Hủy"
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl max-w-md w-full shadow-2xl">
+        <div className="p-6">
+          {/* Icon */}
+          <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full">
+            <AlertTriangle className="w-8 h-8 text-red-600" />
+          </div>
+          
+          {/* Title */}
+          <h3 className="text-lg font-semibold text-gray-900 text-center mb-4">
+            {title}
+          </h3>
+          
+          {/* Message */}
+          <div className="text-gray-600 text-center mb-4">
+            {message}
+          </div>
+
+          {/* Item Info */}
+          {itemInfo && (
+            <div className="bg-gray-50 rounded-lg p-3 mb-4 text-sm">
+              {itemInfo}
+            </div>
+          )}
+
+          <p className="text-red-600 font-medium text-center mb-6 text-sm">
+            Hành động này không thể hoàn tác!
+          </p>
+          
+          {/* Actions */}
+          <div className="flex space-x-3">
+            <button
+              onClick={onCancel}
+              disabled={isLoading}
+              className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {cancelText}
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Đang xóa...
+                </>
+              ) : (
+                confirmText
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // CreateTransferModal Component
 const CreateTransferModal: React.FC<{
@@ -473,6 +559,11 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
   const [filterDepartment, setFilterDepartment] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
+  // Delete confirmation states
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   // Queries
   const { data: workSchedules, refetch: refetchSchedules } = useWeeklySchedule({
     TuNgay: selectedWeek.start,
@@ -554,16 +645,33 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
     }
   };
 
-  const handleDeleteSchedule = async (id: string) => {
-    if (confirm('Bạn có chắc chắn muốn xóa ca làm việc này?')) {
-      try {
-        await deleteSchedule(id);
-        toast.success('Xóa ca làm việc thành công');
-        refetchSchedules();
-      } catch (error: any) {
-        toast.error(error.message);
-      }
+  // Updated delete handler to show modal
+  const handleDeleteSchedule = (schedule: any) => {
+    setItemToDelete(schedule);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    
+    setDeleteLoading(true);
+    try {
+      await deleteSchedule(itemToDelete._id);
+      toast.success('Xóa ca làm việc thành công');
+      setShowDeleteModal(false);
+      setItemToDelete(null);
+      refetchSchedules();
+    } catch (error: any) {
+      toast.error(error.message || 'Có lỗi xảy ra khi xóa');
+    } finally {
+      setDeleteLoading(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setItemToDelete(null);
+    setDeleteLoading(false);
   };
 
   const handleApproveTransfer = async (transferId: string, approved: boolean = true) => {
@@ -592,6 +700,42 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
     } catch (error: any) {
       toast.error(error.message);
     }
+  };
+
+  // Get delete modal content for schedule
+  const getDeleteModalContent = () => {
+    if (!itemToDelete) return { title: '', message: '', itemInfo: null };
+
+    return {
+      title: 'Xác nhận xóa ca làm việc',
+      message: 'Bạn có chắc chắn muốn xóa ca làm việc này không?',
+      itemInfo: (
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Nhân viên:</span>
+            <span className="font-medium">{itemToDelete.staffFullName}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Ngày:</span>
+            <span className="font-medium">{new Date(itemToDelete.date).toLocaleDateString('vi-VN')}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Ca làm việc:</span>
+            <span className="font-medium">{itemToDelete.shiftType}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Thời gian:</span>
+            <span className="font-medium">{itemToDelete.startTime} - {itemToDelete.endTime}</span>
+          </div>
+          {itemToDelete.department && (
+            <div className="flex justify-between">
+              <span className="text-gray-600">Khoa phòng:</span>
+              <span className="font-medium">{itemToDelete.department}</span>
+            </div>
+          )}
+        </div>
+      )
+    };
   };
 
   const renderTabContent = () => {
@@ -634,6 +778,8 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
         return null;
     }
   };
+
+  const deleteModalContent = getDeleteModalContent();
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -735,7 +881,18 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
         </div>
       </div>
 
-      {/* Modals */}
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        title={deleteModalContent.title}
+        message={deleteModalContent.message}
+        itemInfo={deleteModalContent.itemInfo}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isLoading={deleteLoading}
+      />
+
+      {/* Other Modals */}
       {showCreateScheduleModal && (
         <CreateScheduleModal
           nhanvien={nhanvien || []}
@@ -788,12 +945,12 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
   );
 };
 
-// Schedules Tab Component (using existing code but with passed functions)
+// Schedules Tab Component (updated to use the new delete handler)
 const SchedulesTab: React.FC<{
   schedules: any[];
   onCreateSchedule: () => void;
   onEditSchedule: (schedule: any) => void;
-  onDeleteSchedule: (id: string) => void;
+  onDeleteSchedule: (schedule: any) => void; // Changed from (id: string) to (schedule: any)
   selectedWeek: { start: string; end: string };
   setSelectedWeek: (week: { start: string; end: string }) => void;
   departments: any[];
@@ -969,7 +1126,7 @@ const SchedulesTab: React.FC<{
                       <button onClick={() => onEditSchedule(schedule)} className="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Chỉnh sửa">
                         <Edit3 className="w-4 h-4" />
                       </button>
-                      <button onClick={() => onDeleteSchedule(schedule._id)} className="p-1 text-red-600 hover:bg-red-50 rounded" title="Xóa">
+                      <button onClick={() => onDeleteSchedule(schedule)} className="p-1 text-red-600 hover:bg-red-50 rounded" title="Xóa">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -983,18 +1140,34 @@ const SchedulesTab: React.FC<{
     );
   }
 
-  // Similar implementation for month and list views...
+  // List view
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-semibold">Danh Sách Lịch Làm Việc</h3>
-        <button
-          onClick={onCreateSchedule}
-          className="btn-primary px-4 py-2 rounded-lg flex items-center space-x-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Thêm Ca Làm</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`px-3 py-1 text-sm rounded ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'
+              }`}
+          >
+            Danh sách
+          </button>
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`px-3 py-1 text-sm rounded ${viewMode === 'calendar' ? 'bg-blue-100 text-[#280559]' : 'text-gray-600'
+              }`}
+          >
+            Lịch
+          </button>
+          <button
+            onClick={onCreateSchedule}
+            className="btn-primary px-4 py-2 rounded-lg flex items-center space-x-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Thêm Ca Làm</span>
+          </button>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -1009,15 +1182,33 @@ const SchedulesTab: React.FC<{
                   <div className="text-sm text-gray-600">{schedule.shiftType} - {schedule.workType}</div>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="font-medium">{new Date(schedule.date).toLocaleDateString('vi-VN')}</div>
-                <div className="text-sm text-gray-600">{schedule.startTime} - {schedule.endTime}</div>
-                <div className={`inline-block px-2 py-1 rounded text-xs ${getStatusColor(schedule.status)}`}>
-                  {schedule.status}
+              <div className="flex items-center space-x-4">
+                <div className="text-right">
+                  <div className="font-medium">{new Date(schedule.date).toLocaleDateString('vi-VN')}</div>
+                  <div className="text-sm text-gray-600">{schedule.startTime} - {schedule.endTime}</div>
+                  <div className={`inline-block px-2 py-1 rounded text-xs ${getStatusColor(schedule.status)}`}>
+                    {schedule.status}
+                  </div>
+                  {schedule.notes && (
+                    <div className="text-xs text-gray-500 mt-1">{schedule.notes}</div>
+                  )}
                 </div>
-                {schedule.notes && (
-                  <div className="text-xs text-gray-500 mt-1">{schedule.notes}</div>
-                )}
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={() => onEditSchedule(schedule)} 
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded" 
+                    title="Chỉnh sửa"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => onDeleteSchedule(schedule)} 
+                    className="p-2 text-red-600 hover:bg-red-50 rounded" 
+                    title="Xóa"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1027,7 +1218,7 @@ const SchedulesTab: React.FC<{
   );
 };
 
-// Transfers Tab Component
+// Transfers Tab Component (unchanged)
 const TransfersTab: React.FC<{
   transfers: any[];
   onCreateTransfer: () => void;
@@ -1103,7 +1294,7 @@ const TransfersTab: React.FC<{
   );
 };
 
-// Leaves Tab Component  
+// Leaves Tab Component (unchanged)
 const LeavesTab: React.FC<{
   leaves: any[];
   onCreateLeave: () => void;
@@ -1187,7 +1378,7 @@ const LeavesTab: React.FC<{
   );
 };
 
-// Create Schedule Modal (simplified version, you may want to use the full version from original code)
+// Create Schedule Modal (unchanged)
 const CreateScheduleModal: React.FC<{
   nhanvien: any[];
   staff: any[];
@@ -1235,7 +1426,12 @@ const CreateScheduleModal: React.FC<{
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-semibold mb-4">{schedule ? 'Chỉnh Sửa Ca Làm' : 'Tạo Ca Làm Việc Mới'}</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">{schedule ? 'Chỉnh Sửa Ca Làm' : 'Tạo Ca Làm Việc Mới'}</h3>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         <div className="space-y-4">
           <div>
@@ -1385,3 +1581,5 @@ const CreateScheduleModal: React.FC<{
 };
 
 export default WorkScheduleManagement;
+
+

@@ -165,12 +165,14 @@ export function useDeleteStaff() {
 // Transfer request hooks
 export function useTransferRequests(params: any = {}) {
   return useApi(
-    () => {
+    async () => {
       // If no search params, get all
       if (Object.keys(params).length === 0) {
-        return apiClient.transferRequests.getAll();
+        console.log("1")
+        return await apiClient.transferRequests.getAll();
       }
       // Otherwise search with params
+      console.log("21",apiClient.transferRequests.search(params))
       return apiClient.transferRequests.search(params);
     },
     [JSON.stringify(params)]
@@ -313,6 +315,16 @@ export function usePrescriptionDoctors() {
 export function usePrescriptionPatients() {
   return useApi(() => apiClient.prescriptions.getPatients());
 }
+export function usePrescriptionPKB(id: string) {
+  console.log('usePrescriptionPKB called with id:', id);
+  return useApi(
+  
+    () => apiClient.prescriptions.getPKBs(id),
+    [id],
+    !!id
+  );
+      
+}
 
 // Medicine hooks
 export function useMedicines(params: any = {}) {
@@ -329,6 +341,7 @@ export function useMedicine(id: string) {
     !!id
   );
 }
+
 
 export function useMedicinesInStock() {
   return useApi(() => apiClient.medicines.getInStock());

@@ -77,6 +77,7 @@ class ApiClient {
     delete: (id: string) => this.delete<any>(`/benh-nhan/${id}`),
   };
 
+
   // Appointment APIs (PDK Kham)
   appointments = {
     search: (params: any) => {
@@ -177,6 +178,7 @@ class ApiClient {
     addMedicine: (data: any) => this.post<any>('/don-thuoc/chi-tiet', data),
     getDoctors: () => this.get<any>('/don-thuoc/bac-si'),
     getPatients: () => this.get<any>('/don-thuoc/benh-nhan'),
+    getPKBs: (id: string) => this.get<any>(`/don-thuoc/${id}/PKB`),
   };
 
   // Medicine APIs
@@ -192,6 +194,7 @@ class ApiClient {
     getByCategory: (categoryId: string) => this.get<any>(`/duoc-pham/loai/${categoryId}`),
     getBySupplier: (supplierId: string) => this.get<any>(`/duoc-pham/ncc/${supplierId}`),
   };
+
 
   // Vaccine APIs
   vaccines = {

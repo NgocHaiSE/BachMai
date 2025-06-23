@@ -123,6 +123,9 @@ function TransferRequests() {
   const [showForm, setShowForm] = useState(false);
   const [editingRequest, setEditingRequest] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [requestToDelete, setRequestToDelete] = useState<any>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const {user} = useAuth();
   const [startDate, setStartDate] = useState("2020-01-01");
   const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
@@ -135,8 +138,7 @@ function TransferRequests() {
   const { mutate: updateStatus } = useApproveTransferRequest();
   const { mutate: deleteRequest } = useDeleteTransferRequest();
 
-
-   const normalizedSearch = removeVietnameseTones(searchTerm);
+  const normalizedSearch = removeVietnameseTones(searchTerm);
   const filteredRequests = requests?.filter((req: any) => {
     const patient = req.patient || {};
     const fields = [
@@ -149,6 +151,7 @@ function TransferRequests() {
       req.idNumber || patient.CCCD,
       req.insuranceNumber || patient.BHYT,
       patient.SDT,
+   
     ];
     return (
       !normalizedSearch ||
@@ -196,22 +199,39 @@ function TransferRequests() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Bạn có chắc chắn muốn xóa yêu cầu chuyển viện này?")) {
-      try {
-        await deleteRequest({ id });
-        toast.success("Xóa yêu cầu chuyển viện thành công");
-        refetch();
-      } catch (error) {
-        toast.error("Xóa yêu cầu chuyển viện thất bại");
-      }
+  const handleDeleteClick = (request: any) => {
+    setRequestToDelete(request);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!requestToDelete) return;
+    
+    setDeleteLoading(true);
+    try {
+      await deleteRequest({ id: requestToDelete.requestCode });
+      toast.success("Xóa yêu cầu chuyển viện thành công");
+      refetch();
+      setShowDeleteModal(false);
+      setRequestToDelete(null);
+    } catch (error) {
+      toast.error("Xóa yêu cầu chuyển viện thất bại");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setRequestToDelete(null);
+  };
+
   const handleEdit = (request: any) => {
+    console.log("Editing request:", request);
     setEditingRequest(request);
     setShowForm(true);
   };
+
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -257,15 +277,6 @@ function TransferRequests() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        {/* <div className="flex items-center">
-          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-            <FileText className="w-5 h-5 text-blue-600" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">Phiếu Yêu Cầu Chuyển Viện</h3>
-            <p className="text-gray-600">Quản lý yêu cầu chuyển viện từ bác sĩ</p>
-          </div>
-        </div> */}
         <button
           onClick={() => {
             setEditingRequest(null);
@@ -433,7 +444,7 @@ function TransferRequests() {
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(request.requestCode)}
+                          onClick={() => handleDeleteClick(request)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Xóa"
                         >
@@ -449,6 +460,28 @@ function TransferRequests() {
         )}
       </div>
 
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && requestToDelete && (
+        <DeleteConfirmationModal
+          title="Bạn có chắc chắn muốn xóa dữ liệu này không?"
+          message={
+            <div className="space-y-2">
+              <p>Bạn đang xóa yêu cầu chuyển viện:</p>
+              <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                <p><strong>Mã yêu cầu:</strong> {requestToDelete.requestCode}</p>
+                <p><strong>Bệnh nhân:</strong> {requestToDelete.patientName}</p>
+                <p><strong>Ngày điều trị:</strong> {new Date(requestToDelete.treatmentDate).toLocaleDateString('vi-VN')}</p>
+              </div>
+              <p className="text-red-600 font-medium">Hành động này không thể hoàn tác!</p>
+            </div>
+          }
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          isLoading={deleteLoading}
+        />
+      )}
+      );
+
       {showForm && (
         <TransferRequestForm
           request={editingRequest}
@@ -462,18 +495,22 @@ function TransferRequests() {
         />
       )}
     </div>
+  
   );
 }
+
 
 function TransferRecords() {
   const [showForm, setShowForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState<any>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [startDate, setStartDate] = useState("2020-01-01");
   const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
 
   const { data: records, refetch } = useTransferRecords({ tuNgay: startDate, denNgay: endDate });
-
   const { data: patients } = usePatients("");
   const { data: staff } = useStaff("doctor");
   const { data: requests } = useTransferRequests({});
@@ -540,16 +577,31 @@ function TransferRecords() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Bạn có chắc chắn muốn xóa hồ sơ chuyển viện này?")) {
-      try {
-        await deleteRecord({ id });
-        toast.success("Xóa hồ sơ chuyển viện thành công");
-        refetch();
-      } catch (error) {
-        toast.error("Xóa hồ sơ chuyển viện thất bại");
-      }
+  const handleDeleteClick = (record: any) => {
+    setRecordToDelete(record);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!recordToDelete) return;
+    
+    setDeleteLoading(true);
+    try {
+      await deleteRecord({ id: recordToDelete.transferCode });
+      toast.success("Xóa hồ sơ chuyển viện thành công");
+      refetch();
+      setShowDeleteModal(false);
+      setRecordToDelete(null);
+    } catch (error) {
+      toast.error("Xóa hồ sơ chuyển viện thất bại");
+    } finally {
+      setDeleteLoading(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setRecordToDelete(null);
   };
 
   const handleEdit = (record: any) => {
@@ -571,15 +623,6 @@ function TransferRecords() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        {/* <div className="flex items-center">
-          <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center mr-3">
-            <Truck className="w-5 h-5 text-red-600" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">Hồ Sơ Chuyển Viện</h3>
-            <p className="text-gray-600">Hồ sơ chuyển viện và theo dõi quá trình</p>
-          </div>
-        </div> */}
         <button
           onClick={() => {
             setEditingRecord(null);
@@ -730,7 +773,7 @@ function TransferRecords() {
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(record.transferCode)}
+                          onClick={() => handleDeleteClick(record)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Xóa"
                         >
@@ -745,6 +788,27 @@ function TransferRecords() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && recordToDelete && (
+        <DeleteConfirmationModal
+          title="Bạn có chắc chắn muốn xóa dữ liệu này không?"
+          message={
+            <div className="space-y-2">
+              <p>Bạn đang xóa hồ sơ chuyển viện:</p>
+              <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                <p><strong>Mã chuyển viện:</strong> {recordToDelete.transferCode}</p>
+                <p><strong>Bệnh nhân:</strong> {recordToDelete.patientName}</p>
+                <p><strong>Ngày điều trị:</strong> {new Date(recordToDelete.treatmentDate).toLocaleDateString('vi-VN')}</p>
+              </div>
+              <p className="text-red-600 font-medium">Hành động này không thể hoàn tác!</p>
+            </div>
+          }
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          isLoading={deleteLoading}
+        />
+      )}
 
       {showForm && (
         <TransferRecordForm
@@ -763,11 +827,69 @@ function TransferRecords() {
   );
 }
 
+// Delete Confirmation Modal Component
+function DeleteConfirmationModal({ title, message, onConfirm, onCancel, isLoading }: {
+  title: string;
+  message: React.ReactNode;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
+        <div className="p-6">
+          {/* Icon */}
+          <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full">
+            <AlertTriangle className="w-8 h-8 text-red-600" />
+          </div>
+          
+          {/* Title */}
+          <h3 className="text-lg font-semibold text-gray-900 text-center mb-4">
+            {title}
+          </h3>
+          
+          {/* Message */}
+          <div className="text-gray-600 text-center mb-6">
+            {message}
+          </div>
+          
+          {/* Actions */}
+          <div className="flex space-x-3">
+            <button
+              onClick={onCancel}
+              disabled={isLoading}
+              className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Hủy
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Đang xóa...
+                </>
+              ) : (
+                "Xóa"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: any) {
+  console.log('Request data received in form:', request);
   const {user} = useAuth()
   const [formData, setFormData] = useState({
     patientId: request?.patientId || "",
-    staffId: request?.doctorId ? request.doctorId.trim() : "",
+    staffId: request?.doctorId || "",
     requestDate: request?.requestDate
       ? new Date(request.requestDate).toISOString().split("T")[0]
       : new Date().toISOString().split("T")[0],
@@ -779,13 +901,22 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
     destinationFacility: request?.destinationFacility || "",
     priority: request?.priority || "medium",
     notes: request?.notes || "",
+    status: request?.status || "",
+    approvalDate: request?.approvalDate
+      ? new Date(request.approvalDate).toISOString().split("T")[0]
+      : "",
   });
-
+  console.log( formData.staffId)
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const selectedPatient = patients.find(
     (p: any) => p.idBenhNhan === formData.patientId || p._id === formData.patientId
   );
+    const selectedDoctor = staff.find(
+    (doctor: any) => doctor?.idNguoiDung === formData.staffId || doctor?._id === formData.staffId
+  );
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1163,7 +1294,7 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                   </label>
                   <input
                     type="text"
-                    value="Chờ xử lý"
+                    value={formData?.status || "Chưa phê duyệt"}
                     readOnly
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                   />
@@ -1174,7 +1305,9 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
                   </label>
                   <input
                     type="text"
-                    value="Chưa phê duyệt"
+                    value={formData?.approvalDate
+                      ? new Date(formData.approvalDate).toLocaleDateString('vi-VN')
+                      : "Chưa phê duyệt"}
                     readOnly
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                   />
@@ -1188,25 +1321,25 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
             <button
               type="button"
               onClick={onCancel}
-              className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors"
               disabled={isSubmitting}
+              className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-3 btn-primary text-white rounded-xl font-medium  transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Đang lưu...
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {request ? "Đang cập nhật..." : "Đang tạo..."}
                 </>
               ) : (
                 <>
-                  <Save className="w-5 h-5 mr-2" />
-                  {request ? "Cập nhật" : "Tạo"} Yêu Cầu
+                  <Save className="w-4 h-4 mr-2" />
+                  {request ? "Cập nhật" : "Tạo yêu cầu"}
                 </>
               )}
             </button>
@@ -1218,45 +1351,26 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
 }
 
 function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCancel }: any) {
-  const { user } = useAuth();
-  const { data: recordDetails } = useTransferRecord(record?.idChuyenVien || "");
-
+  const {user} = useAuth();
   const [formData, setFormData] = useState({
-    idYeuCauChuyenVien: "",
-    NgayChuyen: new Date().toISOString().split('T')[0],
-    ThoiGianDuKien: "",
-    SDT_CoSoYTe: "",
-    YThuc: "",
-    GhiChu: "",
+    idYeuCauChuyenVien: record?.idYeuCauChuyenVien || "",
+    NgayChuyen: record?.NgayChuyen
+      ? new Date(record.NgayChuyen).toISOString().split("T")[0]
+      : new Date().toISOString().split("T")[0],
+    ThoiGianDuKien: record?.ThoiGianDuKien || "",
+    SDT_CoSoYTe: record?.SDT_CoSoYTe || "",
+    YThuc: record?.YThuc || "Tỉnh táo",
+    GhiChu: record?.GhiChu || "",
     idNguoiDung: user?.idNguoiDung || "",
-    TrangThai: " "
   });
 
-  useEffect(() => {
-    const data = recordDetails || record;
-    if (!data) return;
-    setFormData({
-      idYeuCauChuyenVien: data.idYeuCauChuyenVien || data.requestId || "",
-      NgayChuyen: data.transferDate || new Date().toISOString().split('T')[0],
-      ThoiGianDuKien: data.ThoiGianDuKien || data.estimatedTime || "",
-      SDT_CoSoYTe: data.SDT_CoSoYTe || data.destinationPhone || "",
-      YThuc: data.YThuc || data.consciousness || "",
-      GhiChu: data.GhiChu || data.notes || "",
-      idNguoiDung: user?.idNguoiDung || data.idNguoiDung || data.userId || "",
-      TrangThai: data.status || " "
-    });
-  }, [recordDetails, record, user]);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Tìm yêu cầu chuyển viện được chọn để hiển thị thông tin bệnh nhân
-  const selectedRequest = requests?.find(
-    (req: any) => req.idYeuCauChuyenVien === formData.idYeuCauChuyenVien
+  const selectedRequest = requests.find(
+    (r: any) => r.idYeuCauChuyenVien === formData.idYeuCauChuyenVien || r._id === formData.idYeuCauChuyenVien
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form data being submitted:', formData);
     setIsSubmitting(true);
     try {
       await onSubmit(formData);
@@ -1265,16 +1379,28 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
     }
   };
 
+  const consciousnessOptions = [
+    "Tỉnh táo",
+    "Lơ mơ",
+    "Hôn mê",
+    "Kích thích",
+    "Khác"
+  ];
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
+              <Truck className="w-6 h-6 text-red-600 mr-3" />
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {record ? "Sửa Phiếu Chuyển Viện" : "Tạo Phiếu Chuyển Viện"}
+                  {record ? "Sửa Hồ Sơ Chuyển Viện" : "Tạo Hồ Sơ Chuyển Viện"}
                 </h3>
+                <p className="text-sm text-gray-600">
+                  {record ? "Cập nhật thông tin hồ sơ chuyển viện" : "Tạo hồ sơ chuyển viện mới"}
+                </p>
               </div>
             </div>
             <button
@@ -1290,85 +1416,101 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
           {/* Chọn yêu cầu chuyển viện */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              Thông tin yêu cầu chuyển viện
+              <FileText className="w-5 h-5 mr-2 text-blue-600" />
+              Yêu cầu chuyển viện
             </h4>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Yêu cầu chuyển viện *
-                </label>
-                <div className="relative">
-                  <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <select
-                    required
-                    value={formData.idYeuCauChuyenVien}
-                    onChange={(e) => setFormData({ ...formData, idYeuCauChuyenVien: e.target.value })}
-                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors appearance-none"
-                  >
-                    <option value="">Chọn yêu cầu chuyển viện</option>
-                    {requests?.map((request: any) => (
-                      <option
-                        key={request.idYeuCauChuyenVien}
-                        value={request.idYeuCauChuyenVien}
-                      >
-                        {request.idYeuCauChuyenVien} - {request.LyDoChuyenVien || 'Yêu cầu chuyển viện'}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nhân viên xử lý *
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <select
-                    required
-                    value={formData.idNguoiDung}
-                    onChange={(e) => setFormData({ ...formData, idNguoiDung: e.target.value })}
-                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors appearance-none"
-                  >
-                    <option value="">Chọn nhân viên</option>
-                    {staff?.map((member: any) => (
-                      <option
-                        key={member.idNguoiDung || member._id}
-                        value={member.idNguoiDung || member._id}
-                      >
-                        {member.HoTen || `${member.firstName || ''} ${member.lastName || ''}`}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Chọn yêu cầu chuyển viện *
+              </label>
+              <div className="relative">
+                <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <select
+                  required
+                  value={formData.idYeuCauChuyenVien}
+                  onChange={(e) => setFormData({ ...formData, idYeuCauChuyenVien: e.target.value })}
+                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors appearance-none"
+                >
+                  <option value="">Chọn yêu cầu chuyển viện</option>
+                  {requests
+                    .filter((req: any) => req.status === "Đã duyệt")
+                    .map((request: any) => (
+                    <option
+                      key={request.idYeuCauChuyenVien || request._id}
+                      value={request.idYeuCauChuyenVien || request._id}
+                    >
+                      {request.requestCode} - {request.patientName} ({new Date(request.treatmentDate).toLocaleDateString('vi-VN')})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
               </div>
             </div>
 
-            {/* Hiển thị thông tin yêu cầu chuyển viện được chọn */}
             {selectedRequest && (
-              <div className="bg-blue-50 rounded-xl p-6 mt-6">
-                <h5 className="text-md font-medium text-gray-900 mb-4">Thông tin yêu cầu</h5>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="mt-6 bg-blue-50 rounded-xl p-6">
+                <h5 className="font-medium text-gray-900 mb-4">Thông tin yêu cầu đã chọn</h5>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Mã yêu cầu
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedRequest.requestCode}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Bệnh nhân
                     </label>
-                    <p className="text-sm text-gray-900">{selectedRequest.patientName || 'Không có thông tin'}</p>
+                    <input
+                      type="text"
+                      value={selectedRequest.patientName}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Lý do chuyển viện
-                    </label>
-                    <p className="text-sm text-gray-900">{selectedRequest.reason || 'Không có thông tin'}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Cơ sở chuyển đến
                     </label>
-                    <p className="text-sm text-gray-900">{selectedRequest.destinationFacility || 'Không có thông tin'}</p>
+                    <input
+                      type="text"
+                      value={selectedRequest.destinationFacility}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Mức độ ưu tiên
+                    </label>
+                    <input
+                      type="text"
+                      value={
+                        selectedRequest.priority === "urgent" ? "Khẩn cấp" :
+                        selectedRequest.priority === "high" ? "Cao" :
+                        selectedRequest.priority === "medium" ? "Trung bình" : "Thấp"
+                      }
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Lý do chuyển viện
+                  </label>
+                  <textarea
+                    value={selectedRequest.reason}
+                    readOnly
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
+                    rows={2}
+                  />
                 </div>
               </div>
             )}
@@ -1377,50 +1519,46 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
           {/* Thông tin chuyển viện */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <Activity className="w-5 h-5 mr-2 text-green-600" />
               Thông tin chuyển viện
             </h4>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ngày chuyển viện *
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                type="date"
-                required
-                value={
-                  formData.NgayChuyen
-                  ? new Date(formData.NgayChuyen).toISOString().split("T")[0]
-                  : ""
-                }
-                onChange={(e) => setFormData({ ...formData, NgayChuyen: e.target.value })}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                />
-              </div>
-              </div>
-              <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Thời gian dự kiến
-              </label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="time"
-                  value={
-                    formData.ThoiGianDuKien
-                      ? new Date(formData.ThoiGianDuKien).toISOString().substr(11, 5)
-                      : ""
-                  }
-                  onChange={(e) => setFormData({ ...formData, ThoiGianDuKien: `1970-01-01T${e.target.value}:00.000Z` })}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                />
-              </div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ngày chuyển viện *
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="date"
+                    required
+                    value={formData.NgayChuyen}
+                    onChange={(e) => setFormData({ ...formData, NgayChuyen: e.target.value })}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  SĐT cơ sở y tế
+                  Thời gian dự kiến
+                </label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="time"
+                    value={formData.ThoiGianDuKien}
+                    onChange={(e) => setFormData({ ...formData, ThoiGianDuKien: e.target.value })}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Số điện thoại cơ sở y tế
                 </label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -1433,71 +1571,73 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
                   />
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Thông tin lâm sàng */}
-          <div>
-            <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              Thông tin lâm sàng
-            </h4>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ý thức bệnh nhân
+                  Tình trạng ý thức *
                 </label>
                 <div className="relative">
-                  <input
-                    type="text"
+                  <Monitor className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <select
+                    required
                     value={formData.YThuc}
                     onChange={(e) => setFormData({ ...formData, YThuc: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                    placeholder="VD: Tỉnh táo, Lơ mơ, Hôn mê"
-                  />
+                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors appearance-none"
+                  >
+                    {consciousnessOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ghi chú
-                </label>
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Ghi chú thêm
+              </label>
+              <div className="relative">
+                <Clipboard className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
                 <textarea
                   value={formData.GhiChu}
                   onChange={(e) => setFormData({ ...formData, GhiChu: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                  rows={3}
-                  placeholder="Thông tin bổ sung khác"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                  rows={4}
+                  placeholder="Ghi chú thêm về quá trình chuyển viện, tình trạng bệnh nhân..."
                 />
               </div>
             </div>
           </div>
 
-          {/* Trạng thái */}
+          {/* Thông tin người tạo */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              Trạng thái phiếu
+              <User className="w-5 h-5 mr-2 text-purple-600" />
+              Thông tin người tạo
             </h4>
             
-            <div className="bg-gray-50 rounded-xl p-4">
+            <div className="bg-purple-50 rounded-xl p-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Trạng thái hiện tại
+                    Người tạo hồ sơ
                   </label>
                   <input
                     type="text"
-                    value={formData.TrangThai || "Mới tạo"}
+                    value={user?.HoTen || ""}
                     readOnly
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ngày tạo
+                    Chức vụ
                   </label>
                   <input
                     type="text"
-                    value={record?.NgayTao || new Date().toLocaleDateString('vi-VN')}
+                    value={user?.ChucVu || ""}
                     readOnly
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
                   />
@@ -1511,25 +1651,25 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
             <button
               type="button"
               onClick={onCancel}
-              className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors"
               disabled={isSubmitting}
+              className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-3  text-white rounded-xl font-medium btn-primary transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              className="px-6 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Đang lưu...
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {record ? "Đang cập nhật..." : "Đang tạo..."}
                 </>
               ) : (
                 <>
-                  <Save className="w-5 h-5 mr-2" />
-                  {record ? "Cập nhật" : "Tạo"} Phiếu
+                  <Save className="w-4 h-4 mr-2" />
+                  {record ? "Cập nhật" : "Tạo hồ sơ"}
                 </>
               )}
             </button>
@@ -1539,3 +1679,4 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
     </div>
   );
 }
+
