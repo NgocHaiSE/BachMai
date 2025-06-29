@@ -495,11 +495,7 @@ function TransferRequests() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [requestToDelete, setRequestToDelete] = useState<any>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-<<<<<<< HEAD
   const { user } = useAuth();
-=======
-  const {user} = useAuth();
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
   const [startDate, setStartDate] = useState("2020-01-01");
   const [endDate, setEndDate] = useState(() => {
     const today = new Date();
@@ -530,11 +526,7 @@ function TransferRequests() {
       req.idNumber || patient.CCCD,
       req.insuranceNumber || patient.BHYT,
       patient.SDT,
-<<<<<<< HEAD
 
-=======
-   
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
     ];
     return (
       !normalizedSearch ||
@@ -587,7 +579,6 @@ function TransferRequests() {
     setRequestToDelete(request);
     setShowDeleteModal(true);
   };
-<<<<<<< HEAD
   // ✅ THAY THẾ HÀM NÀY
   const [errorPopup, setErrorPopup] = useState({
     show: false,
@@ -632,32 +623,13 @@ function TransferRequests() {
 
     } finally {
       // ✅ LUÔN CLEAR LOADING
-=======
-
-  const handleConfirmDelete = async () => {
-    if (!requestToDelete) return;
-    
-    setDeleteLoading(true);
-    try {
-      await deleteRequest({ id: requestToDelete.requestCode });
-      toast.success("Xóa yêu cầu chuyển viện thành công");
-      refetch();
-      setShowDeleteModal(false);
-      setRequestToDelete(null);
-    } catch (error) {
-      toast.error("Xóa yêu cầu chuyển viện thất bại");
-    } finally {
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
       setDeleteLoading(false);
     }
   };
 
-<<<<<<< HEAD
 
 
 
-=======
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
   const handleCancelDelete = () => {
     setShowDeleteModal(false);
     setRequestToDelete(null);
@@ -931,11 +903,7 @@ function TransferRequests() {
               <div className="bg-gray-50 rounded-lg p-3 text-sm">
                 <p><strong>Mã yêu cầu:</strong> {requestToDelete.requestCode}</p>
                 <p><strong>Bệnh nhân:</strong> {requestToDelete.patientName}</p>
-<<<<<<< HEAD
                 <p><strong>Ngày lập yêu cầu:</strong> {new Date(requestToDelete.treatmentDate).toLocaleDateString('vi-VN')}</p>
-=======
-                <p><strong>Ngày điều trị:</strong> {new Date(requestToDelete.treatmentDate).toLocaleDateString('vi-VN')}</p>
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
               </div>
               <p className="text-red-600 font-medium">Hành động này không thể hoàn tác!</p>
             </div>
@@ -945,10 +913,6 @@ function TransferRequests() {
           isLoading={deleteLoading}
         />
       )}
-<<<<<<< HEAD
-=======
-      );
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
 
       {showForm && (
         <TransferRequestForm
@@ -968,11 +932,7 @@ function TransferRequests() {
       // ✅ BỎ onClose - chỉ đóng popup
       />
     </div>
-<<<<<<< HEAD
 
-=======
-  
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
   );
 }
 
@@ -1061,7 +1021,6 @@ function TransferRecords() {
     setShowDeleteModal(true);
   };
 
-<<<<<<< HEAD
   // ✅ THÊM STATE VÀ SỬA HÀM TƯƠNG TỰ
   const [errorPopup, setErrorPopup] = useState({
     show: false,
@@ -1072,11 +1031,6 @@ function TransferRecords() {
   const handleConfirmDelete = async () => {
     if (!recordToDelete) return;
 
-=======
-  const handleConfirmDelete = async () => {
-    if (!recordToDelete) return;
-    
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
     setDeleteLoading(true);
     try {
       await deleteRecord({ id: recordToDelete.transferCode });
@@ -1084,7 +1038,6 @@ function TransferRecords() {
       refetch();
       setShowDeleteModal(false);
       setRecordToDelete(null);
-<<<<<<< HEAD
     } catch (error: any) {
       console.error('Delete error:', error);
 
@@ -1100,10 +1053,6 @@ function TransferRecords() {
       // ✅ CLEAR DELETE STATE NGAY CẢ KHI LỖI
       setRecordToDelete(null);
       setShowDeleteModal(false);
-=======
-    } catch (error) {
-      toast.error("Xóa hồ sơ chuyển viện thất bại");
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
     } finally {
       setDeleteLoading(false);
     }
@@ -1313,11 +1262,7 @@ function TransferRecords() {
               <div className="bg-gray-50 rounded-lg p-3 text-sm">
                 <p><strong>Mã chuyển viện:</strong> {recordToDelete.transferCode}</p>
                 <p><strong>Bệnh nhân:</strong> {recordToDelete.patientName}</p>
-<<<<<<< HEAD
                 <p><strong>Ngày lập yêu cầu:</strong> {new Date(recordToDelete.treatmentDate).toLocaleDateString('vi-VN')}</p>
-=======
-                <p><strong>Ngày điều trị:</strong> {new Date(recordToDelete.treatmentDate).toLocaleDateString('vi-VN')}</p>
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
               </div>
               <p className="text-red-600 font-medium">Hành động này không thể hoàn tác!</p>
             </div>
@@ -1407,70 +1352,9 @@ function DeleteConfirmationModal({ title, message, onConfirm, onCancel, isLoadin
   );
 }
 
-// Delete Confirmation Modal Component
-function DeleteConfirmationModal({ title, message, onConfirm, onCancel, isLoading }: {
-  title: string;
-  message: React.ReactNode;
-  onConfirm: () => void;
-  onCancel: () => void;
-  isLoading: boolean;
-}) {
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
-        <div className="p-6">
-          {/* Icon */}
-          <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full">
-            <AlertTriangle className="w-8 h-8 text-red-600" />
-          </div>
-          
-          {/* Title */}
-          <h3 className="text-lg font-semibold text-gray-900 text-center mb-4">
-            {title}
-          </h3>
-          
-          {/* Message */}
-          <div className="text-gray-600 text-center mb-6">
-            {message}
-          </div>
-          
-          {/* Actions */}
-          <div className="flex space-x-3">
-            <button
-              onClick={onCancel}
-              disabled={isLoading}
-              className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Hủy
-            </button>
-            <button
-              onClick={onConfirm}
-              disabled={isLoading}
-              className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Đang xóa...
-                </>
-              ) : (
-                "Xóa"
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: any) {
   console.log('Request data received in form:', request);
-<<<<<<< HEAD
   const { user } = useAuth()
-=======
-  const {user} = useAuth()
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
   const [formData, setFormData] = useState({
     patientId: request?.patientId || "",
     staffId: request?.doctorId || "",
@@ -1493,26 +1377,17 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
       ? new Date(request.approvalDate).toISOString().split("T")[0]
       : "",
   });
-<<<<<<< HEAD
   console.log(formData.staffId)
-=======
-  console.log( formData.staffId)
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const selectedPatient = patients.find(
     (p: any) => p.idBenhNhan === formData.patientId || p._id === formData.patientId
   );
-<<<<<<< HEAD
   const selectedDoctor = staff.find(
-=======
-    const selectedDoctor = staff.find(
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
     (doctor: any) => doctor?.idNguoiDung === formData.staffId || doctor?._id === formData.staffId
   );
 
 
-<<<<<<< HEAD
   const [errorPopup, setErrorPopup] = useState({
     show: false,
     message: '',
@@ -1528,8 +1403,6 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
     });
     onCancel(); // ✅ ĐÓNG FORM KHI ĐÓNG ERROR
   };
-=======
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2000,7 +1873,6 @@ function TransferRequestForm({ request, patients, staff, onSubmit, onCancel }: a
 }
 
 function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCancel }: any) {
-<<<<<<< HEAD
   const { user } = useAuth();
   const [formData, setFormData] = useState(() => {
     if (record) {
@@ -2077,21 +1949,6 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
       idNguoiDung: user?.idNguoiDung || "",
     };
   });
-=======
-  const {user} = useAuth();
-  const [formData, setFormData] = useState({
-    idYeuCauChuyenVien: record?.idYeuCauChuyenVien || "",
-    NgayChuyen: record?.NgayChuyen
-      ? new Date(record.NgayChuyen).toISOString().split("T")[0]
-      : new Date().toISOString().split("T")[0],
-    ThoiGianDuKien: record?.ThoiGianDuKien || "",
-    SDT_CoSoYTe: record?.SDT_CoSoYTe || "",
-    YThuc: record?.YThuc || "Tỉnh táo",
-    GhiChu: record?.GhiChu || "",
-    idNguoiDung: user?.idNguoiDung || "",
-  });
-
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
   const [isSubmitting, setIsSubmitting] = useState(false);
   const selectedRequest = requests.find(
     (r: any) => r.idYeuCauChuyenVien === formData.idYeuCauChuyenVien || r._id === formData.idYeuCauChuyenVien
@@ -2137,10 +1994,7 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
     }
   };
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
   const consciousnessOptions = [
     "Tỉnh táo",
     "Lơ mơ",
@@ -2210,7 +2064,6 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <FileText className="w-5 h-5 mr-2 text-blue-600" />
               Yêu cầu chuyển viện
-<<<<<<< HEAD
               {record && (
                 <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full flex items-center">
                   <Eye className="w-3 h-3 mr-1" />
@@ -2269,44 +2122,11 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
                 </div>
                 {/* ✅ Hidden input để giữ giá trị */}
                 <input type="hidden" name="idYeuCauChuyenVien" value={formData.idYeuCauChuyenVien} />
-=======
-            </h4>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Chọn yêu cầu chuyển viện *
-              </label>
-              <div className="relative">
-                <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <select
-                  required
-                  value={formData.idYeuCauChuyenVien}
-                  onChange={(e) => setFormData({ ...formData, idYeuCauChuyenVien: e.target.value })}
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors appearance-none"
-                >
-                  <option value="">Chọn yêu cầu chuyển viện</option>
-                  {requests
-                    .filter((req: any) => req.status === "Đã duyệt")
-                    .map((request: any) => (
-                    <option
-                      key={request.idYeuCauChuyenVien || request._id}
-                      value={request.idYeuCauChuyenVien || request._id}
-                    >
-                      {request.requestCode} - {request.patientName} ({new Date(request.treatmentDate).toLocaleDateString('vi-VN')})
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
               </div>
             )}
 
-<<<<<<< HEAD
             {/* ✅ Chỉ hiển thị selected request info khi tạo mới */}
             {!record && selectedRequest && (
-=======
-            {selectedRequest && (
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
               <div className="mt-6 bg-blue-50 rounded-xl p-6">
                 <h5 className="font-medium text-gray-900 mb-4">Thông tin yêu cầu đã chọn</h5>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -2351,13 +2171,8 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
                       type="text"
                       value={
                         selectedRequest.priority === "urgent" ? "Khẩn cấp" :
-<<<<<<< HEAD
                           selectedRequest.priority === "high" ? "Cao" :
                             selectedRequest.priority === "medium" ? "Trung bình" : "Thường"
-=======
-                        selectedRequest.priority === "high" ? "Cao" :
-                        selectedRequest.priority === "medium" ? "Trung bình" : "Thấp"
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
                       }
                       readOnly
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
@@ -2486,11 +2301,7 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
               <Activity className="w-5 h-5 mr-2 text-green-600" />
               Thông tin chuyển viện
             </h4>
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2561,7 +2372,6 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
                 </div>
               </div>
             </div>
-<<<<<<< HEAD
             {/* ✅ THÊM: Người đi cùng */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2584,9 +2394,6 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
               </div>
             </div>
-=======
-
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
             <div className="mt-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Ghi chú thêm
@@ -2610,11 +2417,7 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
               <User className="w-5 h-5 mr-2 text-purple-600" />
               Thông tin người tạo
             </h4>
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
             <div className="bg-purple-50 rounded-xl p-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
@@ -2682,10 +2485,7 @@ function TransferRecordForm({ record, patients, staff, requests, onSubmit, onCan
       )}
     </div>
   );
-<<<<<<< HEAD
 
 
-=======
->>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
 }
 
