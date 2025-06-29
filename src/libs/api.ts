@@ -77,6 +77,7 @@ class ApiClient {
     delete: (id: string) => this.delete<any>(`/benh-nhan/${id}`),
   };
 
+
   // Appointment APIs (PDK Kham)
   appointments = {
     search: (params: any) => {
@@ -193,6 +194,7 @@ class ApiClient {
     getByCategory: (categoryId: string) => this.get<any>(`/duoc-pham/loai/${categoryId}`),
     getBySupplier: (supplierId: string) => this.get<any>(`/duoc-pham/ncc/${supplierId}`),
   };
+
 
   // Vaccine APIs
   vaccines = {

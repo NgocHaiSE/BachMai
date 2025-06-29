@@ -1906,3 +1906,7 @@ function InvoicePreview({ prescription, onCancel }) {
     </div>
   );
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 4d2876b80d1de1a66e7fed79b4cad806e1dc9d53
