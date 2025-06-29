@@ -1,4 +1,4 @@
-// src/hooks/api.ts
+// src/hooks/api.ts - Updated hooks to match backend
 import { useState, useEffect } from 'react';
 import { apiClient } from '../libs/api';
 
@@ -125,9 +125,11 @@ export function useDeleteAppointment() {
   return useMutation(apiClient.appointments.delete);
 }
 
-export function useNhanVien() {
+// UPDATED: NhanVien hooks to use schedule endpoint
+export function useNhanVien(idKhoa?: string) {
   return useApi(
-    () => apiClient.nhanvien.getAll(),
+    () => apiClient.schedules.getNhanVien(idKhoa ? { idKhoa } : {}),
+    [idKhoa]
   );
 }
 
@@ -165,12 +167,10 @@ export function useDeleteStaff() {
 // Transfer request hooks
 export function useTransferRequests(params: any = {}) {
   return useApi(
-    () => {
-      // If no search params, get all
+    async () => {
       if (Object.keys(params).length === 0) {
-        return apiClient.transferRequests.getAll();
+        return await apiClient.transferRequests.getAll();
       }
-      // Otherwise search with params
       return apiClient.transferRequests.search(params);
     },
     [JSON.stringify(params)]
@@ -214,15 +214,13 @@ export function useDeleteTransferRequest() {
   return useMutation((data: { id: string }) => apiClient.transferRequests.delete(data.id));
 }
 
-// Transfer record hooks - Updated
+// Transfer record hooks
 export function useTransferRecords(params: any = {}) {
   return useApi(
     () => {
-      // If no search params, get all
       if (Object.keys(params).length === 0) {
         return apiClient.transferRecords.getAll();
       }
-      // Otherwise search with params
       return apiClient.transferRecords.search(params);
     },
     [JSON.stringify(params)]
@@ -314,6 +312,15 @@ export function usePrescriptionPatients() {
   return useApi(() => apiClient.prescriptions.getPatients());
 }
 
+export function usePrescriptionPKB(id: string) {
+  console.log('usePrescriptionPKB called with id:', id);
+  return useApi(
+    () => apiClient.prescriptions.getPKBs(id),
+    [id],
+    !!id
+  );
+}
+
 // Medicine hooks
 export function useMedicines(params: any = {}) {
   return useApi(
@@ -362,7 +369,7 @@ export function useExpiredVaccines() {
   return useApi(() => apiClient.vaccines.getExpired());
 }
 
-// Schedule hooks
+// UPDATED: Schedule hooks to match backend structure
 export function useWeeklySchedule(params: any) {
   return useApi(
     () => apiClient.schedules.getWeekly(params),
@@ -413,6 +420,7 @@ export function useDeleteShift() {
   return useMutation(apiClient.schedules.shifts.delete);
 }
 
+// Shift change request hooks
 export function useShiftChangeRequests(params: any = {}) {
   return useApi(
     () => apiClient.schedules.shiftChanges.list(params),
@@ -420,7 +428,6 @@ export function useShiftChangeRequests(params: any = {}) {
   );
 }
 
-// Shift change request hooks
 export function useShiftChangeRequest(id: string) {
   return useApi(
     () => apiClient.schedules.shiftChanges.getById(id),
@@ -506,10 +513,10 @@ export function useDashboardActivity() {
   return useApi(() => apiClient.dashboard.getRecentActivity());
 }
 
-// Department hooks
+// UPDATED: Department hooks to use schedule endpoint
 export function useDepartments(searchTerm = '') {
   return useApi(
-    () => searchTerm ? apiClient.departments.search(searchTerm) : apiClient.departments.getAll(),
+    () => apiClient.schedules.getKhoa(),
     [searchTerm]
   );
 }
@@ -521,5 +528,3 @@ export function useDepartment(id: string) {
     !!id
   );
 }
-
-

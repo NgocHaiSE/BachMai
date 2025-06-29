@@ -46,8 +46,8 @@ import {
   useDeletePrescription,
   useAddMedicineToPrescription,
   useConfirmPrescriptionPayment,
-  usePrescriptionDetails
-  
+  usePrescriptionDetails,
+  usePrescriptionPKB,
 } from '../hooks/api';
 
 export default function PrescriptionManagement() {
@@ -58,7 +58,8 @@ export default function PrescriptionManagement() {
   const [viewMode, setViewMode] = useState(null); // null, 'detail', 'preview', 'invoice'
   const [startDate, setStartDate] = useState("2020-01-01");
   const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
-  
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [prescriptionToDelete, setPrescriptionToDelete] = useState(null);
 
   // API calls
   const { data: prescriptions = [], loading: prescriptionsLoading, error: prescriptionsError, refetch: refetchPrescriptions } = usePrescriptions(searchParams);
@@ -75,7 +76,7 @@ export default function PrescriptionManagement() {
   // Search effect
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      const params: any = {};
+      const params = {};
       if (searchTerm.trim()) params.Keyword = searchTerm.trim();
       if (startDate) params.TuNgay = startDate;
       if (endDate) params.DenNgay = endDate;
@@ -114,16 +115,28 @@ export default function PrescriptionManagement() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (confirm("Bạn có chắc chắn muốn xóa đơn thuốc này?")) {
-      try {
-        await deletePrescription.mutate(id);
-        refetchPrescriptions();
-      } catch (error) {
-        console.error("Error deleting prescription:", error);
-        alert("Có lỗi xảy ra khi xóa đơn thuốc: " + error.message);
-      }
+  const handleDeleteClick = (prescription) => {
+    setPrescriptionToDelete(prescription);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!prescriptionToDelete) return;
+    
+    try {
+      await deletePrescription.mutate(prescriptionToDelete._id);
+      refetchPrescriptions();
+      setShowDeleteModal(false);
+      setPrescriptionToDelete(null);
+    } catch (error) {
+      console.error("Error deleting prescription:", error);
+      alert("Có lỗi xảy ra khi xóa đơn thuốc: " + error.message);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setPrescriptionToDelete(null);
   };
 
   const handleEdit = (prescription) => {
@@ -318,8 +331,8 @@ export default function PrescriptionManagement() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900" style={{ maxWidth: '250px' }}>
-                          <div className="truncate" title={prescription.diagnosis}>
-                            {prescription.diagnosis}
+                          <div className="truncate" title={prescription.ChanDoan }>
+                            {prescription.ChanDoan }
                           </div>
                         </div>
                       </td>
@@ -333,7 +346,7 @@ export default function PrescriptionManagement() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          {prescription.hasInsurance ? (
+                          {prescription.KhamBHYT ? (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 whitespace-nowrap">
                               <Shield className="w-3 h-3 mr-1" />
                               Có BHYT
@@ -349,7 +362,7 @@ export default function PrescriptionManagement() {
                         <div className="text-sm font-semibold whitespace-nowrap">
                           {prescription.finalAmount?.toLocaleString('vi-VN')} đ
                         </div>
-                        {prescription.hasInsurance && (
+                        {prescription.KhamBHYT && (
                           <div className="text-xs text-gray-500 whitespace-nowrap">
                             Tổng: {prescription.totalAmount?.toLocaleString('vi-VN')} đ
                           </div>
@@ -360,7 +373,7 @@ export default function PrescriptionManagement() {
                           prescription={prescription}
                           onView={handleView}
                           onEdit={handleEdit}
-                          onDelete={handleDelete}
+                          onDelete={handleDeleteClick}
                           onConfirmPayment={handleConfirmPayment}
                         />
                       </td>
@@ -387,8 +400,80 @@ export default function PrescriptionManagement() {
               setViewMode(null);
             }}
             isLoading={createPrescription.loading || updatePrescription.loading}
+            handleView={handleView}
           />
         )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <DeleteConfirmationModal
+            prescription={prescriptionToDelete}
+            onConfirm={handleConfirmDelete}
+            onCancel={handleCancelDelete}
+            isLoading={deletePrescription.loading}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Delete Confirmation Modal Component
+function DeleteConfirmationModal({ prescription, onConfirm, onCancel, isLoading }) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
+        <div className="p-6 text-center">
+          {/* Warning Icon */}
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+            <AlertCircle className="w-8 h-8 text-red-600" />
+          </div>
+          
+          {/* Title */}
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Bạn có chắc chắn muốn xóa dữ liệu này không?
+          </h3>
+          
+          {/* Prescription Info */}
+          {prescription && (
+            <div className="text-sm text-gray-600 mb-6">
+              <p className="mb-1">
+                <strong>Mã đơn thuốc:</strong> {prescription.prescriptionCode}
+              </p>
+              <p className="mb-1">
+                <strong>Bệnh nhân:</strong> {prescription.patient?.firstName} {prescription.patient?.lastName}
+              </p>
+              <p>
+                <strong>Ngày tạo:</strong> {prescription.createdDate}
+              </p>
+            </div>
+          )}
+          
+          {/* Buttons */}
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={onCancel}
+              disabled={isLoading}
+              className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors disabled:opacity-50"
+            >
+              Hủy
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Đang xóa...
+                </>
+              ) : (
+                'Xóa'
+              )}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -399,7 +484,6 @@ function ActionDropdown({ prescription, onView, onEdit, onDelete, onConfirmPayme
   const dropdownRef = React.useRef(null);
   const buttonRef = React.useRef(null);
 
-  // Đóng dropdown khi click ra ngoài
   React.useEffect(() => {
     if (!isOpen) return;
     
@@ -436,7 +520,6 @@ function ActionDropdown({ prescription, onView, onEdit, onDelete, onConfirmPayme
     }
   ];
 
-  // Add conditional actions based on prescription status
   if (prescription.status !== 'Đã thanh toán') {
     menuItems.push({
       icon: CreditCard,
@@ -458,7 +541,7 @@ function ActionDropdown({ prescription, onView, onEdit, onDelete, onConfirmPayme
   menuItems.push({
     icon: Trash2,
     label: "Xóa",
-    onClick: () => onDelete(prescription._id),
+    onClick: () => onDelete(prescription),
     color: "text-red-600 hover:bg-red-50"
   });
 
@@ -467,19 +550,16 @@ function ActionDropdown({ prescription, onView, onEdit, onDelete, onConfirmPayme
     setIsOpen(false);
   };
 
-  // Tính toán vị trí dropdown
   const getDropdownPosition = () => {
     if (!buttonRef.current) return {};
     
     const buttonRect = buttonRef.current.getBoundingClientRect();
-    const dropdownHeight = menuItems.length * 40 + 8; // Estimate height
+    const dropdownHeight = menuItems.length * 40 + 8;
     const viewportHeight = window.innerHeight;
     
-    // Kiểm tra có đủ không gian phía trên không
     const spaceAbove = buttonRect.top;
     const spaceBelow = viewportHeight - buttonRect.bottom;
     
-    // Nếu không đủ không gian phía trên, hiển thị bên dưới
     const showAbove = spaceAbove > dropdownHeight && spaceAbove > spaceBelow;
     
     return {
@@ -506,14 +586,12 @@ function ActionDropdown({ prescription, onView, onEdit, onDelete, onConfirmPayme
       
       {isOpen && (
         <>
-          {/* Backdrop */}
           <div 
             className="fixed inset-0 bg-transparent"
             style={{ zIndex: 999 }}
             onClick={() => setIsOpen(false)}
           />
           
-          {/* Dropdown menu */}
           <div 
             className="w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-1"
             style={getDropdownPosition()}
@@ -539,43 +617,78 @@ function ActionDropdown({ prescription, onView, onEdit, onDelete, onConfirmPayme
   );
 }
 
-function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines, onSubmit, onCancel, isLoading }) {
+function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines, onSubmit, onCancel, isLoading, handleView }) {
   const { data: prescriptionDetails, loading: detailsLoading } = usePrescriptionDetails(prescription?._id || "");
-
+  
   const [formData, setFormData] = useState({
     doctorId: prescription?.doctor?._id || "",
+    KhamBHYT: prescription?.KhamBHYT || 0,
     patientId: prescription?.patient?._id || "",
+    PKBId: prescription?.examinationId || prescription?.PKB?._id || "",
     diagnosis: prescription?.diagnosis || "",
+    differentialDiagnosis: prescription?.differentialDiagnosis || "",
     notes: prescription?.notes || "",
     medications: prescription?.medications || [],
-    hasInsurance: prescription?.hasInsurance || false,
+    hasInsurance: prescription?.KhamBHYT === 1,
   });
-  
+
+  const cleanPatientId = formData.patientId.trim();
+  const { data: PKBs = [], loading: PKBLoading } = usePrescriptionPKB(cleanPatientId);
+
+  // ✅ Effect để set formData khi có prescription (chế độ sửa)
   useEffect(() => {
-    // When opening the form, populate fields from the provided prescription
     if (!prescription) return;
+    
+    const hasInsurance = prescription.KhamBHYT === 1;
+    
     setFormData({
+      KhamBHYT: prescription.KhamBHYT || 0,
       doctorId: prescription.doctor?._id || "",
       patientId: prescription.patient?._id || "",
+      PKBId: prescription.PKB?._id || "",
       diagnosis: prescription.diagnosis || "",
+      differentialDiagnosis: prescription.differentialDiagnosis || "",
       notes: prescription.notes || "",
       medications: prescription.medications || [],
-      hasInsurance: prescription.hasInsurance || false,
+      hasInsurance: hasInsurance,
     });
   }, [prescription]);
 
+  // ✅ Effect để tự động bật BHYT khi chọn bệnh nhân có KhamBHYT (chế độ tạo mới)
   useEffect(() => {
-    // Once full details are loaded, update the medications list
+    // Chỉ áp dụng khi KHÔNG có prescription (tạo mới) và có chọn bệnh nhân
+    if (prescription || !formData.patientId) return;
+    
+    const selectedPatient = patients.find(p => p._id === formData.patientId);
+    
+    // ✅ Kiểm tra bệnh nhân có KhamBHYT không
+    if (selectedPKB && selectedPKB.KhamBHYT === 1) {
+      // Tự động bật BHYT nếu bệnh nhân có KhamBHYT = 1
+      setFormData(prev => ({
+        ...prev,
+        hasInsurance: true,
+        KhamBHYT: 1
+      }));
+    } else {
+      // Tắt BHYT nếu bệnh nhân không có KhamBHYT hoặc KhamBHYT = 0
+      setFormData(prev => ({
+        ...prev,
+        hasInsurance: false,
+        KhamBHYT: 0
+      }));
+    }
+  }, [formData.patientId, patients, prescription]);
+
+  useEffect(() => {
     if (!prescriptionDetails) return;
 
-    // The details API may return either an object with `.data` or the array directly
-    let medications: any[] = [];
+    let medications = [];
     if (Array.isArray(prescriptionDetails)) {
       medications = prescriptionDetails;
-    } else if (Array.isArray((prescriptionDetails as any).data)) {
-      medications = (prescriptionDetails as any).data;
-    } else if (Array.isArray((prescriptionDetails as any).medications)) {
-      medications = (prescriptionDetails as any).medications;
+    } else if (Array.isArray(prescriptionDetails.data)) {
+      medications = prescriptionDetails.data;
+    } else if (Array.isArray(prescriptionDetails.medications)) {
+      medications = prescriptionDetails.medications;
     }
 
     if (medications.length > 0) {
@@ -585,7 +698,20 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
       }));
     }
   }, [prescriptionDetails]);
-  
+
+  useEffect(() => {
+    if (formData.PKBId && PKBs.length > 0) {
+      const selectedPKB = PKBs.find(pkb => pkb._id === formData.PKBId);
+      if (selectedPKB) {
+        setFormData(prev => ({
+          ...prev,
+          diagnosis: selectedPKB.ChanDoan || "",
+          KhamBHYT: selectedPKB.KhamBHYT || 0,
+          MucHuong: selectedPKB.MucHuong || 0, // Mức hưởng bảo hiểm mặc định là 80%
+        }));
+      }
+    }
+  }, [formData.PKBId, PKBs]);
 
   const [showMedicineSearch, setShowMedicineSearch] = useState(false);
   const [medicineSearchTerm, setMedicineSearchTerm] = useState("");
@@ -601,15 +727,22 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
 
   const selectedPatient = patients.find(p => p._id === formData.patientId);
   const selectedDoctor = doctors.find(d => d._id === formData.doctorId);
+  const selectedPKB = PKBs.find(PKB => PKB._id === formData.PKBId);
 
+  // Tính toán lại tổng tiền khi có thay đổi medications hoặc hasInsurance
   const calculateTotals = (medications, hasInsurance) => {
     const totalAmount = medications.reduce((sum, med) => sum + (med.totalPrice || 0), 0);
-    const insuranceAmount = hasInsurance ? totalAmount * 0.8 : 0; // 80% bảo hiểm chi trả
+    const insuranceRate = prescription?.MucHuong || selectedPKB?.MucHuong ||0; // 80% mặc định
+    const insuranceAmount = hasInsurance ? totalAmount * insuranceRate : 0;
     const finalAmount = totalAmount - insuranceAmount;
     return { totalAmount, insuranceAmount, finalAmount };
   };
 
-  const { totalAmount, insuranceAmount, finalAmount } = calculateTotals(formData.medications, formData.hasInsurance);
+  const { totalAmount, insuranceAmount, finalAmount } = calculateTotals(
+    formData.medications, 
+    selectedPKB?.KhamBHYT||prescription?.KhamBHYT ,
+    
+  );
 
   const filteredMedicines = medicines.filter(med =>
     med.TenDuocPham?.toLowerCase().includes(medicineSearchTerm.toLowerCase()) ||
@@ -625,10 +758,10 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
     const totalPrice = newMedication.quantity * newMedication.unitPrice;
     const medicationToAdd = { ...newMedication, totalPrice };
 
-    setFormData({
-      ...formData,
-      medications: [...formData.medications, medicationToAdd],
-    });
+    setFormData(prev => ({
+      ...prev,
+      medications: [...prev.medications, medicationToAdd],
+    }));
 
     setNewMedication({
       code: "",
@@ -644,9 +777,13 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
   };
 
   const formLoading = isLoading || detailsLoading;
+
   const removeMedication = (index) => {
     const updatedMedications = formData.medications.filter((_, i) => i !== index);
-    setFormData({ ...formData, medications: updatedMedications });
+    setFormData(prev => ({ 
+      ...prev, 
+      medications: updatedMedications 
+    }));
   };
 
   const selectMedicine = (medicine) => {
@@ -661,24 +798,36 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
   };
 
   const toggleInsurance = () => {
-    setFormData({ ...formData, hasInsurance: !formData.hasInsurance });
+    const newInsuranceValue = !formData.hasInsurance;
+    setFormData(prev => ({
+      ...prev,
+      hasInsurance: newInsuranceValue,
+      KhamBHYT: newInsuranceValue ? 1 : 0
+    }));
   };
 
   const handleSubmit = () => {
-    if (viewMode) return; // Không submit khi ở chế độ xem
+    if (viewMode) return;
     
     if (formData.medications.length === 0) {
       alert("Vui lòng thêm ít nhất một loại thuốc");
       return;
     }
 
+  const currentPKBId = prescription?.idKhamBenh || prescription?.PKB?._id || formData.PKBId;
+  if (!currentPKBId) {
+    alert("Vui lòng chọn phiếu khám bệnh");
+    return;
+  }
+
     const submitData = {
       ...formData,
       patient: selectedPatient,
       doctor: selectedDoctor,
+      idKhamBenh: formData.PKBId,
       totalAmount,
       insuranceAmount,
-      finalAmount
+      finalAmount,
     };
     onSubmit(submitData);
   };
@@ -686,11 +835,11 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
   const isReadOnly = viewMode === 'detail';
 
   if (viewMode === 'preview') {
-    return <PrintPreview prescription={{ ...prescription, ...formData }} onCancel={onCancel} />;
+    return <PrintPreview prescription={{ ...prescription, ...formData, totalAmount, insuranceAmount, finalAmount }} onCancel={onCancel} />;
   }
 
   if (viewMode === 'invoice') {
-    return <InvoicePreview prescription={{ ...prescription, ...formData }} onCancel={onCancel} />;
+    return <InvoicePreview prescription={{ ...prescription, ...formData, totalAmount, insuranceAmount, finalAmount }} onCancel={onCancel} />;
   }
 
   return (
@@ -704,12 +853,12 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-[#280559]">
-                  {viewMode === 'detail' ? "Chi Tiết Đơn Thuốc" : 
-                   prescription ? "Sửa Đơn Thuốc" : "Thêm Đơn Thuốc Mới"}
+                  {viewMode === 'detail' ? "Chi Tiết Đơn Thuốc" :
+                  prescription ? "Sửa Đơn Thuốc" : "Thêm Đơn Thuốc Mới"}
                 </h3>
                 <p className="text-sm text-gray-600">
                   {viewMode === 'detail' ? "Xem thông tin chi tiết đơn thuốc" :
-                   prescription ? "Cập nhật thông tin đơn thuốc" : "Tạo đơn kê thuốc mới cho bệnh nhân"}
+                  prescription ? "Cập nhật thông tin đơn thuốc" : "Tạo đơn kê thuốc mới cho bệnh nhân"}
                 </p>
               </div>
             </div>
@@ -721,7 +870,7 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
             </button>
           </div>
         </div>
-        
+
         <div className="p-6">
           <div className="space-y-8">
             {/* Thông tin chung */}
@@ -785,6 +934,8 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
                       {patients.map((patient) => (
                         <option key={patient._id} value={patient._id}>
                           {patient.firstName} {patient.lastName}
+                          {/* ✅ Hiển thị thông tin BHYT trong dropdown */}
+                          {patient.KhamBHYT === 1 && " (Có BHYT)"}
                         </option>
                       ))}
                     </select>
@@ -840,34 +991,130 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
                 </div>
               )}
 
+              {/* ✅ Hiển thị thông báo tự động áp dụng BHYT */}
+{/* ✅ Hiển thị thông báo BHYT dựa trên selectedPKB */}
+{!prescription && selectedPKB && (
+  <div className={`mt-4 p-3 rounded-xl border ${
+    selectedPKB.KhamBHYT === 1 
+      ? 'bg-green-50 border-green-200' 
+      : 'bg-yellow-50 border-yellow-200'
+  }`}>
+    <div className="flex items-center">
+      {selectedPKB.KhamBHYT === true ? (
+        <>
+          <Shield className="w-4 h-4 text-green-600 mr-2" />
+          <span className="text-sm text-green-700">
+            ✅ Đã tự động áp dụng BHYT cho bệnh nhân này
+            {selectedPKB.MucHuong && ` (Mức hưởng: ${(selectedPKB.MucHuong * 100).toFixed(0)}%)`}
+          </span>
+        </>
+      ) : (
+        <>
+          <AlertCircle className="w-4 h-4 text-yellow-600 mr-2" />
+          <span className="text-sm text-yellow-700">
+            ⚠️ Không áp dụng BHYT cho PKB này
+          </span>
+        </>
+      )}
+    </div>
+  </div>
+)}
+
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Chẩn Đoán Bệnh *
+                    Phiếu Khám Bệnh *
                   </label>
-                  <textarea
-                    required
-                    value={formData.diagnosis}
-                    onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
-                    disabled={isReadOnly}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors disabled:bg-gray-100"
-                    rows={3}
-                    placeholder="Nhập chẩn đoán"
-                  />
+                  <div className="relative">
+                    <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <select
+                      required
+                      value={prescription?.idKhamBenh || formData.PKBId}
+                      onChange={(e) => setFormData({ ...formData, PKBId: e.target.value })}
+                      disabled={isReadOnly || PKBLoading}
+                      className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors appearance-none disabled:bg-gray-100"
+                    >
+                      <option value="">
+                        {PKBLoading ? "Đang tải..." : 
+                         !formData.patientId ? "Chọn bệnh nhân trước" : 
+                         PKBs.length === 0 ? "Không có phiếu khám bệnh" : 
+                         "Chọn phiếu khám bệnh"}
+                      </option>
+                      
+                      {PKBs.map((PKB) => (
+                        <option key={PKB._id} value={PKB._id}>
+                          {PKB._id} - {
+                            prescription && prescription.ChanDoan && prescription.ChanDoan === PKB.ChanDoan
+                              ? prescription.ChanDoan + " ✅" 
+                              : (PKB.ChanDoan || "Chưa có chẩn đoán")
+                          }
+                          {PKB._id === formData.PKBId && " (Đã chọn)"}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                  </div>
+                  
+                  {!formData.patientId && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Vui lòng chọn bệnh nhân trước để hiển thị phiếu khám bệnh
+                    </p>
+                  )}
+                  
+                  {formData.PKBId && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      ✅ Đã chọn PKB: {formData.PKBId}
+                    </p>
+                  )}
                 </div>
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ghi Chú
+                    Chẩn Đoán
                   </label>
                   <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    disabled={isReadOnly}
+                    value={prescription?.ChanDoan || formData.diagnosis || ""}
+                    onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
+                    disabled
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors disabled:bg-gray-100"
                     rows={3}
-                    placeholder="Ghi chú thêm"
+                    placeholder="Chẩn đoán sẽ tự động điền khi chọn phiếu khám bệnh"
                   />
                 </div>
+              </div>
+
+              {selectedPKB && (
+                <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                  <h5 className="font-medium text-blue-900 mb-2 flex items-center">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Thông tin Phiếu Khám Bệnh đã chọn
+                  </h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-blue-800">Mã PKB:</span>
+                      <span className="ml-2 text-blue-700">{selectedPKB._id}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="font-medium text-blue-800">Chẩn đoán:</span>
+                      <span className="ml-2 text-blue-700">{selectedPKB.ChanDoan || "Chưa có chẩn đoán"}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ghi Chú
+                </label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  disabled={isReadOnly}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors disabled:bg-gray-100"
+                  rows={3}
+                  placeholder="Ghi chú thêm về đơn thuốc"
+                />
               </div>
             </div>
 
@@ -875,7 +1122,7 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-lg font-medium text-gray-900 flex items-center">
-                  <Package className="w-5 h-5 mr-2 " />
+                  <Package className="w-5 h-5 mr-2 text-[#280559]" />
                   Danh Sách Thuốc
                 </h4>
                 {!isReadOnly && (
@@ -935,9 +1182,9 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
                                 <button
                                   type="button"
                                   onClick={() => removeMedication(index)}
-                                  className="text-red-600 hover:text-red-900"
+                                  className="text-red-600 hover:text-red-900 transition-colors"
                                 >
-                                  Xóa
+                                  <Trash2 className="w-4 h-4" />
                                 </button>
                               </td>
                             )}
@@ -951,7 +1198,7 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
 
               {/* Insurance toggle và tính toán */}
               <div className="mt-6 space-y-6">
-                {/* Insurance Toggle */}
+                {/* ✅ Insurance Toggle - Chỉ hiển thị khi bệnh nhân có BHYT */}
                 {!isReadOnly && selectedPatient?.insuranceNumber && (
                   <div className="bg-blue-50 rounded-xl p-4">
                     <div className="flex items-center justify-between">
@@ -969,21 +1216,29 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
                         onClick={toggleInsurance}
                         className={`
                           relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-                          ${formData.hasInsurance ? 'bg-blue-600' : 'bg-gray-200'}
+                          ${prescription?.KhamBHYT||(selectedPKB && selectedPKB.KhamBHYT) ? 'bg-blue-600' : 'bg-gray-200'}
                         `}
                       >
                         <span
                           className={`
                             inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-                            ${formData.hasInsurance ? 'translate-x-6' : 'translate-x-1'}
+                            ${prescription?.KhamBHYT||(selectedPKB && selectedPKB.KhamBHYT) ? 'translate-x-6' : 'translate-x-1'}
                           `}
                         />
                       </button>
                     </div>
+                    
+                    {/* ✅ Thêm thông tin trạng thái hiện tại */}
+                    <div className="mt-2 text-xs text-gray-600">
+                      Trạng thái: {prescription?.KhamBHYT||(selectedPKB && selectedPKB.KhamBHYT) ? 
+                        <span className="text-green-600 font-medium">Đã áp dụng BHYT</span> : 
+                        <span className="text-gray-500">Chưa áp dụng BHYT</span>
+                      }
+                    </div>
                   </div>
                 )}
 
-                {/* Tổng tiền */}
+                {/* ✅ Tổng tiền - Sử dụng giá trị tính toán mới */}
                 <div className="bg-gray-50 rounded-xl p-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="bg-white p-4 rounded-xl border">
@@ -1002,11 +1257,13 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-green-600">Số Tiền BHYT Trả</p>
-                          <p className={`text-2xl font-bold ${formData.hasInsurance ? 'text-green-600' : 'text-gray-400'}`}>
+                          <p className={`text-2xl font-bold ${(prescription?.MucHuong ||selectedPKB?.MucHuong) ? 'text-green-600' : 'text-gray-400'}`}>
                             {insuranceAmount.toLocaleString('vi-VN')} đ
                           </p>
-                          {formData.hasInsurance && (
-                            <p className="text-xs text-green-600">80% tổng tiền</p>
+                          {(prescription?.MucHuong || selectedPKB?.MucHuong )&& (
+                            <p className="text-xs text-green-600">
+                              {((prescription?.MucHuong ||selectedPKB.MucHuong|| 0) * 100).toFixed(0)}% tổng tiền
+                            </p>
                           )}
                         </div>
                         <ShieldCheck className={`w-8 h-8 ${formData.hasInsurance ? 'text-green-600' : 'text-gray-400'}`} />
@@ -1141,7 +1398,7 @@ function MedicineSearchModal({ medicines, searchTerm, onSearchChange, newMedicat
                 placeholder="Tìm kiếm thuốc theo tên hoặc mã để hiển thị danh sách..."
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border  rounded-xl  transition-colors"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
                 autoFocus
               />
             </div>
@@ -1182,7 +1439,9 @@ function MedicineSearchModal({ medicines, searchTerm, onSearchChange, newMedicat
                             <div className="font-medium text-gray-900">
                               {medicine.DonGiaBan?.toLocaleString('vi-VN')} đ
                             </div>
-                            <div className="text-sm text-gray-500">Đơn giá</div>
+                            <div className="text-sm text-gray-500">
+                              Đơn giá
+                            </div>
                           </div>
                           <div className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Plus className="w-5 h-5 text-blue-600" />
@@ -1306,7 +1565,7 @@ function MedicineSearchModal({ medicines, searchTerm, onSearchChange, newMedicat
                 <textarea
                   value={newMedication.dosage}
                   onChange={(e) => setNewMedication({ ...newMedication, dosage: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                   rows={2}
                   placeholder="VD: 1 viên uống 2 lần/ngày sau ăn"
                 />
@@ -1340,7 +1599,7 @@ function MedicineSearchModal({ medicines, searchTerm, onSearchChange, newMedicat
                 type="button"
                 onClick={onAddMedication}
                 disabled={!newMedication.code || !newMedication.name || !newMedication.unitPrice}
-                className="px-6 py-2 bg-gradient-to-r btn-primary rounded-lg font-mediumtransition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="px-6 py-2 bg-gradient-to-r btn-primary rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Thêm Thuốc Vào Đơn
@@ -1355,7 +1614,7 @@ function MedicineSearchModal({ medicines, searchTerm, onSearchChange, newMedicat
 
 function PrintPreview({ prescription, onCancel }) {
   const handlePrint = () => {
-    alert("Chức năng in sẽ được thực hiện trong môi trường thực tế");
+    window.print();
   };
 
   return (
@@ -1387,7 +1646,7 @@ function PrintPreview({ prescription, onCancel }) {
               <h1 className="text-2xl font-bold text-gray-900 mb-2">BỆNH VIỆN BẠCH MAI</h1>
               <p className="text-gray-600 mb-1">Địa chỉ: 78 Đường Giải Phóng, Đống Đa, Hà Nội</p>
               <p className="text-gray-600 mb-6">Điện thoại: (024) 3869 3731</p>
-              <h2 className="text-xl font-bold text-gray-900">PHIẾU KÊ ĐỖN THUỐC</h2>
+              <h2 className="text-xl font-bold text-gray-900">PHIẾU KÊ ĐƠN THUỐC</h2>
             </div>
 
             {/* Patient Info */}
@@ -1402,9 +1661,17 @@ function PrintPreview({ prescription, onCancel }) {
                 <p className="mb-2"><strong>Ngày kê đơn:</strong> {prescription.createdDate || new Date().toISOString().split('T')[0]}</p>
                 <p className="mb-2"><strong>Bác sĩ:</strong> BS. {prescription.doctor?.firstName} {prescription.doctor?.lastName}</p>
                 <p className="mb-2"><strong>Khoa:</strong> {prescription.doctor?.department}</p>
-                <p className="mb-2"><strong>Chẩn đoán:</strong> {prescription.diagnosis}</p>
+                <p className="mb-2"><strong>Chẩn đoán:</strong> {prescription?.ChanDoan}</p>
               </div>
             </div>
+
+            {/* PKB Info */}
+            {prescription.PKB && (
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <p className="mb-2"><strong>Mã phiếu khám bệnh:</strong> {prescription.PKB._id}</p>
+                <p className="mb-2"><strong>Ngày khám:</strong> {prescription.PKB.NgayKham}</p>
+              </div>
+            )}
 
             {/* Medicine Table */}
             <table className="w-full border-collapse border border-gray-300 mb-6">
@@ -1445,10 +1712,12 @@ function PrintPreview({ prescription, onCancel }) {
                   <span><strong>Tổng tiền:</strong></span>
                   <span>{prescription.totalAmount?.toLocaleString('vi-VN')} đ</span>
                 </div>
-                <div className="flex justify-between py-2">
-                  <span><strong>Số tiền BHYT trả:</strong></span>
-                  <span>{prescription.insuranceAmount?.toLocaleString('vi-VN')} đ</span>
-                </div>
+                {prescription?.KhamBHYT && (
+                  <div className="flex justify-between py-2">
+                    <span><strong>Số tiền BHYT trả:</strong></span>
+                    <span>{prescription.insuranceAmount?.toLocaleString('vi-VN')} đ</span>
+                  </div>
+                )}
                 <div className="flex justify-between py-2 border-t font-bold">
                   <span><strong>Thành tiền:</strong></span>
                   <span>{prescription.finalAmount?.toLocaleString('vi-VN')} đ</span>
@@ -1483,7 +1752,7 @@ function PrintPreview({ prescription, onCancel }) {
 
 function InvoicePreview({ prescription, onCancel }) {
   const handlePrint = () => {
-    alert("Chức năng in hóa đơn sẽ được thực hiện trong môi trường thực tế");
+    window.print();
   };
 
   return (
@@ -1516,7 +1785,10 @@ function InvoicePreview({ prescription, onCancel }) {
               <h2 className="text-lg font-medium text-gray-700 mb-1">NHA THUOC SO 02</h2>
               <p className="text-sm text-gray-600 mb-6">78 Đường Giải Phóng, Đống Đa, Hà Nội - ĐT: (024) 3869 3731</p>
               <h2 className="text-xl font-bold text-gray-900 mb-2">HÓA ĐƠN THANH TOÁN</h2>
-              <p className="text-sm text-gray-600">(Biên nhận có BHTT)</p>
+              <p className="text-sm text-gray-600">
+  (Biên nhận {prescription?.KhamBHYT === true ? 'có BHYT' : 'không có BHYT'})
+</p>
+
             </div>
 
             {/* Invoice Info */}
@@ -1524,14 +1796,17 @@ function InvoicePreview({ prescription, onCancel }) {
               <div>
                 <p className="mb-2 text-sm">Người mua hàng: <strong>{prescription.patient?.firstName} {prescription.patient?.lastName}</strong></p>
                 <p className="mb-2 text-sm">Địa chỉ: {prescription.patient?.address}</p>
-                <p className="mb-2 text-sm">Số BHYT: <strong>{prescription.patient?.insuranceNumber}</strong></p>
+                <p className="mb-2 text-sm">Số BHYT: <strong>{prescription.patient?.insuranceNumber || "Không có"}</strong></p>
                 <p className="mb-2 text-sm">ĐT: {prescription.patient?.phone}</p>
               </div>
               <div>
                 <p className="mb-2 text-sm">Mã đơn thuốc: <strong>#{prescription.prescriptionCode}</strong></p>
                 <p className="mb-2 text-sm">Ngày: {prescription.createdDate || new Date().toISOString().split('T')[0]}</p>
                 <p className="mb-2 text-sm">Bác sĩ phụ trách: <strong>BS. {prescription.doctor?.firstName} {prescription.doctor?.lastName}</strong></p>
-                <p className="mb-2 text-sm">Chẩn đoán bệnh: {prescription.diagnosis}</p>
+                <p className="mb-2 text-sm">Chẩn đoán bệnh: {prescription.ChanDoan}</p>
+                {prescription.PKB && (
+                  <p className="mb-2 text-sm">Mã PKB: <strong>{prescription.PKB._id}</strong></p>
+                )}
               </div>
             </div>
 
@@ -1586,10 +1861,12 @@ function InvoicePreview({ prescription, onCancel }) {
                 <span>Tổng cộng:</span>
                 <span className="font-bold">{prescription.totalAmount?.toLocaleString('vi-VN')} VND</span>
               </div>
-              <div className="flex justify-between items-center py-2 text-sm">
-                <span>Số tiền BHYT đã trả:</span>
-                <span className="font-bold text-green-600">{prescription.insuranceAmount?.toLocaleString('vi-VN')} VND</span>
-              </div>
+              {prescription?.KhamBHYT && (
+                <div className="flex justify-between items-center py-2 text-sm">
+                  <span>Số tiền BHYT đã trả:</span>
+                  <span className="font-bold text-green-600">{prescription.insuranceAmount?.toLocaleString('vi-VN')} VND</span>
+                </div>
+              )}
               <div className="flex justify-between items-center py-2 border-t-2 border-gray-300 text-base">
                 <span className="font-bold">Thành tiền:</span>
                 <span className="font-bold text-lg">{prescription.finalAmount?.toLocaleString('vi-VN')} VND</span>

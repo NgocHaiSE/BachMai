@@ -1,4 +1,4 @@
-// src/lib/api.ts
+// src/lib/api.ts - Updated API Client
 // const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
 const API_BASE_URL = 'http://localhost:3000/api';
 
@@ -162,7 +162,7 @@ class ApiClient {
   };
 
   // Prescription APIs
-    prescriptions = {
+  prescriptions = {
     getAll: () => this.get<any>('/don-thuoc'),
     search: (params: any) => {
       const query = new URLSearchParams(params).toString();
@@ -177,6 +177,7 @@ class ApiClient {
     addMedicine: (data: any) => this.post<any>('/don-thuoc/chi-tiet', data),
     getDoctors: () => this.get<any>('/don-thuoc/bac-si'),
     getPatients: () => this.get<any>('/don-thuoc/benh-nhan'),
+    getPKBs: (id: string) => this.get<any>(`/don-thuoc/${id}/PKB`),
   };
 
   // Medicine APIs
@@ -205,21 +206,35 @@ class ApiClient {
     getExpired: () => this.get<any>('/vac-xin/het-han'),
   };
 
-  // Schedule APIs
+  // UPDATED: Schedule APIs to match backend structure
   schedules = {
+    // Lấy lịch làm việc tuần
     getWeekly: (params: any) => {
-      const query = new URLSearchParams(params).toString();
-      return this.get<any>(`/lich-lam-viec/lich-tuan?${query}`);
+      const query = new URLSearchParams();
+      if (params.TuNgay) query.append('TuNgay', params.TuNgay);
+      if (params.DenNgay) query.append('DenNgay', params.DenNgay);
+      if (params.idKhoa) query.append('idKhoa', params.idKhoa);
+      
+      return this.get<any>(`/lich-lam-viec/lich-tuan?${query.toString()}`);
     },
 
+    // Lấy danh sách ca làm việc
     list: (params: any = {}) => {
-      const query = new URLSearchParams(params).toString();
-      return this.get<any>(`/lich-lam-viec/ca${query ? `?${query}` : ''}`);
+      const query = new URLSearchParams();
+      if (params.TuNgay) query.append('TuNgay', params.TuNgay);
+      if (params.DenNgay) query.append('DenNgay', params.DenNgay);
+      if (params.idKhoa) query.append('idKhoa', params.idKhoa);
+      if (params.TrangThai) query.append('TrangThai', params.TrangThai);
+      
+      return this.get<any>(`/lich-lam-viec/ca?${query.toString()}`);
     },
 
+    // Lấy thống kê lịch làm việc
     getStats: (params: any = {}) => {
-      const query = new URLSearchParams(params).toString();
-      return this.get<any>(`/lich-lam-viec/thong-ke?${query}`);
+      const query = new URLSearchParams();
+      if (params.thang) query.append('thang', params.thang);
+      
+      return this.get<any>(`/lich-lam-viec/thong-ke?${query.toString()}`);
     },
 
     // Shift management
@@ -235,8 +250,12 @@ class ApiClient {
     shiftChanges: {
       getById: (id: string) => this.get<any>(`/lich-lam-viec/chuyen-ca/${id}`),
       list: (params: any = {}) => {
-        const query = new URLSearchParams(params).toString();
-        return this.get<any>(`/lich-lam-viec/chuyen-ca${query ? `?${query}` : ''}`);
+        const query = new URLSearchParams();
+        if (params.TrangThai) query.append('TrangThai', params.TrangThai);
+        if (params.TuNgay) query.append('TuNgay', params.TuNgay);
+        if (params.DenNgay) query.append('DenNgay', params.DenNgay);
+        
+        return this.get<any>(`/lich-lam-viec/chuyen-ca?${query.toString()}`);
       },
       create: (data: any) => this.post<any>('/lich-lam-viec/chuyen-ca', data),
       update: (id: string, data: any) => this.put<any>(`/lich-lam-viec/chuyen-ca/${id}`, data),
@@ -248,8 +267,12 @@ class ApiClient {
     leaves: {
       getById: (id: string) => this.get<any>(`/lich-lam-viec/nghi-phep/${id}`),
       list: (params: any = {}) => {
-        const query = new URLSearchParams(params).toString();
-        return this.get<any>(`/lich-lam-viec/nghi-phep${query ? `?${query}` : ''}`);
+        const query = new URLSearchParams();
+        if (params.TrangThai) query.append('TrangThai', params.TrangThai);
+        if (params.TuNgay) query.append('TuNgay', params.TuNgay);
+        if (params.DenNgay) query.append('DenNgay', params.DenNgay);
+        
+        return this.get<any>(`/lich-lam-viec/nghi-phep?${query.toString()}`);
       },
       create: (data: any) => this.post<any>('/lich-lam-viec/nghi-phep', data),
       update: (id: string, data: any) => this.put<any>(`/lich-lam-viec/nghi-phep/${id}`, data),
@@ -257,6 +280,16 @@ class ApiClient {
       delete: (id: string) => this.delete<any>(`/lich-lam-viec/nghi-phep/${id}`),
       getAffectedShifts: (id: string) => this.get<any>(`/lich-lam-viec/nghi-phep/${id}/ca-anh-huong`),
     },
+
+    // Helper endpoints
+    getNhanVien: (params: any = {}) => {
+      const query = new URLSearchParams();
+      if (params.idKhoa) query.append('idKhoa', params.idKhoa);
+      
+      return this.get<any>(`/lich-lam-viec/nhan-vien?${query.toString()}`);
+    },
+    
+    getKhoa: () => this.get<any>('/lich-lam-viec/khoa'),
   };
 
   // Dashboard APIs

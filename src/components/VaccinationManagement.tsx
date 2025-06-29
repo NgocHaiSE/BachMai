@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Syringe, 
   Plus, 
@@ -30,43 +30,10 @@ import {
   ArrowLeft
 } from "lucide-react";
 
-// Mock data cho demo
-const mockVaccinationRecords = [
-  {
-    _id: "1",
-    stt: 1,
-    patientName: "Hoàng Anh Tuấn",
-    vaccineType: "Vắc xin lẻ",
-    vaccineName: "Vắc xin lẻ",
-    registrationDate: "22/3/2025",
-    vaccinationDate: "22/3/2025",
-    dose: "1 ml6, 0,5 ml cho trẻ nhỏ",
-    status: "completed"
-  },
-  {
-    _id: "2", 
-    stt: 2,
-    patientName: "Lê Đại Dương",
-    vaccineType: "Vắc xin cúm",
-    vaccineName: "Vắc xin gối",
-    registrationDate: "26/5/2025",
-    vaccinationDate: "26/5/2025",
-    dose: "3 ml6, 0,5 ml cho trẻ nhỏ",
-    status: "scheduled"
-  },
-  {
-    _id: "3",
-    stt: 3,
-    patientName: "Hoàng Trà My",
-    vaccineType: "Vaccine Sởi - Quai bị - Rubella (MMR)",
-    vaccineName: "Vắc xin gối",
-    registrationDate: "26/5/2025",
-    vaccinationDate: "26/5/2025",
-    dose: "2 ml6, 0,5 ml cho trẻ nhỏ",
-    status: "completed"
-  }
-];
+// API Base URL
+const API_BASE_URL = 'http://localhost:3000/api/tiem-chung';
 
+// Mock data cho vaccines và patients (giữ nguyên vì chưa có API)
 const mockVaccines = [
   {
     id: "1",
@@ -168,58 +135,196 @@ const mockPatients = [
   }
 ];
 
-export default function VaccinationManagement() {
-  const [records, setRecords] = useState(mockVaccinationRecords);
-  const [showForm, setShowForm] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<any>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState<string | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [showDetailView, setShowDetailView] = useState<any>(null);
-
-  const filteredRecords = records.filter(record =>
-    !searchTerm || 
-    record.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.vaccineType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.vaccineName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleSubmit = (formData: any) => {
+// API Functions
+const apiService = {
+  // Lấy tất cả phiếu đăng ký
+  async getAllRecords() {
     try {
-      if (editingRecord) {
-        setRecords(prev => prev.map(r => 
-          r._id === editingRecord._id ? { ...r, ...formData } : r
-        ));
-      } else {
-        const newRecord = {
-          _id: Date.now().toString(),
-          stt: records.length + 1,
-          ...formData,
-          status: "scheduled"
-        };
-        setRecords(prev => [...prev, newRecord]);
+      const response = await fetch(API_BASE_URL);
+      const result = await response.json();
+      if (result.success) {
+        return result.data;
       }
-      setShowForm(false);
-      setEditingRecord(null);
-      setViewMode(null);
+      throw new Error(result.message || 'Lỗi khi lấy danh sách phiếu đăng ký');
     } catch (error) {
-      console.error("Lưu thông tin thất bại");
+      console.error('Error fetching records:', error);
+      throw error;
+    }
+  },
+
+  // Lấy chi tiết phiếu đăng ký
+  async getRecordDetail(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/${id}`);
+      const result = await response.json();
+      if (result.success) {
+        return result.data;
+      }
+      throw new Error(result.message || 'Lỗi khi lấy chi tiết phiếu đăng ký');
+    } catch (error) {
+      console.error('Error fetching record detail:', error);
+      throw error;
+    }
+  },
+
+  // Thêm mới phiếu đăng ký
+  async createRecord(data) {
+    try {
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      const result = await response.json();
+      if (result.success) {
+        return result;
+      }
+      throw new Error(result.message || 'Lỗi khi tạo phiếu đăng ký');
+    } catch (error) {
+      console.error('Error creating record:', error);
+      throw error;
+    }
+  },
+
+  // Sửa phiếu đăng ký
+  async updateRecord(id, data) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      const result = await response.json();
+      if (result.success) {
+        return result;
+      }
+      throw new Error(result.message || 'Lỗi khi cập nhật phiếu đăng ký');
+    } catch (error) {
+      console.error('Error updating record:', error);
+      throw error;
+    }
+  },
+
+  // Hủy phiếu đăng ký
+  async deleteRecord(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/${id}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
+      if (result.success) {
+        return result;
+      }
+      throw new Error(result.message || 'Lỗi khi hủy phiếu đăng ký');
+    } catch (error) {
+      console.error('Error deleting record:', error);
+      throw error;
+    }
+  }
+};
+
+export default function VaccinationManagement() {
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [showDetailView, setShowDetailView] = useState(null);
+
+  // Load dữ liệu khi component mount
+  useEffect(() => {
+    loadRecords();
+  }, []);
+
+  const loadRecords = async () => {
+    try {
+      setLoading(true);
+      const data = await apiService.getAllRecords();
+      setRecords(data || []);
+    } catch (error) {
+      console.error('Lỗi khi tải danh sách:', error);
+      alert('Lỗi khi tải danh sách phiếu đăng ký');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDelete = (id: string) => {
-    setRecords(prev => prev.filter(r => r._id !== id));
-    setShowDeleteConfirm(null);
+  const filteredRecords = records.filter(record =>
+    !searchTerm || 
+    (record.HoTenNguoiLienHe && record.HoTenNguoiLienHe.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (record.TrangThai && record.TrangThai.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const handleSubmit = async (formData) => {
+    try {
+      // Chuyển đổi dữ liệu form thành format API
+      const apiData = {
+        idDKTiemChung: formData.idDKTiemChung || `PDK${Date.now()}`,
+        NgayLap: new Date().toISOString(),
+        NgayTiem: formData.desiredDate || new Date().toISOString().split('T')[0],
+        HoTenNguoiLienHe: formData.contactName || '',
+        QuanHe: formData.relationship || '',
+        SDT_LienHe: formData.contactPhone || '',
+        Email: formData.contactEmail || '',
+        ThoiGianTiem: '08:00',
+        LieuTiem: formData.dose || '1 liều',
+        GhiChu: formData.note || '',
+        TrangThai: 'Đã đăng ký',
+        idVacXin: formData.vaccineId || 'VX001',
+        idNguoiDung: 'ND001',
+        idBenhNhan: formData.patientId || 'BN001'
+      };
+
+      if (editingRecord) {
+        await apiService.updateRecord(editingRecord.idDKTiemChung, apiData);
+        alert('Cập nhật thành công!');
+      } else {
+        await apiService.createRecord(apiData);
+        alert('Thêm mới thành công!');
+      }
+      
+      setShowForm(false);
+      setEditingRecord(null);
+      setViewMode(null);
+      await loadRecords(); // Reload danh sách
+    } catch (error) {
+      console.error("Lưu thông tin thất bại:", error);
+      alert('Lưu thông tin thất bại: ' + error.message);
+    }
   };
 
-  const handleEdit = (record: any) => {
+  const handleDelete = async (id) => {
+    try {
+      await apiService.deleteRecord(id);
+      alert('Hủy đăng ký thành công!');
+      setShowDeleteConfirm(null);
+      await loadRecords(); // Reload danh sách
+    } catch (error) {
+      console.error('Lỗi khi hủy:', error);
+      alert('Lỗi khi hủy phiếu đăng ký: ' + error.message);
+    }
+  };
+
+  const handleEdit = (record) => {
     setEditingRecord(record);
     setViewMode('edit');
     setShowForm(true);
   };
 
-  const handleViewDetail = (record: any) => {
-    setShowDetailView(record);
+  const handleViewDetail = async (record) => {
+    try {
+      const detail = await apiService.getRecordDetail(record.idDKTiemChung);
+      setShowDetailView(detail);
+    } catch (error) {
+      console.error('Lỗi khi lấy chi tiết:', error);
+      alert('Lỗi khi lấy chi tiết phiếu đăng ký');
+    }
   };
 
   if (showDetailView) {
@@ -227,7 +332,7 @@ export default function VaccinationManagement() {
       record={showDetailView} 
       onBack={() => setShowDetailView(null)}
       onEdit={handleEdit}
-      onDelete={(id: string) => setShowDeleteConfirm(id)}
+      onDelete={(id) => setShowDeleteConfirm(id)}
     />;
   }
 
@@ -274,7 +379,7 @@ export default function VaccinationManagement() {
               setViewMode('add');
               setShowForm(true);
             }}
-            className="inline-flex items-center px-4 py-2  text-white rounded-lg btn-primary transition-colors"
+            className="inline-flex items-center px-4 py-2 btn-primary text-white rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4 mr-2" />
             Thêm mới phiếu đăng ký
@@ -288,7 +393,12 @@ export default function VaccinationManagement() {
           <h3 className="text-lg font-medium text-gray-900">Danh sách đăng ký tiêm chủng</h3>
         </div>
         
-        {filteredRecords.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <Loader2 className="w-8 h-8 text-blue-600 mx-auto mb-4 animate-spin" />
+            <p className="text-gray-600">Đang tải dữ liệu...</p>
+          </div>
+        ) : filteredRecords.length === 0 ? (
           <div className="text-center py-12">
             <Syringe className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy phiếu đăng ký</h3>
@@ -301,26 +411,38 @@ export default function VaccinationManagement() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">STT</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Họ và tên</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vắc xin</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại Vắc xin</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày đăng ký</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã ĐK</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Người liên hệ</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quan hệ</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SĐT</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày lập</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày tiêm</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Liều tiêm</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredRecords.map((record) => (
-                  <tr key={record._id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-900">{record.stt}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{record.patientName}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{record.vaccineName}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{record.vaccineType}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{record.registrationDate}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{record.vaccinationDate}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{record.dose}</td>
+                {filteredRecords.map((record, index) => (
+                  <tr key={record.idDKTiemChung || index} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm text-gray-900">{record.idDKTiemChung}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{record.HoTenNguoiLienHe}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{record.QuanHe}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{record.SDT_LienHe}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {record.NgayLap ? new Date(record.NgayLap).toLocaleDateString('vi-VN') : ''}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {record.NgayTiem ? new Date(record.NgayTiem).toLocaleDateString('vi-VN') : ''}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        record.TrangThai === 'Đã hủy' ? 'bg-red-100 text-red-800' :
+                        record.TrangThai === 'Đã tiêm' ? 'bg-green-100 text-green-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {record.TrangThai}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center space-x-2">
                         <button
@@ -329,12 +451,14 @@ export default function VaccinationManagement() {
                         >
                           Chi tiết
                         </button>
-                        <button
-                          onClick={() => setShowDeleteConfirm(record._id)}
-                          className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 transition-colors"
-                        >
-                          Hủy đăng ký
-                        </button>
+                        {record.TrangThai !== 'Đã hủy' && (
+                          <button
+                            onClick={() => setShowDeleteConfirm(record.idDKTiemChung)}
+                            className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 transition-colors"
+                          >
+                            Hủy đăng ký
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -344,20 +468,15 @@ export default function VaccinationManagement() {
             
             <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
               <div className="text-sm text-gray-700">
-                1 - 5 của 56
+                Hiển thị {filteredRecords.length} phiếu đăng ký
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-700">Trang</span>
-                <select className="border border-gray-300 rounded px-2 py-1 text-sm">
-                  <option>1</option>
-                </select>
-                <button className="p-1 border border-gray-300 rounded hover:bg-gray-100">
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-                <button className="p-1 border border-gray-300 rounded hover:bg-gray-100">
-                  <ArrowLeft className="w-4 h-4 transform rotate-180" />
-                </button>
-              </div>
+              <button
+                onClick={loadRecords}
+                className="flex items-center space-x-2 px-3 py-1 text-sm text-blue-600 hover:text-blue-800"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Làm mới</span>
+              </button>
             </div>
           </div>
         )}
@@ -410,7 +529,7 @@ export default function VaccinationManagement() {
   );
 }
 
-function VaccinationDetailView({ record, onBack, onEdit, onDelete }: any) {
+function VaccinationDetailView({ record, onBack, onEdit, onDelete }) {
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -427,7 +546,7 @@ function VaccinationDetailView({ record, onBack, onEdit, onDelete }: any) {
             In phiếu
           </button>
           <button 
-            onClick={() => onDelete(record._id)}
+            onClick={() => onDelete(record.idDKTiemChung)}
             className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
           >
             <Trash2 className="w-4 h-4 mr-2" />
@@ -435,7 +554,7 @@ function VaccinationDetailView({ record, onBack, onEdit, onDelete }: any) {
           </button>
           <button 
             onClick={onBack}
-            className="inline-flex items-center px-4 py-2  text-white rounded btn-primary transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-4 h-4 mr-2" />
             Thêm mới
@@ -447,60 +566,31 @@ function VaccinationDetailView({ record, onBack, onEdit, onDelete }: any) {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-medium text-gray-900">THÔNG TIN NGƯỜI ĐƯỢC TIÊM</h3>
-          <div className="flex space-x-3">
-            <button className="inline-flex items-center px-4 py-2  text-white rounded border-t-cyan-50 transition-colors">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Thêm người được tiêm
-            </button>
-            <button className="inline-flex items-center px-4 py-2 btn-primary text-white rounded  transition-colors">
-              <Search className="w-4 h-4 mr-2" />
-              Tìm kiếm
-            </button>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div>
             <label className="block text-sm text-gray-600 mb-1">Họ và tên người được tiêm</label>
-            <div className="text-gray-900">{record.patientName}</div>
+            <div className="text-gray-900">{record.TenBenhNhan || 'N/A'}</div>
           </div>
           <div>
             <label className="block text-sm text-gray-600 mb-1">Ngày sinh người được tiêm</label>
             <div className="flex items-center">
-              <span className="text-gray-900">Ngày/tháng/năm</span>
-              <Calendar className="w-4 h-4 ml-2 text-gray-400" />
-              <ArrowLeft className="w-4 h-4 ml-2 text-gray-400 transform rotate-90" />
+              <span className="text-gray-900">
+                {record.NgaySinh ? new Date(record.NgaySinh).toLocaleDateString('vi-VN') : 'N/A'}
+              </span>
             </div>
           </div>
           <div>
             <label className="block text-sm text-gray-600 mb-1">Giới tính</label>
-            <div className="text-gray-900">Nam</div>
+            <div className="text-gray-900">{record.GioiTinh || 'N/A'}</div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">CMND/CCCD</label>
-            <div className="text-gray-900">094301012087817</div>
-          </div>
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Số BHYT</label>
-            <div className="text-gray-900">DN4301012087817</div>
-          </div>
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Số điện thoại</label>
-            <div className="text-gray-900">0966724651</div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Dân tộc</label>
-            <div className="text-gray-900">Kinh</div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm text-gray-600 mb-1">Địa chỉ</label>
-            <div className="text-gray-900">123 Đường ABC, Quận 1, TP.HCM</div>
+            <div className="text-gray-900">{record.DiaChi || 'N/A'}</div>
           </div>
         </div>
       </div>
@@ -512,26 +602,22 @@ function VaccinationDetailView({ record, onBack, onEdit, onDelete }: any) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div>
             <label className="block text-sm text-gray-600 mb-1">Họ và tên người liên hệ</label>
-            <div className="text-gray-900">Nguyễn Văn A</div>
+            <div className="text-gray-900">{record.HoTenNguoiLienHe || 'N/A'}</div>
           </div>
           <div>
             <label className="block text-sm text-gray-600 mb-1">Quan hệ</label>
-            <div className="text-gray-900">Vợ/Chồng</div>
+            <div className="text-gray-900">{record.QuanHe || 'N/A'}</div>
           </div>
           <div>
             <label className="block text-sm text-gray-600 mb-1">Số điện thoại liên hệ</label>
-            <div className="text-gray-900">0966724651</div>
+            <div className="text-gray-900">{record.SDT_LienHe || 'N/A'}</div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm text-gray-600 mb-1">Email</label>
-            <div className="text-gray-900">email@example.com</div>
-          </div>
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">CMND/CCCD</label>
-            <div className="text-gray-900">094301012087817</div>
+            <div className="text-gray-900">{record.Email || 'N/A'}</div>
           </div>
         </div>
       </div>
@@ -540,41 +626,50 @@ function VaccinationDetailView({ record, onBack, onEdit, onDelete }: any) {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
-            <label className="block text-sm text-gray-600 mb-3">Loại vắc xin muốn đăng ký</label>
-            <div className="flex space-x-4">
-              <button className="px-4 py-2 bg-blue-600 text-white rounded">Vắc xin gói</button>
-              <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded">Vắc xin lẻ</button>
+            <label className="block text-sm text-gray-600 mb-1">Ngày đăng ký</label>
+            <div className="text-gray-900">
+              {record.NgayLap ? new Date(record.NgayLap).toLocaleDateString('vi-VN') : 'N/A'}
             </div>
           </div>
           <div>
             <label className="block text-sm text-gray-600 mb-1">Ngày mong muốn tiêm</label>
-            <div className="flex items-center">
-              <span className="text-gray-900">Ngày/tháng/năm</span>
-              <Calendar className="w-4 h-4 ml-2 text-gray-400" />
+            <div className="text-gray-900">
+              {record.NgayTiem ? new Date(record.NgayTiem).toLocaleDateString('vi-VN') : 'N/A'}
             </div>
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm text-gray-600 mb-3">Loại vắc xin đăng ký</label>
-          <div className="bg-blue-50 rounded-lg p-4">
-            <div className="text-sm font-medium text-blue-900 mb-2">
-              Gói vắc xin Hexaxim - Rotarix - Synflorix (9 - 12 tháng)
-            </div>
-            <div className="text-xs text-blue-700 space-y-1">
-              <div>- Vắc xin DPT 6 trong 1 đợt tiêm tổng cộ</div>
-              <div>- Vắc xin rota virus 3 đợt uống hoặc tiêm</div>
-              <div>- Vắc xin viêm phổi 4 đợt tiêm</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Thời gian tiêm</label>
+            <div className="text-gray-900">{record.ThoiGianTiem || 'N/A'}</div>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Liều tiêm</label>
+            <div className="text-gray-900">{record.LieuTiem || 'N/A'}</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Trạng thái</label>
+            <div className="text-gray-900">
+              <span className={`px-2 py-1 rounded-full text-xs ${
+                record.TrangThai === 'Đã hủy' ? 'bg-red-100 text-red-800' :
+                record.TrangThai === 'Đã tiêm' ? 'bg-green-100 text-green-800' :
+                'bg-yellow-100 text-yellow-800'
+              }`}>
+                {record.TrangThai}
+              </span>
             </div>
           </div>
-          <div className="text-red-600 text-sm mt-2">(*) Nội dung bắt buộc nhập</div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Ghi chú</label>
+            <div className="text-gray-900">{record.GhiChu || 'N/A'}</div>
+          </div>
         </div>
 
         <div className="flex justify-end space-x-3 mt-6">
-          <button className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
-            <CheckCircle className="w-4 h-4 mr-2 inline" />
-            Lưu
-          </button>
           <button 
             onClick={onBack}
             className="px-6 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
@@ -588,62 +683,56 @@ function VaccinationDetailView({ record, onBack, onEdit, onDelete }: any) {
   );
 }
 
-function VaccinationForm({ record, viewMode, vaccines, patients, onSubmit, onCancel }: any) {
-  const [selectedPatient, setSelectedPatient] = useState<any>(null);
+function VaccinationForm({ record, viewMode, vaccines, patients, onSubmit, onCancel }) {
+  const [selectedPatient, setSelectedPatient] = useState(null);
   const [showPatientList, setShowPatientList] = useState(false);
   const [showNewPatientForm, setShowNewPatientForm] = useState(false);
-  const [selectedVaccine, setSelectedVaccine] = useState<any>(null);
+  const [selectedVaccine, setSelectedVaccine] = useState(null);
   const [formData, setFormData] = useState({
-    patientId: record?.patientId || "",
-    fullName: record?.fullName || "",
-    dateOfBirth: record?.dateOfBirth || "",
-    gender: record?.gender || "Nam",
+    idDKTiemChung: record?.idDKTiemChung || '',
+    patientId: record?.idBenhNhan || "",
+    fullName: record?.TenBenhNhan || "",
+    dateOfBirth: record?.NgaySinh || "",
+    gender: record?.GioiTinh || "Nam",
     idNumber: record?.idNumber || "",
     insuranceNumber: record?.insuranceNumber || "",
     ethnicity: record?.ethnicity || "Kinh",
     phone: record?.phone || "",
-    address: record?.address || "",
-    contactName: record?.contactName || "",
-    relationship: record?.relationship || "",
-    contactPhone: record?.contactPhone || "",
-    contactEmail: record?.contactEmail || "",
+    address: record?.DiaChi || "",
+    contactName: record?.HoTenNguoiLienHe || "",
+    relationship: record?.QuanHe || "",
+    contactPhone: record?.SDT_LienHe || "",
+    contactEmail: record?.Email || "",
     contactIdNumber: record?.contactIdNumber || "",
     vaccinePackageType: record?.vaccinePackageType || "single",
-    desiredDate: record?.desiredDate || "",
-    vaccineId: record?.vaccineId || "",
-    dose: record?.dose || "",
+    desiredDate: record?.NgayTiem || "",
+    vaccineId: record?.idVacXin || "",
+    dose: record?.LieuTiem || "",
+    note: record?.GhiChu || "",
     price: record?.price || 0
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!selectedPatient && !formData.fullName) {
-      alert("Vui lòng chọn hoặc nhập thông tin bệnh nhân");
+    if (!formData.contactName) {
+      alert("Vui lòng nhập tên người liên hệ");
       return;
     }
-    if (!selectedVaccine) {
-      alert("Vui lòng chọn vắc xin");
+    if (!formData.contactPhone) {
+      alert("Vui lòng nhập số điện thoại liên hệ");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const submitData = {
-        ...formData,
-        patientName: selectedPatient ? selectedPatient.fullName : formData.fullName,
-        vaccineType: selectedVaccine.type,
-        vaccineName: selectedVaccine.name,
-        registrationDate: new Date().toLocaleDateString('vi-VN'),
-        vaccinationDate: formData.desiredDate
-      };
-      await onSubmit(submitData);
+      await onSubmit(formData);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handlePatientSelect = (patient: any) => {
+  const handlePatientSelect = (patient) => {
     setSelectedPatient(patient);
     setFormData({
       ...formData,
@@ -660,7 +749,7 @@ function VaccinationForm({ record, viewMode, vaccines, patients, onSubmit, onCan
     setShowPatientList(false);
   };
 
-  const handleVaccineSelect = (vaccine: any) => {
+  const handleVaccineSelect = (vaccine) => {
     setSelectedVaccine(vaccine);
     setFormData({
       ...formData,
@@ -703,7 +792,7 @@ function VaccinationForm({ record, viewMode, vaccines, patients, onSubmit, onCan
                 <button
                   type="button"
                   onClick={() => setShowPatientList(true)}
-                  className="inline-flex items-center px-4 py-2 btn-primary text-white rounded  transition-colors"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                 >
                   <Search className="w-4 h-4 mr-2" />
                   Tìm kiếm
@@ -751,15 +840,12 @@ function VaccinationForm({ record, viewMode, vaccines, patients, onSubmit, onCan
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-2">*Ngày sinh người được tiêm</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value="Ngày/tháng/năm"
-                    className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-500"
-                    readOnly
-                  />
-                  <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                </div>
+                <input
+                  type="date"
+                  value={formData.dateOfBirth}
+                  onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-2">*Giới tính</label>
@@ -773,53 +859,6 @@ function VaccinationForm({ record, viewMode, vaccines, patients, onSubmit, onCan
                   <option value="Khác">Khác</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-2">CMND/CCCD</label>
-                <input
-                  type="text"
-                  value={formData.idNumber}
-                  onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-2">*Số BHYT</label>
-                <input
-                  type="text"
-                  value={formData.insuranceNumber}
-                  onChange={(e) => setFormData({ ...formData, insuranceNumber: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-2">*Số điện thoại</label>
-                <input
-                  type="tel"
-                  required
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-2">Dân tộc</label>
-                <input
-                  type="text"
-                  value={formData.ethnicity}
-                  onChange={(e) => setFormData({ ...formData, ethnicity: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-2">*Địa chỉ</label>
-                <textarea
-                  required
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  rows={2}
-                />
-              </div>
             </div>
           </div>
 
@@ -832,6 +871,7 @@ function VaccinationForm({ record, viewMode, vaccines, patients, onSubmit, onCan
                 <label className="block text-sm text-gray-600 mb-2">*Họ và tên người liên hệ</label>
                 <input
                   type="text"
+                  required
                   value={formData.contactName}
                   onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -841,6 +881,7 @@ function VaccinationForm({ record, viewMode, vaccines, patients, onSubmit, onCan
                 <label className="block text-sm text-gray-600 mb-2">*Quan hệ</label>
                 <input
                   type="text"
+                  required
                   value={formData.relationship}
                   onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -850,13 +891,14 @@ function VaccinationForm({ record, viewMode, vaccines, patients, onSubmit, onCan
                 <label className="block text-sm text-gray-600 mb-2">*Số điện thoại liên hệ</label>
                 <input
                   type="tel"
+                  required
                   value={formData.contactPhone}
                   onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-2">*Email</label>
+                <label className="block text-sm text-gray-600 mb-2">Email</label>
                 <input
                   type="email"
                   value={formData.contactEmail}
@@ -865,114 +907,31 @@ function VaccinationForm({ record, viewMode, vaccines, patients, onSubmit, onCan
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-2">*CMND/CCCD</label>
+                <label className="block text-sm text-gray-600 mb-2">Ngày mong muốn tiêm</label>
                 <input
-                  type="text"
-                  value={formData.contactIdNumber}
-                  onChange={(e) => setFormData({ ...formData, contactIdNumber: e.target.value })}
+                  type="date"
+                  value={formData.desiredDate}
+                  onChange={(e) => setFormData({ ...formData, desiredDate: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-            </div>
-          </div>
-
-          {/* Service Information */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
-                <label className="block text-sm text-gray-600 mb-3">*Loại vắc xin muốn đăng ký</label>
-                <div className="flex space-x-4">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, vaccinePackageType: "package" })}
-                    className={`px-4 py-2 rounded transition-colors ${
-                      formData.vaccinePackageType === "package" 
-                        ? "bg-blue-600 text-white" 
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
-                  >
-                    Vắc xin gói
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, vaccinePackageType: "single" })}
-                    className={`px-4 py-2 rounded transition-colors ${
-                      formData.vaccinePackageType === "single" 
-                        ? "bg-blue-600 text-white" 
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
-                  >
-                    Vắc xin lẻ
-                  </button>
-                </div>
+                <label className="block text-sm text-gray-600 mb-2">Ghi chú</label>
+                <textarea
+                  value={formData.note}
+                  onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  rows={2}
+                />
               </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-2">*Ngày mong muốn tiêm</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value="Ngày/tháng/năm"
-                    className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-500"
-                    readOnly
-                  />
-                  <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-600 mb-3">*Chọn vắc xin</label>
-              <div className="space-y-3">
-                {vaccines.map((vaccine: any) => (
-                  <div
-                    key={vaccine.id}
-                    className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                      selectedVaccine?.id === vaccine.id
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-300 hover:bg-gray-50"
-                    }`}
-                    onClick={() => handleVaccineSelect(vaccine)}
-                  >
-                    <div className="flex items-start">
-                      <div className="w-2 h-2 rounded-full border border-gray-400 mt-2 mr-3"></div>
-                      <div>
-                        <div className="font-medium text-gray-900">{vaccine.name}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              {selectedVaccine && (
-                <div className="mt-4 bg-blue-50 rounded-lg p-4">
-                  <div className="text-sm font-medium text-blue-900 mb-2">
-                    Gói vắc xin Hexaxim - Rotarix - Synflorix (9 - 12 tháng) - Liều tiêm: 24,833,320 đ
-                  </div>
-                  <div className="text-xs text-blue-700 space-y-1">
-                    <div>- Vắc xin DPT 6 trong 1 đợt tiêm hoặc 2 đợt</div>
-                    <div>- Vắc xin rotavirus 3 đợt uống hoặc tiêm</div>
-                    <div>- Vắc xin viêm phổi cầu khuẩn 4 đợt tiêm</div>
-                    <div>- Vắc xin viêm gan B 3 đợt tiêm</div>
-                  </div>
-                </div>
-              )}
-              
-              <div className="text-red-600 text-sm mt-2">(*) Nội dung bắt buộc nhập</div>
             </div>
 
             <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 mt-6">
               <button
                 type="button"
-                className="px-6 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
-              >
-                <FileText className="w-4 h-4 mr-2 inline" />
-                In phiếu
-              </button>
-              <button
-                type="button"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:opacity-50"
+                className="px-6 py-2 btn-primary text-white rounded  transition-colors disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <>
@@ -982,7 +941,7 @@ function VaccinationForm({ record, viewMode, vaccines, patients, onSubmit, onCan
                 ) : (
                   <>
                     <Save className="w-4 h-4 mr-2 inline" />
-                    Đăng ký
+                    {viewMode === 'edit' ? 'Cập nhật' : 'Đăng ký'}
                   </>
                 )}
               </button>
@@ -1011,7 +970,7 @@ function VaccinationForm({ record, viewMode, vaccines, patients, onSubmit, onCan
       {/* New Patient Form Modal */}
       {showNewPatientForm && (
         <NewPatientFormModal
-          onSubmit={(patient: any) => {
+          onSubmit={(patient) => {
             handlePatientSelect(patient);
             setShowNewPatientForm(false);
           }}
@@ -1022,10 +981,10 @@ function VaccinationForm({ record, viewMode, vaccines, patients, onSubmit, onCan
   );
 }
 
-function PatientListModal({ patients, onSelectPatient, onCancel }: any) {
+function PatientListModal({ patients, onSelectPatient, onCancel }) {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredPatients = patients.filter((patient: any) =>
+  const filteredPatients = patients.filter((patient) =>
     patient.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.patientCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.phone.includes(searchTerm)
@@ -1049,7 +1008,7 @@ function PatientListModal({ patients, onSelectPatient, onCancel }: any) {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Nguyễn"
+                placeholder="Tìm theo tên, mã bệnh nhân hoặc số điện thoại"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1065,19 +1024,17 @@ function PatientListModal({ patients, onSelectPatient, onCancel }: any) {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Họ tên</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày sinh</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Giới tính</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số BHYT</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Điện thoại</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Chọn</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredPatients.map((patient: any) => (
+                {filteredPatients.map((patient) => (
                   <tr key={patient._id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm text-gray-900">{patient.patientCode}</td>
                     <td className="px-4 py-3 text-sm text-gray-900">{patient.fullName}</td>
                     <td className="px-4 py-3 text-sm text-gray-900">{patient.dateOfBirth}</td>
                     <td className="px-4 py-3 text-sm text-gray-900">{patient.gender}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{patient.insuranceNumber}</td>
                     <td className="px-4 py-3 text-sm text-gray-900">{patient.phone}</td>
                     <td className="px-4 py-3 text-center">
                       <button
@@ -1091,22 +1048,6 @@ function PatientListModal({ patients, onSelectPatient, onCancel }: any) {
                 ))}
               </tbody>
             </table>
-            
-            <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-              <div className="text-sm text-gray-700">1 - 5 của 67</div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-700">Trang</span>
-                <select className="border border-gray-300 rounded px-2 py-1 text-sm">
-                  <option>1</option>
-                </select>
-                <button className="p-1 border border-gray-300 rounded hover:bg-gray-100">
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-                <button className="p-1 border border-gray-300 rounded hover:bg-gray-100">
-                  <ArrowLeft className="w-4 h-4 transform rotate-180" />
-                </button>
-              </div>
-            </div>
           </div>
           
           <div className="flex justify-end mt-4">
@@ -1114,7 +1055,7 @@ function PatientListModal({ patients, onSelectPatient, onCancel }: any) {
               onClick={onCancel}
               className="px-6 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
             >
-              Chọn
+              Đóng
             </button>
           </div>
         </div>
@@ -1123,7 +1064,7 @@ function PatientListModal({ patients, onSelectPatient, onCancel }: any) {
   );
 }
 
-function NewPatientFormModal({ onSubmit, onCancel }: any) {
+function NewPatientFormModal({ onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
     patientCode: `BN${Date.now().toString().slice(-6)}`,
     fullName: "",
@@ -1139,6 +1080,11 @@ function NewPatientFormModal({ onSubmit, onCancel }: any) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
+    if (!formData.fullName || !formData.phone) {
+      alert("Vui lòng nhập đầy đủ thông tin bắt buộc");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const newPatient = { _id: `p${Date.now()}`, ...formData };
@@ -1172,12 +1118,22 @@ function NewPatientFormModal({ onSubmit, onCancel }: any) {
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-2">Số CCCD/CMND (*)</label>
+              <label className="block text-sm text-gray-600 mb-2">*Họ và tên</label>
               <input
                 type="text"
                 required
-                value={formData.idNumber}
-                onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
+                value={formData.fullName}
+                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">*Ngày sinh</label>
+              <input
+                type="date"
+                required
+                value={formData.dateOfBirth}
+                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -1194,45 +1150,22 @@ function NewPatientFormModal({ onSubmit, onCancel }: any) {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-2">*Ngày sinh</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value="30/08/2003"
-                  className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50"
-                  readOnly
-                />
-                <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-2">Dân tộc</label>
-              <select
-                value={formData.ethnicity}
-                onChange={(e) => setFormData({ ...formData, ethnicity: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="Kinh">Kinh</option>
-                <option value="Hoa">Hoa</option>
-                <option value="Tày">Tày</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-2">Số BHYT/BHXH</label>
-              <input
-                type="text"
-                value="DN4301012087817"
-                className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50"
-                readOnly
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-2">Điện thoại</label>
+              <label className="block text-sm text-gray-600 mb-2">*Điện thoại</label>
               <input
                 type="tel"
+                required
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">Địa chỉ</label>
+              <textarea
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                rows={2}
               />
             </div>
           </div>

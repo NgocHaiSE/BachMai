@@ -29,7 +29,8 @@ import {
   UserPlus,
   Stethoscope,
   Activity,
-  RefreshCw
+  RefreshCw,
+  AlertCircle
 } from "lucide-react";
 import {
   useAppointments,
@@ -92,6 +93,12 @@ export default function ExaminationRegistration() {
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+
+  
+  // Delete modal states
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState<any>(null);
+  
   const { user } = useAuth();
 
   // Get examination records
@@ -107,8 +114,9 @@ export default function ExaminationRegistration() {
   const { mutate: createRecord } = useCreateAppointment();
   const { mutate: updateRecord } = useUpdateAppointment();
   const { mutate: updateStatus } = useUpdateAppointmentStatus();
-  const { mutate: deleteRecord } = useDeleteAppointment();
+  const { mutate: deleteRecord, loading: deleteLoading } = useDeleteAppointment();
   const { mutate: createPatient } = useCreatePatient();
+
 
   const normalizedSearch = removeVietnameseTones(advanceSearch);
 
@@ -135,7 +143,6 @@ export default function ExaminationRegistration() {
       .toLowerCase();
   }
 
-
   const handleSubmit = async (formData: any) => {
     try {
       // Thêm idNguoiDung vào formData trước khi gửi
@@ -145,7 +152,7 @@ export default function ExaminationRegistration() {
       };
 
       if (editingRecord) {
-        await updateRecord({ id: editingRecord.idDKKhambenh, ...dataToSubmit });
+        await updateRecord({ id: editingRecord.MaPhieuDangKy , ...dataToSubmit });
         toast.success("Cập nhật phiếu đăng ký thành công");
       } else {
         await createRecord(dataToSubmit);
@@ -160,19 +167,30 @@ export default function ExaminationRegistration() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Bạn có chắc chắn muốn xóa phiếu đăng ký này?")) {
-      try {
-        await deleteRecord(id);
-        toast.success("Xóa phiếu đăng ký thành công");
-        refetch();
-      } catch (error: any) {
-        toast.error(error.message || "Xóa phiếu đăng ký thất bại");
-      }
+  const handleDeleteClick = (record: any) => {
+    setRecordToDelete(record);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!recordToDelete) return;
+    
+    try {
+      await deleteRecord(recordToDelete.MaPhieuDangKy);
+      toast.success("Xóa phiếu đăng ký thành công");
+      refetch();
+      setShowDeleteModal(false);
+      setRecordToDelete(null);
+    } catch (error: any) {
+      toast.error(error.message || "Xóa phiếu đăng ký thất bại");
     }
   };
 
-  
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setRecordToDelete(null);
+  };
+
   const handleEdit = (record: any) => {
     setEditingRecord(record);
     // Find patient from record's patientId or create from record data
@@ -367,7 +385,6 @@ export default function ExaminationRegistration() {
                             <Hash className="w-4 h-4 mr-1 text-gray-400" />
                             {record.MaPhieuDangKy}
                           </div>
-
                         </div>
                       </div>
                     </td>
@@ -380,7 +397,6 @@ export default function ExaminationRegistration() {
                         </div>
                       </div>
                     </td>
-
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div className="text-sm text-gray-500 flex items-center mt-1">
@@ -413,7 +429,7 @@ export default function ExaminationRegistration() {
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(record.MaPhieuDangKy)}
+                          onClick={() => handleDeleteClick(record)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Xóa"
                         >
@@ -477,10 +493,80 @@ export default function ExaminationRegistration() {
           onCancel={() => setShowNewPatientForm(false)}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <DeleteConfirmationModal
+          record={recordToDelete}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          isLoading={deleteLoading}
+        />
+      )}
     </div>
   );
 }
 
+// Delete Confirmation Modal Component
+function DeleteConfirmationModal({ record, onConfirm, onCancel, isLoading }: any) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
+        <div className="p-6 text-center">
+          {/* Warning Icon */}
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+            <AlertCircle className="w-8 h-8 text-red-600" />
+          </div>
+          
+          {/* Title */}
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Bạn có chắc chắn muốn xóa dữ liệu này không?
+          </h3>
+          
+          {/* Record Info */}
+          {record && (
+            <div className="text-sm text-gray-600 mb-6">
+              <p className="mb-1">
+                <strong>Mã phiếu:</strong> {record.MaPhieuDangKy}
+              </p>
+              <p className="mb-1">
+                <strong>Bệnh nhân:</strong> {record.TenBenhNhan || 'N/A'}
+              </p>
+              <p>
+                <strong>Ngày lập:</strong> {record.NgayLap ? new Date(record.NgayLap).toLocaleDateString('vi-VN') : 'N/A'}
+              </p>
+            </div>
+          )}
+          
+          {/* Buttons */}
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={onCancel}
+              disabled={isLoading}
+              className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors disabled:opacity-50"
+            >
+              Hủy
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Đang xóa...
+                </>
+              ) : (
+                'Xóa'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function toSQLDateTime(datetimeLocal) {
   // input: '2025-06-12T10:57'
@@ -488,6 +574,7 @@ function toSQLDateTime(datetimeLocal) {
   return datetimeLocal.replace('T', ' ') + ':00';
 }
 
+// Giữ nguyên các component khác (RegistrationForm, PatientInfoDisplay, PatientListModal, NewPatientForm)
 function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelectPatient, onChangePatient }: any) {
   const [formData, setFormData] = useState({
     LyDoKham: "",
@@ -499,7 +586,6 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
     KhamBHYT: false,
     idKhoa: ""
   });
-
 
   // Danh sách khoa với idKhoa và tên khoa
   const departments = [
@@ -521,9 +607,10 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
       TienSuBenhLyGiaDinh: record?.TienSuBenhLyGiaDinh || "",
       ThuocDangSuDung: record?.ThuocDangSuDung || "",
       KhamBHYT: record?.KhamBHYT || false,
-      idKhoa: record?.idKhoa.trim() || ""
+      idKhoa: record?.idKhoa?.trim() || ""
     });
   }, [record]);
+console.log(record)
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -546,7 +633,6 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
       setIsSubmitting(false);
     }
   };
-
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -609,20 +695,6 @@ function RegistrationForm({ record, selectedPatient, onSubmit, onCancel, onSelec
                   />
                 </div>
               </div>
-              {/* <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Người lập
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    value="Người dùng hiện tại"
-                    readOnly
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600"
-                  />
-                </div>
-              </div> */}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -946,7 +1018,6 @@ function PatientListModal({ patients, onSelectPatient, onAddNewPatient, onCancel
     patient.SDT?.includes(searchTerm)
   );
 
-  console.log(patients)
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
@@ -1155,15 +1226,36 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Dân tộc</label>
-                <input
-                  type="text"
+                <select
                   value={formData.DanToc}
                   onChange={(e) => setFormData({ ...formData, DanToc: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                />
+                >
+                  <option value="Kinh">Kinh</option>
+                  <option value="Tày">Tày</option>
+                  <option value="Thái">Thái</option>
+                  <option value="Hoa">Hoa</option>
+                  <option value="Khmer">Khmer</option>
+                  <option value="Mường">Mường</option>
+                  <option value="Nùng">Nùng</option>
+                  <option value="Hmông">Hmông</option>
+                  <option value="Dao">Dao</option>
+                  <option value="Gia Rai">Gia Rai</option>
+                  <option value="Ê Đê">Ê Đê</option>
+                  <option value="Ba Na">Ba Na</option>
+                  <option value="Sán Chay">Sán Chay</option>
+                  <option value="Chăm">Chăm</option>
+                  <option value="Sán Dìu">Sán Dìu</option>
+                  <option value="Hrê">Hrê</option>
+                  <option value="Ra Glai">Ra Glai</option>
+                  <option value="Mnông">Mnông</option>
+                  <option value="Thổ">Thổ</option>
+                  <option value="Xtiêng">Xtiêng</option>
+                  <option value="Khác">Khác</option>
+                </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Điện thoại *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Số điện thoại *</label>
                 <input
                   type="tel"
                   required
@@ -1172,16 +1264,16 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 />
               </div>
-            </div>
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Địa chỉ *</label>
-              <textarea
-                required
-                value={formData.DiaChi}
-                onChange={(e) => setFormData({ ...formData, DiaChi: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                rows={3}
-              />
+              <div className="lg:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Địa chỉ *</label>
+                <textarea
+                  required
+                  value={formData.DiaChi}
+                  onChange={(e) => setFormData({ ...formData, DiaChi: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  rows={2}
+                />
+              </div>
             </div>
           </div>
 
@@ -1193,7 +1285,7 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
             </h4>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Họ tên</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Họ tên người thân</label>
                 <input
                   type="text"
                   value={formData.HoTenThanNhan}
@@ -1203,12 +1295,22 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Mối quan hệ</label>
-                <input
-                  type="text"
+                <select
                   value={formData.MoiQuanHe}
                   onChange={(e) => setFormData({ ...formData, MoiQuanHe: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                />
+                >
+                  <option value="">Chọn mối quan hệ</option>
+                  <option value="Cha">Cha</option>
+                  <option value="Mẹ">Mẹ</option>
+                  <option value="Vợ">Vợ</option>
+                  <option value="Chồng">Chồng</option>
+                  <option value="Con">Con</option>
+                  <option value="Anh/Chị">Anh/Chị</option>
+                  <option value="Em">Em</option>
+                  <option value="Bạn">Bạn</option>
+                  <option value="Khác">Khác</option>
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
@@ -1225,10 +1327,10 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
           {/* Thông tin bảo hiểm */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <ShieldCheck className="w-5 h-5 mr-2 text-green-600" />
-              Thông tin bảo hiểm y tế
+              <CreditCard className="w-5 h-5 mr-2 text-green-600" />
+              Thông tin bảo hiểm y tế và ưu tiên
             </h4>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Số thẻ BHYT/BHXH</label>
                 <input
@@ -1236,6 +1338,7 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
                   value={formData.BHYT}
                   onChange={(e) => setFormData({ ...formData, BHYT: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  placeholder="VD: GD1234567890123"
                 />
               </div>
               <div>
@@ -1247,7 +1350,7 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 />
               </div>
-              <div className="lg:col-span-2">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Đối tượng ưu tiên</label>
                 <select
                   value={formData.DoiTuongUuTien}
@@ -1280,7 +1383,7 @@ function NewPatientForm({ onSubmit, onCancel }: any) {
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Đang lưu...
+                  Đang thêm...
                 </>
               ) : (
                 <>
