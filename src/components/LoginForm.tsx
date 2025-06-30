@@ -114,15 +114,6 @@ const LoginForm: React.FC = () => {
             </button>
           </form>
 
-          {/* Demo accounts */}
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600 mb-2 font-medium">Tài khoản demo:</p>
-            <div className="text-xs text-gray-500 space-y-1">
-              <p>• Bác sĩ: doctor / 123456</p>
-              <p>• Y tá: nurse / 123456</p>
-              <p>• Admin: admin / 123456</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

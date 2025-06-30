@@ -28,6 +28,88 @@ interface WorkScheduleManagementProps { }
 
 type TabType = 'schedules' | 'transfers' | 'leaves';
 
+// Toast types
+interface ToastMessage {
+  id: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+  message: string;
+}
+
+// Toast Component
+const Toast: React.FC<{
+  message: ToastMessage;
+  onRemove: (id: string) => void;
+}> = ({ message, onRemove }) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onRemove(message.id);
+    }, 4000);
+
+    return () => clearTimeout(timer);
+  }, [message.id, onRemove]);
+
+  const getToastStyles = () => {
+    switch (message.type) {
+      case 'success':
+        return 'bg-green-500 text-white';
+      case 'error':
+        return 'bg-red-500 text-white';
+      case 'warning':
+        return 'bg-yellow-500 text-white';
+      case 'info':
+        return 'bg-blue-500 text-white';
+      default:
+        return 'bg-gray-500 text-white';
+    }
+  };
+
+  const getIcon = () => {
+    switch (message.type) {
+      case 'success':
+        return <CheckCircle className="w-5 h-5" />;
+      case 'error':
+        return <XCircle className="w-5 h-5" />;
+      case 'warning':
+        return <AlertTriangle className="w-5 h-5" />;
+      case 'info':
+        return <AlertCircle className="w-5 h-5" />;
+      default:
+        return <AlertCircle className="w-5 h-5" />;
+    }
+  };
+
+  return (
+    <div className={`flex items-center p-4 rounded-lg shadow-lg mb-2 ${getToastStyles()}`}>
+      <div className="flex-shrink-0">
+        {getIcon()}
+      </div>
+      <div className="ml-3 flex-1">
+        <p className="text-sm font-medium">{message.message}</p>
+      </div>
+      <button
+        onClick={() => onRemove(message.id)}
+        className="ml-4 flex-shrink-0 text-white hover:text-gray-200"
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  );
+};
+
+// Toast Container
+const ToastContainer: React.FC<{
+  toasts: ToastMessage[];
+  onRemove: (id: string) => void;
+}> = ({ toasts, onRemove }) => {
+  return (
+    <div className="fixed top-4 right-4 z-[60] w-80">
+      {toasts.map((toast) => (
+        <Toast key={toast.id} message={toast} onRemove={onRemove} />
+      ))}
+    </div>
+  );
+};
+
 // API Service Functions
 const API_BASE = 'http://localhost:3000/api/lich-lam-viec';
 
@@ -196,17 +278,29 @@ const apiService = {
   }
 };
 
-// Toast notification function
+// Toast notification function - sẽ được thay thế bởi hook
+let addToastFunction: ((type: 'success' | 'error' | 'warning' | 'info', message: string) => void) | null = null;
+
 const toast = {
   success: (message: string) => {
-    console.log('SUCCESS:', message);
-    // You can implement actual toast notification here
-    alert('✅ ' + message);
+    if (addToastFunction) {
+      addToastFunction('success', message);
+    }
   },
   error: (message: string) => {
-    console.error('ERROR:', message);
-    // You can implement actual toast notification here
-    alert('❌ ' + message);
+    if (addToastFunction) {
+      addToastFunction('error', message);
+    }
+  },
+  warning: (message: string) => {
+    if (addToastFunction) {
+      addToastFunction('warning', message);
+    }
+  },
+  info: (message: string) => {
+    if (addToastFunction) {
+      addToastFunction('info', message);
+    }
   }
 };
 
@@ -866,6 +960,28 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
   const [itemToDelete, setItemToDelete] = useState<any>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Toast states
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // Toast functions
+  const addToast = (type: 'success' | 'error' | 'warning' | 'info', message: string) => {
+    const id = Date.now().toString();
+    const newToast: ToastMessage = { id, type, message };
+    setToasts(prev => [...prev, newToast]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  };
+
+  // Set global toast function
+  useEffect(() => {
+    addToastFunction = addToast;
+    return () => {
+      addToastFunction = null;
+    };
+  }, []);
+
   function getCurrentWeek() {
     const today = new Date();
     const monday = new Date(today);
@@ -1312,6 +1428,9 @@ const WorkScheduleManagement: React.FC<WorkScheduleManagementProps> = () => {
           onClose={() => setShowCreateLeaveModal(false)}
         />
       )}
+
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );
 };

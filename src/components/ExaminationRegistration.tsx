@@ -168,9 +168,14 @@ export default function ExaminationRegistration() {
   };
 
   const handleDeleteClick = (record: any) => {
-    setRecordToDelete(record);
-    setShowDeleteModal(true);
-  };
+  if ((record.TrangThai || "").toLowerCase() === "đã khám xong") {
+    toast.error("Không thể xóa phiếu đã khám xong!");
+    return;
+  }
+  setRecordToDelete(record);
+  setShowDeleteModal(true);
+};
+
 
   const handleConfirmDelete = async () => {
     if (!recordToDelete) return;
