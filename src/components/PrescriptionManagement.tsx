@@ -1153,7 +1153,7 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số Lượng</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hạn SD</th>
+                          {/* <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hạn SD</th> */}
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Liều Dùng</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đơn Giá</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng Tiền</th>
@@ -1169,7 +1169,7 @@ function PrescriptionForm({ prescription, viewMode, patients, doctors, medicines
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{medication.code}</td>
                             <td className="px-4 py-4 text-sm text-gray-900">{medication.name}</td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{medication.quantity}</td>
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{medication.expiryDate || "N/A"}</td>
+                            {/* <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{medication.expiryDate || "N/A"}</td> */}
                             <td className="px-4 py-4 text-sm text-gray-900">{medication.dosage}</td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                               {medication.unitPrice?.toLocaleString('vi-VN')} đ
@@ -1508,7 +1508,7 @@ function MedicineSearchModal({ medicines, searchTerm, onSearchChange, newMedicat
                   />
                 </div>
                 
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Hạn Sử Dụng
                   </label>
@@ -1518,7 +1518,7 @@ function MedicineSearchModal({ medicines, searchTerm, onSearchChange, newMedicat
                     onChange={(e) => setNewMedication({ ...newMedication, expiryDate: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                   />
-                </div>
+                </div> */}
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -1,5 +1,5 @@
 import { Authenticated, Unauthenticated, useQuery } from "convex/react";
-import { api } from "../convex/_generated/api";
+// import { api } from "../convex/_generated/api";
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginForm from './components/LoginForm';
 import LogoutButton from './components/LogoutButton';
