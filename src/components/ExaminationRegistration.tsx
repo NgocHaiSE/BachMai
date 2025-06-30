@@ -197,34 +197,41 @@ export default function ExaminationRegistration() {
   };
 
   const handleEdit = (record: any) => {
-    setEditingRecord(record);
-    // Find patient from record's patientId or create from record data
-    let patient = patients?.find((p: any) => p.idBenhNhan === record.MaBenhNhan);
-    
-    // If patient not found in patients list, create from record data
-    if (!patient && record.MaBenhNhan) {
-      patient = {
-        idBenhNhan: record.MaBenhNhan,
-        HoTen: record.TenBenhNhan || record.BenhNhan?.HoTen || '',
-        CCCD: record.BenhNhan?.CCCD || '',
-        NgaySinh: record.BenhNhan?.NgaySinh || '',
-        GioiTinh: record.BenhNhan?.GioiTinh || '',
-        NgheNghiep: record.BenhNhan?.NgheNghiep || '',
-        DanToc: record.BenhNhan?.DanToc || '',
-        SDT: record.BenhNhan?.SDT || '',
-        DiaChi: record.BenhNhan?.DiaChi || '',
-        HoTenThanNhan: record.BenhNhan?.HoTenThanNhan || '',
-        MoiQuanHe: record.BenhNhan?.MoiQuanHe || '',
-        SDTThanNhan: record.BenhNhan?.SDTThanNhan || '',
-        BHYT: record.BenhNhan?.BHYT || '',
-        ThoiHanBHYT: record.BenhNhan?.ThoiHanBHYT || '',
-        DoiTuongUuTien: record.BenhNhan?.DoiTuongUuTien || 'Bình thường'
-      };
-    }
-    
-    setSelectedPatient(patient || null);
-    setShowForm(true);
-  };
+  // Kiểm tra trạng thái
+  if ((record.TrangThai || "").toLowerCase() !== "đang chờ") {
+    toast.error("Chỉ có thể sửa phiếu ở trạng thái Đang chờ!");
+    return;
+  }
+
+  setEditingRecord(record);
+  // Find patient from record's patientId or create from record data
+  let patient = patients?.find((p: any) => p.idBenhNhan === record.MaBenhNhan);
+
+  // If patient not found in patients list, create from record data
+  if (!patient && record.MaBenhNhan) {
+    patient = {
+      idBenhNhan: record.MaBenhNhan,
+      HoTen: record.TenBenhNhan || record.BenhNhan?.HoTen || '',
+      CCCD: record.BenhNhan?.CCCD || '',
+      NgaySinh: record.BenhNhan?.NgaySinh || '',
+      GioiTinh: record.BenhNhan?.GioiTinh || '',
+      NgheNghiep: record.BenhNhan?.NgheNghiep || '',
+      DanToc: record.BenhNhan?.DanToc || '',
+      SDT: record.BenhNhan?.SDT || '',
+      DiaChi: record.BenhNhan?.DiaChi || '',
+      HoTenThanNhan: record.BenhNhan?.HoTenThanNhan || '',
+      MoiQuanHe: record.BenhNhan?.MoiQuanHe || '',
+      SDTThanNhan: record.BenhNhan?.SDTThanNhan || '',
+      BHYT: record.BenhNhan?.BHYT || '',
+      ThoiHanBHYT: record.BenhNhan?.ThoiHanBHYT || '',
+      DoiTuongUuTien: record.BenhNhan?.DoiTuongUuTien || 'Bình thường'
+    };
+  }
+
+  setSelectedPatient(patient || null);
+  setShowForm(true);
+};
+
 
   const handleSelectPatient = (patient: Patient) => {
     setSelectedPatient(patient);
